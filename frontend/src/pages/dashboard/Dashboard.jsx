@@ -249,7 +249,7 @@ export default function Dashboard() {
           href="/production/reports"
           icon={Factory}
           color="text-white"
-          style={{ background: "linear-gradient(135deg, #0d9488 0%, #2dd4bf 100%)" }}
+          style={{ background: "linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-light) 100%)" }}
           viewLabel={t("common.viewDetails")}
         />
         <StatCard
@@ -299,7 +299,7 @@ export default function Dashboard() {
           href="/accounts"
           icon={DollarSign}
           color="text-white"
-          style={{ background: "linear-gradient(135deg, #0f766e 0%, #14b8a6 100%)" }}
+          style={{ background: "linear-gradient(135deg, var(--color-primary-dark) 0%, var(--color-primary-light) 100%)" }}
           viewLabel={t("common.viewDetails")}
         />
       </div>
@@ -321,7 +321,7 @@ export default function Dashboard() {
                   <XAxis dataKey="month" tick={{ fontSize: 11 }} />
                   <YAxis tick={{ fontSize: 11 }} />
                   <Tooltip />
-                  <Line type="monotone" dataKey="value" stroke="#0d9488" strokeWidth={2} dot={{ fill: "#0d9488" }} />
+                  <Line type="monotone" dataKey="value" stroke="var(--color-primary)" strokeWidth={2} dot={{ fill: "var(--color-primary)" }} />
                 </LineChart>
               </ResponsiveContainer>
             </div>

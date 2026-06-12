@@ -23,7 +23,7 @@ export default function QuickActions({ actions = defaultActions }) {
       <Link
         to={primary.to}
         className="inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-white shadow-md transition-all hover:opacity-95 hover:shadow-lg"
-        style={{ background: "linear-gradient(135deg, #0d9488 0%, #14b8a6 100%)" }}
+        style={{ background: "linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-light) 100%)" }}
       >
         <primary.icon className="h-4 w-4 shrink-0" />
         {t(primary.labelKey)}

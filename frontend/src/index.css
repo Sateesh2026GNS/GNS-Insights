@@ -4,19 +4,19 @@
 
 /* ========== SMRT Design System – User-friendly UI/UX ========== */
 :root {
-  --color-primary: #0d9488;
-  --color-primary-dark: #0f766e;
-  --color-primary-light: #2dd4bf;
-  --color-dark-bg: #0f172a;
-  --color-accent: #f59e0b;
-  --color-accent-light: #fbbf24;
-  --color-running: #10b981;
+  --color-primary: #0f6d84;
+  --color-primary-dark: #0c5b6f;
+  --color-primary-light: #38bdf8;
+  --color-accent: #f97316;
+  --color-accent-dark: #ea580c;
+  --color-accent-light: #fb923c;
+  --color-running: #22c55e;
   --color-stopped: #ef4444;
-  --color-maintenance: #f59e0b;
-  --color-bg: #f1f5f9;
+  --color-maintenance: #facc15;
+  --color-bg: #f8fafc;
   --color-surface: #ffffff;
   --color-text: #0f172a;
-  --color-text-muted: #64748b;
+  --color-text-muted: #475569;
   /* UX: comfortable reading & touch */
   --radius-sm: 0.5rem;
   --radius-md: 0.75rem;
@@ -121,9 +121,9 @@ textarea {
   border-radius: var(--radius-md);
   font-weight: 600;
   font-size: 0.875rem;
-  background: linear-gradient(180deg, #0d9488 0%, #0f766e 100%);
+  background: linear-gradient(180deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
   color: white;
-  box-shadow: 0 2px 8px rgba(13, 148, 136, 0.35);
+  box-shadow: 0 2px 8px rgba(15, 118, 150, 0.35);
   transition: transform var(--transition-fast), box-shadow var(--transition-fast);
 }
 .ui-btn-primary:hover {

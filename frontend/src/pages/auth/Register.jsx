@@ -210,7 +210,7 @@ export default function Register() {
               disabled={loading}
               className="w-full py-3.5 rounded-xl font-bold text-white uppercase tracking-wider text-sm transition shadow-lg hover:shadow-orange-500/20 disabled:opacity-50"
               style={{
-                background: "linear-gradient(180deg, #fb923c 0%, #ea580c 100%)",
+                background: "linear-gradient(180deg, var(--color-accent) 0%, var(--color-accent-dark) 100%)",
                 boxShadow: "0 4px 14px rgba(234, 88, 12, 0.4)",
               }}
             >

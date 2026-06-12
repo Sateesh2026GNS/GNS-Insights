@@ -140,8 +140,8 @@ export default function Login() {
               disabled={loading}
               className="w-full py-3.5 rounded-xl font-bold text-white uppercase tracking-wider text-sm transition shadow-lg hover:shadow-teal-500/20 disabled:opacity-50"
               style={{
-                background: "linear-gradient(180deg, #0d9488 0%, #0f766e 100%)",
-                boxShadow: "0 4px 14px rgba(13, 148, 136, 0.4)",
+                background: "linear-gradient(180deg, var(--color-primary) 0%, var(--color-primary-dark) 100%)",
+                boxShadow: "0 4px 14px rgba(15, 118, 150, 0.35)",
               }}
             >
               {loading ? "Signing in…" : "Login to SMRT"}
@@ -166,7 +166,7 @@ export default function Login() {
               type="button"
               onClick={handleDemoLogin}
               className="w-full mt-3 py-2.5 rounded-xl text-sm font-medium text-white transition"
-              style={{ background: "linear-gradient(180deg, #0d9488 0%, #0f766e 100%)" }}
+              style={{ background: "linear-gradient(180deg, var(--color-primary) 0%, var(--color-primary-dark) 100%)" }}
             >
               Continue as {demoRole}
             </button>
