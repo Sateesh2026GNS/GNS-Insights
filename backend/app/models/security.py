@@ -73,3 +73,19 @@ class AuditLog(Base, TimestampMixin):
     resource_id: Mapped[int | None] = mapped_column(Integer)
     details: Mapped[str | None] = mapped_column(Text)
     ip_address: Mapped[str | None] = mapped_column(String(64))
+
+
+class AccessLog(Base, TimestampMixin):
+    __tablename__ = "access_logs"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    tenant_id: Mapped[int] = mapped_column(
+        ForeignKey("tenants.id"), nullable=False, index=True
+    )
+    user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"))
+    action: Mapped[str] = mapped_column(String(128), nullable=False)
+    resource: Mapped[str | None] = mapped_column(String(128))
+    resource_id: Mapped[int | None] = mapped_column(Integer)
+    ip_address: Mapped[str | None] = mapped_column(String(64))
+    user_agent: Mapped[str | None] = mapped_column(String(512))
+    logged_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)

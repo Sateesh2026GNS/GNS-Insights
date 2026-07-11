@@ -6,7 +6,6 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.models.machine import Machine, MachineStatusEvent
-from app.models.maintenance import BreakdownReport, MaintenanceRecord
 from app.models.production import DailyProductionReport, WorkOrder
 from app.models.user import User
 from app.schemas.machine import (
@@ -133,21 +132,7 @@ def get_machine_detail(
         ).all()
     )
     detail.work_orders = [MachineWorkOrderRead.model_validate(w) for w in work_orders]
-
-    maint = list(
-        db.scalars(
-            select(MaintenanceRecord)
-            .where(
-                MaintenanceRecord.machine_id == machine_id,
-                MaintenanceRecord.tenant_id == tenant_id,
-            )
-            .order_by(MaintenanceRecord.maintenance_date.desc())
-            .limit(10)
-        ).all()
-    )
-    detail.maintenance_history = [
-        MachineMaintenanceRead.model_validate(m) for m in maint
-    ]
+    detail.maintenance_history = []
 
     logs = list(
         db.scalars(
@@ -161,14 +146,7 @@ def get_machine_detail(
         ).all()
     )
     detail.status_logs = [MachineStatusLogRead.model_validate(l) for l in logs]
-
-    downtime = db.scalar(
-        select(func.coalesce(func.sum(BreakdownReport.downtime_minutes), 0)).where(
-            BreakdownReport.machine_id == machine_id,
-            BreakdownReport.tenant_id == tenant_id,
-        )
-    ) or 0
-    detail.downtime_minutes = int(downtime)
+    detail.downtime_minutes = 0
     detail.energy_kwh = round((machine.rpm or 0) * 0.05, 1) if machine.rpm else None
     return detail
 

@@ -56,11 +56,6 @@ export default function GlobalSearch({ onSelect, placeholderKey = "common.search
 
   const showDropdown = open && (focus || query);
 
-  const focusSearch = useCallback(() => {
-    inputRef.current?.focus();
-    setOpen(true);
-  }, []);
-
   useEffect(() => {
     setHighlight(0);
   }, [query]);
@@ -78,10 +73,6 @@ export default function GlobalSearch({ onSelect, placeholderKey = "common.search
 
   useEffect(() => {
     const onKeyDown = (e) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === "k") {
-        e.preventDefault();
-        focusSearch();
-      }
       if (e.key === "Escape") {
         setOpen(false);
         inputRef.current?.blur();
@@ -102,7 +93,7 @@ export default function GlobalSearch({ onSelect, placeholderKey = "common.search
     };
     document.addEventListener("keydown", onKeyDown);
     return () => document.removeEventListener("keydown", onKeyDown);
-  }, [showDropdown, matches, highlight, focusSearch, handleSelect]);
+  }, [showDropdown, matches, highlight, handleSelect]);
 
   return (
     <div className="relative w-full">
@@ -121,19 +112,13 @@ export default function GlobalSearch({ onSelect, placeholderKey = "common.search
           setFocus(true);
         }}
         onBlur={() => setTimeout(() => setFocus(false), 150)}
-        className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-10 pr-16 text-sm text-slate-700 placeholder:text-slate-400 focus:border-[#2563EB] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20"
+        className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-10 pr-4 text-sm text-slate-700 placeholder:text-slate-400 focus:border-[#2563EB] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20"
         aria-label={t("common.search")}
         aria-expanded={showDropdown}
         aria-controls="global-search-results"
         role="combobox"
         autoComplete="off"
       />
-      <kbd
-        className="pointer-events-none absolute right-3 top-1/2 hidden -translate-y-1/2 items-center gap-0.5 rounded-md border border-slate-200 bg-white px-1.5 py-0.5 text-[10px] font-medium text-slate-500 sm:inline-flex"
-        aria-hidden
-      >
-        Ctrl K
-      </kbd>
       {showDropdown && (
         <div
           id="global-search-results"

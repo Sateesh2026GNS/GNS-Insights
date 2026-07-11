@@ -1,134 +1,158 @@
 import api from "./axiosConfig";
 
-export const seedProducts = () => api.post("/production/seed-products");
+function unwrap(res) {
+  const body = res?.data;
+  if (body && typeof body === "object" && "success" in body && "data" in body) {
+    return { ...res, data: body.data };
+  }
+  return res;
+}
 
-export const getProducts = () => api.get("/production/products");
+async function apiGet(url, config) {
+  return unwrap(await api.get(url, config));
+}
 
-export const getProductionOrders = () => api.get("/production/orders");
+async function apiPost(url, data, config) {
+  return unwrap(await api.post(url, data, config));
+}
 
-export const getProductionPlanningSummary = () =>
-  api.get("/production/orders/summary");
+async function apiPatch(url, data, config) {
+  return unwrap(await api.patch(url, data, config));
+}
+
+async function apiPut(url, data, config) {
+  return unwrap(await api.put(url, data, config));
+}
+
+export const seedProducts = () => apiPost("/api/masters/products/seed").catch(() => ({ data: { status: "ok" } }));
+
+export const getProducts = () => apiGet("/api/masters/products");
+
+export const getProductionOrders = async () => {
+  const res = await apiGet("/api/production/planning");
+  return { ...res, data: res.data?.orders ?? res.data ?? [] };
+};
+
+export const getProductionPlanningSummary = () => apiGet("/api/production/planning/summary");
 
 export const getProductionOrderDetail = (orderId) =>
-  api.get(`/production/orders/${orderId}`);
+  apiGet(`/api/production/planning/${orderId}`);
 
 export const getProductionOrderStartChecks = (orderId) =>
-  api.get(`/production/orders/${orderId}/start-checks`);
+  apiGet(`/api/production/planning/${orderId}/start-checks`);
 
 export const startProductionOrder = (orderId) =>
-  api.post(`/production/orders/${orderId}/start`);
+  apiPost(`/api/production/planning/${orderId}/start`);
 
 export const completeProductionOrder = (orderId) =>
-  api.post(`/production/orders/${orderId}/complete`);
+  apiPost(`/api/production/planning/${orderId}/complete`);
 
 export const pauseProductionOrder = (orderId) =>
-  api.post(`/production/orders/${orderId}/pause`);
+  apiPost(`/api/production/planning/${orderId}/pause`);
 
 export const createProductionOrder = (payload) =>
-  api.post("/production/orders", payload);
+  apiPost("/api/production/planning", payload);
 
 export const updateProductionOrderStatus = (orderId, status) =>
-  api.patch(`/production/orders/${orderId}/status`, null, { params: { status } });
+  apiPatch(`/api/production/planning/${orderId}/status`, null, { params: { status } });
 
 export const getWorkOrders = (productionOrderId) =>
-  api.get("/production/work-orders", {
+  apiGet("/api/production/work-orders", {
     params: productionOrderId ? { production_order_id: productionOrderId } : {},
   });
 
 export const getWorkOrderSummary = (productionOrderId) =>
-  api.get("/production/work-orders/summary", {
+  apiGet("/api/production/work-orders/summary", {
     params: productionOrderId ? { production_order_id: productionOrderId } : {},
   });
 
 export const getWorkOrderDetail = (workOrderId) =>
-  api.get(`/production/work-orders/${workOrderId}`);
+  apiGet(`/api/production/work-orders/${workOrderId}`);
 
 export const getWorkOrderStartChecks = (workOrderId) =>
-  api.get(`/production/work-orders/${workOrderId}/start-checks`);
+  apiGet(`/api/production/work-orders/${workOrderId}/start-checks`);
 
 export const startWorkOrder = (workOrderId) =>
-  api.post(`/production/work-orders/${workOrderId}/start`);
+  apiPost(`/api/production/work-orders/${workOrderId}/start`);
 
 export const pauseWorkOrder = (workOrderId) =>
-  api.post(`/production/work-orders/${workOrderId}/pause`);
+  apiPost(`/api/production/work-orders/${workOrderId}/pause`);
 
 export const stopWorkOrder = (workOrderId) =>
-  api.post(`/production/work-orders/${workOrderId}/stop`);
+  apiPost(`/api/production/work-orders/${workOrderId}/stop`);
 
 export const completeWorkOrder = (workOrderId) =>
-  api.post(`/production/work-orders/${workOrderId}/complete`);
+  apiPost(`/api/production/work-orders/${workOrderId}/complete`);
 
 export const createWorkOrder = (payload) =>
-  api.post("/production/work-orders", payload);
+  apiPost("/api/production/work-orders", payload);
 
 export const quickCreateWorkOrder = (payload) =>
-  api.post("/production/work-orders/quick", payload);
+  apiPost("/api/production/work-orders/quick", payload);
 
 export const updateWorkOrder = (workOrderId, _tenantId, payload) =>
-  api.patch(`/production/work-orders/${workOrderId}`, payload);
+  apiPatch(`/api/production/work-orders/${workOrderId}`, payload);
 
 export const updateMachineStatus = (machineId, _tenantId, status) =>
-  api.patch(`/production/machines/${machineId}`, { status });
+  apiPatch(`/api/masters/machines/${machineId}/status`, { status });
 
 export const getBatches = (_tenantId, workOrderId) =>
-  api.get("/production/batches", {
-    params: { work_order_id: workOrderId },
+  apiGet("/api/production/batches", {
+    params: workOrderId ? { work_order_id: workOrderId } : {},
   });
 
-export const createBatch = (payload) => api.post("/production/batches", payload);
+export const createBatch = (payload) => apiPost("/api/production/batches", payload);
 
-export const getMachines = () => api.get("/production/machines");
+export const getMachines = () => apiGet("/api/masters/machines");
 
-export const getMachineSummary = () => api.get("/production/machines/summary");
+export const getMachineSummary = () => apiGet("/api/masters/machines/summary");
 
 export const getMachineDetail = (machineId) =>
-  api.get(`/production/machines/${machineId}`);
+  apiGet(`/api/masters/machines/${machineId}`);
 
 export const createMachineFull = (payload) =>
-  api.post("/production/machines/full", payload);
+  apiPost("/api/masters/machines", payload);
 
 export const updateMachineFull = (machineId, payload) =>
-  api.put(`/production/machines/${machineId}`, payload);
+  apiPut(`/api/masters/machines/${machineId}`, payload);
 
 export const createMachine = (payload) =>
-  api.post("/production/machines", payload);
+  apiPost("/api/masters/machines/simple", payload);
 
 export const getMachineStatusEvents = (_tenantId, machineId) =>
-  api.get("/production/machine-status", {
-    params: { machine_id: machineId },
+  apiGet("/api/masters/machine-status", {
+    params: machineId ? { machine_id: machineId } : {},
   });
 
 export const createMachineStatusEvent = (payload) =>
-  api.post("/production/machine-status", payload);
+  apiPost("/api/masters/machine-status", payload);
 
 export const getDailyReports = (_tenantId, params = {}) =>
-  api.get("/production/daily-reports", {
-    params: { ...params },
-  });
+  apiGet("/api/production/daily-reports", { params: { ...params } });
 
 export const createDailyReport = (payload) =>
-  api.post("/production/daily-reports", payload);
+  apiPost("/api/production/daily-reports", payload);
 
 export const getAllocationSummary = () =>
-  api.get("/production/allocation/summary");
+  apiGet("/api/production/allocation/summary");
 
 export const getAllocations = () =>
-  api.get("/production/allocation");
+  apiGet("/api/production/allocation/rows");
 
 export const getAllocationMachines = () =>
-  api.get("/production/allocation/machines");
+  apiGet("/api/production/allocation/machines");
 
 export const assignAllocation = (payload) =>
-  api.post("/production/allocation/assign", payload);
+  apiPost("/api/production/allocation/assign", payload);
 
 export const getBatchSummary = () =>
-  api.get("/production/batches/summary");
+  apiGet("/api/production/batches/summary");
 
 export const getBatchesEnriched = () =>
-  api.get("/production/batches/enriched");
+  apiGet("/api/production/batches/items");
 
 export const getBatchDetail = (batchId) =>
-  api.get(`/production/batches/${batchId}`);
+  apiGet(`/api/production/batches/${batchId}`);
 
 export const getProductionHub = () =>
-  api.get("/production/hub");
+  apiGet("/api/production/hub");

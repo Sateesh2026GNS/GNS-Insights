@@ -7,7 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
 from app.core.permissions import ADMIN_ROLE, get_role_names, get_user_permissions, is_valid_permission
-from app.models.admin import AccessLog
+from app.models.security import AccessLog
 from app.models.role import Role
 from app.models.user import User
 from app.schemas.rbac import RoleCreate, RoleUpdate, UserCreate, UserUpdate

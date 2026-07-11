@@ -44,6 +44,13 @@ class Settings(BaseSettings):
     # CORS: comma-separated list of allowed origins
     cors_origins: str = "http://localhost:5173,http://localhost:3000"
 
+    # LLM / AI Operator Assistant (OpenAI-compatible API)
+    llm_api_key: str = ""
+    llm_base_url: str = "https://api.openai.com/v1"
+    llm_model: str = "gpt-4.1"
+    llm_timeout_seconds: int = 30
+    ai_assistant_enabled: bool = True
+
     @field_validator("database_url")
     @classmethod
     def require_sqlite(cls, value: str) -> str:

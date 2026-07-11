@@ -8,7 +8,7 @@ from app.models.base import Base  # noqa: F401
 
 from app.models import (  # noqa: F401
     accounts,
-    admin,
+    ai_conversation,
     alert,
     bom,
     company_settings,
@@ -18,14 +18,15 @@ from app.models import (  # noqa: F401
     inventory,
     machine,
     maintenance,
+    notification,
     procurement,
     product,
     production,
     quality,
     role,
     sales,
+    security,
     task,
     tenant,
     user,
-    security,
 )

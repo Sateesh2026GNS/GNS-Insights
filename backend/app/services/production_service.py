@@ -86,37 +86,8 @@ def _completed_quantity(order: ProductionOrder, work_orders: list[WorkOrder]) ->
 
 
 def _receive_finished_goods_on_completion(db: Session, order: ProductionOrder) -> None:
-    """Stock finished goods when a production order is marked completed."""
-    from app.schemas.inventory import StockMovementCreate
-    from app.services.alert_service import sync_low_stock_alerts
-    from app.services.inventory_service import (
-        find_or_create_finished_good_for_product,
-        get_default_warehouse,
-        record_stock_movement,
-    )
-
-    product = db.get(Product, order.product_id)
-    if not product:
-        return
-    warehouse = get_default_warehouse(db, order.tenant_id)
-    if not warehouse:
-        return
-    work_orders = list_work_orders(db, order.tenant_id, order.id)
-    quantity = _completed_quantity(order, work_orders)
-    if quantity <= 0:
-        return
-    item = find_or_create_finished_good_for_product(db, order.tenant_id, product)
-    record_stock_movement(
-        db,
-        StockMovementCreate(
-            tenant_id=order.tenant_id,
-            warehouse_id=warehouse.id,
-            item_id=item.id,
-            quantity=quantity,
-            movement_type="in",
-        ),
-    )
-    sync_low_stock_alerts(db, order.tenant_id)
+    """Inventory module removed — production completion no longer posts stock movements."""
+    return
 
 
 def create_work_order(db: Session, payload: WorkOrderCreate, assigned_user_id: int | None = None) -> WorkOrder:

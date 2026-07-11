@@ -6,6 +6,7 @@ from app.api.deps import get_db
 from app.core.permissions import require_permission, tenant_scope
 from app.models.user import User
 from app.schemas.alert import AlertCreate, AlertRead
+from app.schemas.operator import NotificationReadRequest
 from app.services.alert_service import (
     acknowledge_alert,
     create_alert,
@@ -50,6 +51,27 @@ def notifications_endpoint(
     from app.services.notification_service import get_user_notifications
 
     return get_user_notifications(db, user)
+
+
+@router.post("/notifications/read")
+def notifications_read_endpoint(
+    payload: NotificationReadRequest,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    from app.services.notification_service import mark_notifications_read
+
+    return mark_notifications_read(db, user, payload.notification_ids)
+
+
+@router.delete("/notifications/clear")
+def notifications_clear_endpoint(
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    from app.services.notification_service import clear_all_notifications
+
+    return clear_all_notifications(db, user)
 
 
 @router.post("/sync-low-stock", response_model=list[AlertRead])

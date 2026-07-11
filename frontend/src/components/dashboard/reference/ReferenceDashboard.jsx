@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
@@ -46,6 +46,7 @@ import {
   topMachines,
   warehouseLocations,
 } from "../../../data/referenceDashboardData";
+import { getErpDashboard } from "../../../api/dashboardApi";
 import useAuth from "../../../hooks/useAuth";
 import { userCanAccess } from "../../../config/permissions";
 import {
@@ -130,11 +131,11 @@ const blockIcons = {
   alert: AlertTriangle,
 };
 
-function KpiStrip() {
+function KpiStrip({ cards = kpiCards }) {
   const { t } = useTranslation();
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
-      {kpiCards.map((card) => {
+      {cards.map((card) => {
         const titleKey = KPI_TITLE_KEYS[card.id];
         const trendKey = TREND_LABEL_KEYS[card.trendLabel];
         return (
@@ -169,10 +170,10 @@ function KpiStrip() {
   );
 }
 
-function ProductionOverview() {
+function ProductionOverview({ chartSets }) {
   const { t } = useTranslation();
   const [period, setPeriod] = useState("Daily");
-  const chartData = PRODUCTION_DATA[period] ?? productionOverview;
+  const chartData = chartSets?.[period] ?? PRODUCTION_DATA[period] ?? productionOverview;
   return (
     <CardShell
       title={t("refDashboard.productionOverview")}
@@ -209,17 +210,17 @@ function ProductionOverview() {
   );
 }
 
-function ShopFloorStatus() {
+function ShopFloorStatus({ statusData = shopFloorStatus }) {
   const { t } = useTranslation();
-  const total = shopFloorStatus.reduce((s, d) => s + d.value, 0);
+  const total = statusData.reduce((s, d) => s + d.value, 0);
   return (
     <CardShell title={t("refDashboard.shopFloorStatus")} className="h-full">
       <div className="flex flex-col items-center gap-3 sm:flex-row">
         <div className="relative h-[180px] w-[180px] shrink-0">
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
-              <Pie data={shopFloorStatus} dataKey="value" cx="50%" cy="50%" innerRadius={55} outerRadius={78} paddingAngle={2}>
-                {shopFloorStatus.map((e) => (
+              <Pie data={statusData} dataKey="value" cx="50%" cy="50%" innerRadius={55} outerRadius={78} paddingAngle={2}>
+                {statusData.map((e) => (
                   <Cell key={e.name} fill={e.color} stroke="none" />
                 ))}
               </Pie>
@@ -231,7 +232,7 @@ function ShopFloorStatus() {
           </div>
         </div>
         <ul className="flex-1 space-y-2 text-sm">
-          {shopFloorStatus.map((item) => {
+          {statusData.map((item) => {
             const key = SHOP_FLOOR_KEYS[item.name];
             return (
               <li key={item.name} className="flex items-center justify-between gap-2">
@@ -249,12 +250,12 @@ function ShopFloorStatus() {
   );
 }
 
-function TopMachines() {
+function TopMachines({ machines = topMachines }) {
   const { t } = useTranslation();
   return (
     <CardShell title={t("refDashboard.topMachines")} className="h-full">
       <ul className="space-y-3">
-        {topMachines.map((m) => (
+        {machines.map((m) => (
           <li key={m.id} className="flex items-center gap-3">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-[10px] font-bold text-slate-500">
               {m.id.split("-")[0]}
@@ -275,13 +276,13 @@ function TopMachines() {
   );
 }
 
-function OrdersOverview() {
+function OrdersOverview({ overview = ordersOverview }) {
   const { t } = useTranslation();
   const stats = [
-    { labelKey: "totalOrders", value: ordersOverview.total, color: "text-[#2563EB]" },
-    { labelKey: "inProgress", value: ordersOverview.inProgress, color: "text-orange-500" },
-    { labelKey: "completed", value: ordersOverview.completed, color: "text-green-600" },
-    { labelKey: "onHold", value: ordersOverview.onHold, color: "text-red-500" },
+    { labelKey: "totalOrders", value: overview.total, color: "text-[#2563EB]" },
+    { labelKey: "inProgress", value: overview.inProgress, color: "text-orange-500" },
+    { labelKey: "completed", value: overview.completed, color: "text-green-600" },
+    { labelKey: "onHold", value: overview.onHold, color: "text-red-500" },
   ];
   return (
     <CardShell title={t("refDashboard.ordersOverview")}>
@@ -296,10 +297,10 @@ function OrdersOverview() {
       <div>
         <div className="mb-1 flex justify-between text-xs">
           <span className="font-medium text-slate-600">{t("refDashboard.overallProgress")}</span>
-          <span className="font-bold text-[#2563EB]">{ordersOverview.progress}%</span>
+          <span className="font-bold text-[#2563EB]">{overview.progress}%</span>
         </div>
         <div className="h-3 overflow-hidden rounded-full bg-slate-100">
-          <div className="h-full rounded-full bg-gradient-to-r from-[#3B82F6] to-[#60A5FA]" style={{ width: `${ordersOverview.progress}%` }} />
+          <div className="h-full rounded-full bg-gradient-to-r from-[#3B82F6] to-[#60A5FA]" style={{ width: `${overview.progress}%` }} />
         </div>
       </div>
     </CardShell>
@@ -351,15 +352,15 @@ function InventorySummary() {
   );
 }
 
-function AlertsNotifications() {
+function AlertsNotifications({ alerts = alertsFeed }) {
   const { t } = useTranslation();
   return (
     <CardShell
       title={t("refDashboard.alertsNotifications")}
-      action={<Link to="/alerts" className="text-xs font-semibold text-[#2563EB] hover:underline">{t("common.viewAll")}</Link>}
+      action={<Link to="/production/work-orders" className="text-xs font-semibold text-[#2563EB] hover:underline">{t("common.viewAll")}</Link>}
     >
       <ul className="space-y-3 max-h-[220px] overflow-y-auto pr-1">
-        {alertsFeed.map((a, i) => {
+        {alerts.map((a, i) => {
           const Icon = alertIcons[a.icon] || AlertTriangle;
           const messageKey = ALERT_MESSAGE_KEYS[i];
           const timeMeta = ALERT_TIME_META[i];
@@ -414,7 +415,7 @@ function QuickActions() {
   );
 }
 
-function RecentWorkOrders() {
+function RecentWorkOrders({ workOrders = recentWorkOrdersRef }) {
   const { t } = useTranslation();
   return (
     <CardShell
@@ -433,7 +434,7 @@ function RecentWorkOrders() {
             </tr>
           </thead>
           <tbody>
-            {recentWorkOrdersRef.map((wo) => (
+            {workOrders.map((wo) => (
               <tr key={wo.wo} className="border-b border-slate-50 last:border-0">
                 <td className="py-2.5 pr-3 font-semibold text-[#2563EB]">{wo.wo}</td>
                 <td className="py-2.5 pr-3 text-slate-700">{wo.product}</td>
@@ -474,26 +475,80 @@ function TodaysSummary() {
 
 export default function ReferenceDashboard() {
   const { t } = useTranslation();
+  const [apiData, setApiData] = useState(null);
+
+  useEffect(() => {
+    getErpDashboard()
+      .then((res) => setApiData(res.data))
+      .catch(() => setApiData(null));
+  }, []);
+
+  const kpiCardsLive = useMemo(() => {
+    if (!apiData?.kpi_cards?.length) return kpiCards;
+    const byId = Object.fromEntries(kpiCards.map((c) => [c.id, c]));
+    return apiData.kpi_cards.map((k) => ({
+      ...byId[k.id],
+      ...k,
+      value: k.value,
+      trend: k.trend,
+      trendUp: k.trendUp,
+      trendLabel: k.trendLabel,
+      unit: k.unit,
+      suffix: k.suffix,
+    }));
+  }, [apiData]);
+
+  const chartSets = useMemo(() => {
+    if (!apiData) return null;
+    return {
+      Daily: apiData.production_overview || productionOverview,
+      Weekly: apiData.production_overview_weekly || productionOverviewWeekly,
+      Monthly: apiData.production_overview_monthly || productionOverviewMonthly,
+    };
+  }, [apiData]);
+
+  const alertsLive = useMemo(() => {
+    if (!apiData?.alerts_feed?.length) return alertsFeed;
+    return apiData.alerts_feed.map((a, i) => ({
+      id: a.id || i + 1,
+      message: a.message,
+      time: a.time || "",
+      color: a.color || "#EF4444",
+      icon: a.icon || "alert",
+    }));
+  }, [apiData]);
+
+  const workOrdersLive = useMemo(() => {
+    if (!apiData?.recent_work_orders?.length) return recentWorkOrdersRef;
+    return apiData.recent_work_orders.map((w) => ({
+      wo: w.wo,
+      product: w.product,
+      qty: w.qty,
+      status: w.status,
+      due: w.due ? String(w.due).slice(0, 10) : "—",
+    }));
+  }, [apiData]);
+
   return (
     <div className="space-y-5 pb-4">
-      <KpiStrip />
+      <KpiStrip cards={kpiCardsLive} />
 
       <div className="grid grid-cols-1 gap-5 xl:grid-cols-12">
         <div className="xl:col-span-5">
-          <ProductionOverview />
+          <ProductionOverview chartSets={chartSets} />
         </div>
         <div className="xl:col-span-3">
-          <ShopFloorStatus />
+          <ShopFloorStatus statusData={apiData?.shop_floor_status || shopFloorStatus} />
         </div>
         <div className="xl:col-span-4">
-          <TopMachines />
+          <TopMachines machines={apiData?.top_machines || topMachines} />
         </div>
       </div>
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
-        <OrdersOverview />
+        <OrdersOverview overview={apiData?.orders_overview || ordersOverview} />
         <InventorySummary />
-        <AlertsNotifications />
+        <AlertsNotifications alerts={alertsLive} />
       </div>
 
       <div className="grid grid-cols-1 gap-5 xl:grid-cols-12">
@@ -501,7 +556,7 @@ export default function ReferenceDashboard() {
           <QuickActions />
         </div>
         <div className="xl:col-span-5">
-          <RecentWorkOrders />
+          <RecentWorkOrders workOrders={workOrdersLive} />
         </div>
         <div className="xl:col-span-4">
           <TodaysSummary />

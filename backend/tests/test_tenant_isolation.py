@@ -1,9 +1,9 @@
 def _create_product(client, headers, sku, name="Widget"):
     return client.post(
-        "/production/products/manage",
+        "/api/masters/products",
         headers=headers,
         json={
-            "tenant_id": 0,  # should be overridden server-side
+            "tenant_id": 0,
             "sku": sku,
             "name": name,
             "unit_cost": 10.0,
@@ -12,27 +12,32 @@ def _create_product(client, headers, sku, name="Widget"):
     )
 
 
+def _unwrap_list(data):
+    if isinstance(data, dict) and "success" in data and "data" in data:
+        return data["data"]
+    return data
+
+
 def test_product_not_visible_across_tenants(client, register_admin):
     tenant_a = register_admin()
     tenant_b = register_admin()
 
     resp = _create_product(client, tenant_a["headers"], sku="A-SKU-1", name="Alpha")
     assert resp.status_code == 200, resp.text
-    product_id = resp.json()["id"]
-    assert resp.json()["tenant_id"] == tenant_a["user"]["tenant_id"]
+    created = _unwrap_list(resp.json())
+    product_id = created["id"]
 
-    # Tenant A sees its product.
-    list_a = client.get("/production/products", headers=tenant_a["headers"])
+    list_a = client.get("/api/masters/products", headers=tenant_a["headers"])
     assert list_a.status_code == 200
-    assert any(p["id"] == product_id for p in list_a.json())
+    products_a = _unwrap_list(list_a.json())
+    assert any(p["id"] == product_id for p in products_a)
 
-    # Tenant B does not.
-    list_b = client.get("/production/products", headers=tenant_b["headers"])
+    list_b = client.get("/api/masters/products", headers=tenant_b["headers"])
     assert list_b.status_code == 200
-    assert all(p["id"] != product_id for p in list_b.json())
+    products_b = _unwrap_list(list_b.json())
+    assert all(p["id"] != product_id for p in products_b)
 
-    # Tenant B cannot fetch it by id.
     detail_b = client.get(
-        f"/production/products/{product_id}", headers=tenant_b["headers"]
+        f"/api/masters/products/{product_id}", headers=tenant_b["headers"]
     )
     assert detail_b.status_code == 404

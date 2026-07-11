@@ -1,10 +1,20 @@
 import api from "./axiosConfig";
 
-export const getBillOfMaterials = () => api.get("/products/bom");
+function unwrap(res) {
+  const body = res?.data;
+  if (body && typeof body === "object" && "success" in body && "data" in body) {
+    return { ...res, data: body.data };
+  }
+  return res;
+}
 
-export const getProductBom = (productId) => api.get(`/production/products/${productId}/bom`);
+export const getAllBom = async () => unwrap(await api.get("/api/masters/bom"));
 
-export const addBomItem = (productId, payload) =>
-  api.post(`/production/products/${productId}/bom`, payload);
+export const getProductBom = async (productId) =>
+  unwrap(await api.get(`/api/masters/bom/product/${productId}`));
 
-export const deleteBomItem = (bomId) => api.delete(`/production/products/bom/${bomId}`);
+export const addBomItem = async (productId, payload) =>
+  unwrap(await api.post("/api/masters/bom", { ...payload, product_id: productId }));
+
+export const deleteBomItem = async (bomId) =>
+  unwrap(await api.delete(`/api/masters/bom/${bomId}`));

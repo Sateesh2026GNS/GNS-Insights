@@ -1,15 +1,20 @@
 import api from "./axiosConfig";
 
-export const getProducts = () => api.get("/production/products");
+function unwrap(res) {
+  const body = res?.data;
+  if (body && typeof body === "object" && "success" in body && "data" in body) {
+    return { ...res, data: body.data };
+  }
+  return res;
+}
 
-export const getProductDetail = (id) => api.get(`/production/products/${id}`);
+export const getProducts = async () => unwrap(await api.get("/api/masters/products"));
 
-export const createProduct = (payload) => api.post("/production/products/manage", payload);
+export const getProductDetail = async (id) => unwrap(await api.get(`/api/masters/products/${id}`));
 
-export const updateProduct = (id, payload) => api.patch(`/production/products/${id}`, payload);
+export const createProduct = async (payload) => unwrap(await api.post("/api/masters/products", payload));
 
-export const deleteProduct = (id) => api.delete(`/production/products/${id}`);
+export const updateProduct = async (id, payload) =>
+  unwrap(await api.put(`/api/masters/products/${id}`, payload));
 
-export const getProductCatalog = () => api.get("/products/catalog");
-
-export const getProductCategories = () => api.get("/products/categories");
+export const deleteProduct = async (id) => unwrap(await api.delete(`/api/masters/products/${id}`));

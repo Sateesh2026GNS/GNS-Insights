@@ -5,7 +5,6 @@ from datetime import date, datetime, timezone
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.models.hr import AttendanceRecord, Employee
 from app.models.machine import Machine
 from app.models.product import Product
 from app.models.production import DailyProductionReport, ProductionOrder, WorkOrder
@@ -41,10 +40,10 @@ def get_shop_floor_summary(db: Session, tenant_id: int) -> ShopFloorSummaryRead:
     )
     operators = int(
         db.scalar(
-            select(func.count(func.distinct(AttendanceRecord.employee_id))).where(
-                AttendanceRecord.tenant_id == tenant_id,
-                AttendanceRecord.record_date == today,
-                AttendanceRecord.clock_in.isnot(None),
+            select(func.count(func.distinct(WorkOrder.assigned_user_id))).where(
+                WorkOrder.tenant_id == tenant_id,
+                WorkOrder.status.in_(RUNNING_WO),
+                WorkOrder.assigned_user_id.isnot(None),
             )
         ) or 0
     )
@@ -170,31 +169,8 @@ def get_shop_floor_alerts(db: Session, tenant_id: int) -> list[ShopFloorAlertRea
             )
         )
     alerts.append(
-        ShopFloorAlertRead(alert_type="quality_failed", message="Quality Failed", severity="warning")
+        ShopFloorAlertRead(alert_type="material_shortage", message="Material check pending", severity="warning")
     )
-    absent = int(
-        db.scalar(
-            select(func.count(Employee.id)).where(
-                Employee.tenant_id == tenant_id,
-                Employee.is_active.is_(True),
-            )
-        ) or 0
-    ) - int(
-        db.scalar(
-            select(func.count(func.distinct(AttendanceRecord.employee_id))).where(
-                AttendanceRecord.tenant_id == tenant_id,
-                AttendanceRecord.record_date == date.today(),
-            )
-        ) or 0
-    )
-    if absent > 0:
-        alerts.append(
-            ShopFloorAlertRead(
-                alert_type="operator_absent",
-                message="Operator Absent",
-                severity="warning",
-            )
-        )
     return alerts[:6]
 
 

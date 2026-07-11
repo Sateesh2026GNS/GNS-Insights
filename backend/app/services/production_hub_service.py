@@ -1,14 +1,12 @@
 """Production hub — unified control center dashboard."""
 
-from datetime import date
-
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.models.hr import AttendanceRecord, Employee
 from app.models.machine import Machine
 from app.models.product import Product
 from app.models.production import ProductionOrder, WorkOrder
+from app.models.user import User
 from app.schemas.production_hub import ProductionHubRead
 
 RUNNING = ("running", "in_progress")
@@ -46,19 +44,17 @@ def get_production_hub(db: Session, tenant_id: int) -> ProductionHubRead:
         ) or 0
     )
 
-    total_emp = int(
+    total_users = int(
         db.scalar(
-            select(func.count(Employee.id)).where(
-                Employee.tenant_id == tenant_id, Employee.is_active.is_(True)
-            )
+            select(func.count(User.id)).where(User.tenant_id == tenant_id, User.is_active.is_(True))
         ) or 0
     )
     present = int(
         db.scalar(
-            select(func.count(func.distinct(AttendanceRecord.employee_id))).where(
-                AttendanceRecord.tenant_id == tenant_id,
-                AttendanceRecord.record_date == date.today(),
-                AttendanceRecord.clock_in.isnot(None),
+            select(func.count(func.distinct(WorkOrder.assigned_user_id))).where(
+                WorkOrder.tenant_id == tenant_id,
+                WorkOrder.status.in_(RUNNING),
+                WorkOrder.assigned_user_id.isnot(None),
             )
         ) or 0
     )
@@ -87,10 +83,7 @@ def get_production_hub(db: Session, tenant_id: int) -> ProductionHubRead:
             }
         )
 
-    machine_status = [
-        {"name": m.name, "status": m.status, "code": m.code}
-        for m in machines[:8]
-    ]
+    machine_status = [{"name": m.name, "status": m.status, "code": m.code} for m in machines[:8]]
 
     return ProductionHubRead(
         running_jobs=running_jobs or 12,
@@ -99,12 +92,12 @@ def get_production_hub(db: Session, tenant_id: int) -> ProductionHubRead:
         machines_down=down_m or 2,
         production_in_progress=in_progress or 18,
         production_completed_today=completed_today or 6,
-        material_shortages=2,
-        material_available=15,
+        material_shortages=0,
+        material_available=0,
         operators_present=present or 42,
-        operators_absent=max(total_emp - present, 0) or 3,
-        quality_passed=28,
-        quality_failed=2,
+        operators_absent=max(total_users - present, 0) or 3,
+        quality_passed=0,
+        quality_failed=0,
         recent_jobs=recent,
         machine_status=machine_status,
     )

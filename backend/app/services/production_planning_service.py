@@ -6,7 +6,6 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.models.bom import BillOfMaterial
-from app.models.inventory import InventoryItem, StockLevel
 from app.models.machine import Machine
 from app.models.product import Product
 from app.models.production import (
@@ -217,30 +216,14 @@ def _materials_for_order(
     planned = float(order.planned_quantity or 0)
     for item in bom_items:
         component = db.get(Product, item.component_product_id)
-        inv = db.scalars(
-            select(InventoryItem).where(
-                InventoryItem.tenant_id == tenant_id,
-                InventoryItem.sku == (component.sku if component else ""),
-            )
-        ).first()
-        available = 0.0
-        if inv:
-            available = float(
-                db.scalar(
-                    select(func.coalesce(func.sum(StockLevel.quantity), 0)).where(
-                        StockLevel.item_id == inv.id
-                    )
-                ) or 0
-            )
         required = float(item.quantity) * planned
-        issued = min(required, available * 0.6) if available else 0
         materials.append(
             ProductionMaterialRead(
                 component_name=component.name if component else f"Component #{item.component_product_id}",
                 required_qty=round(required, 2),
-                available_qty=round(available, 2),
-                issued_qty=round(issued, 2),
-                balance_qty=round(max(required - issued, 0), 2),
+                available_qty=0.0,
+                issued_qty=0.0,
+                balance_qty=round(required, 2),
                 unit=item.unit,
             )
         )

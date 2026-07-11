@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
@@ -6,9 +6,9 @@ import {
   Calendar,
   ChevronDown,
   LogOut,
-  Mail,
   Maximize2,
   Menu,
+  Minimize2,
   UserCircle,
 } from "lucide-react";
 
@@ -50,10 +50,13 @@ export default function Navbar({ onMenuClick }) {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuth();
-  const { count: notificationCount, notifications, loading: notificationsLoading } = useNotifications();
+  const { count: notificationCount, notifications, loading: notificationsLoading, markRead } = useNotifications();
   const [now, setNow] = useState(() => new Date());
   const [showProfile, setShowProfile] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const notificationsRef = useRef(null);
+  const profileRef = useRef(null);
 
   const page = getPageMeta(location.pathname, t);
   const displayName = user?.name || "Admin";
@@ -68,6 +71,51 @@ export default function Navbar({ onMenuClick }) {
   useEffect(() => {
     setShowNotifications(false);
   }, [location.pathname]);
+
+  useEffect(() => {
+    if (!showNotifications && !showProfile) return undefined;
+    const onPointerDown = (e) => {
+      if (showNotifications && notificationsRef.current && !notificationsRef.current.contains(e.target)) {
+        setShowNotifications(false);
+      }
+      if (showProfile && profileRef.current && !profileRef.current.contains(e.target)) {
+        setShowProfile(false);
+      }
+    };
+    document.addEventListener("mousedown", onPointerDown);
+    return () => document.removeEventListener("mousedown", onPointerDown);
+  }, [showNotifications, showProfile]);
+
+  useEffect(() => {
+    const onFullscreenChange = () => {
+      setIsFullscreen(Boolean(document.fullscreenElement));
+    };
+    document.addEventListener("fullscreenchange", onFullscreenChange);
+    return () => document.removeEventListener("fullscreenchange", onFullscreenChange);
+  }, []);
+
+  const handleNotificationClick = (notification) => {
+    if (!notification.read) {
+      markRead([notification.id]);
+    }
+    setShowNotifications(false);
+  };
+
+  const toggleNotifications = () => {
+    setShowNotifications((open) => !open);
+    setShowProfile(false);
+  };
+  const toggleFullscreen = async () => {
+    try {
+      if (document.fullscreenElement) {
+        await document.exitFullscreen();
+      } else {
+        await document.documentElement.requestFullscreen();
+      }
+    } catch {
+      // Browser may block fullscreen without a direct user gesture.
+    }
+  };
 
   const dateLabel = now.toLocaleDateString(undefined, {
     day: "numeric",
@@ -105,13 +153,10 @@ export default function Navbar({ onMenuClick }) {
         </div>
 
         <div className="flex shrink-0 items-center gap-2 sm:gap-3">
-          <div className="relative">
+          <div className="relative" ref={notificationsRef}>
             <button
               type="button"
-              onClick={() => {
-                setShowNotifications(!showNotifications);
-                setShowProfile(false);
-              }}
+              onClick={toggleNotifications}
               className="relative flex h-10 w-10 items-center justify-center rounded-xl text-slate-600 hover:bg-slate-100"
               title={t("common.notifications")}
               aria-expanded={showNotifications}
@@ -125,10 +170,8 @@ export default function Navbar({ onMenuClick }) {
               )}
             </button>
             {showNotifications && (
-              <div
-                className="absolute right-0 mt-2 w-80 max-w-[calc(100vw-2rem)] rounded-xl border border-slate-200 bg-white shadow-xl"
-                onMouseLeave={() => setShowNotifications(false)}
-              >
+              <div className="absolute right-0 top-full z-50 w-80 max-w-[calc(100vw-2rem)] pt-1">
+                <div className="rounded-xl border border-slate-200 bg-white shadow-xl">
                 <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
                   <p className="text-sm font-semibold text-slate-800">{t("common.notifications")}</p>
                   {canViewAlerts && (
@@ -151,11 +194,17 @@ export default function Navbar({ onMenuClick }) {
                   {notifications.map((n) => (
                     <li key={n.id}>
                       <Link
-                        to={n.link || "/alerts"}
-                        onClick={() => setShowNotifications(false)}
-                        className="flex gap-3 px-4 py-3 hover:bg-slate-50"
+                        to={n.link || "/"}
+                        onClick={() => handleNotificationClick(n)}
+                        className={`flex gap-3 px-4 py-3 hover:bg-slate-50 ${
+                          n.read ? "opacity-60" : "bg-white"
+                        }`}
                       >
-                        <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${severityDot(n.severity)}`} />
+                        <span
+                          className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${
+                            n.read ? "bg-slate-300" : severityDot(n.severity)
+                          }`}
+                        />
                         <span className="min-w-0">
                           {n.category_label && (
                             <span
@@ -173,24 +222,20 @@ export default function Navbar({ onMenuClick }) {
                     </li>
                   ))}
                 </ul>
+                </div>
               </div>
             )}
           </div>
 
-          <Link
-            to="/"
-            className="relative flex h-10 w-10 items-center justify-center rounded-xl text-slate-600 hover:bg-slate-100"
-            title={t("common.messages")}
-          >
-            <Mail className="h-5 w-5" />
-          </Link>
-
           <button
             type="button"
+            onClick={toggleFullscreen}
             className="hidden h-10 w-10 items-center justify-center rounded-xl text-slate-600 hover:bg-slate-100 sm:flex"
-            title={t("common.fullscreen")}
+            title={isFullscreen ? t("common.exitFullscreen", { defaultValue: "Exit fullscreen" }) : t("common.fullscreen")}
+            aria-label={isFullscreen ? t("common.exitFullscreen", { defaultValue: "Exit fullscreen" }) : t("common.fullscreen")}
+            aria-pressed={isFullscreen}
           >
-            <Maximize2 className="h-5 w-5" />
+            {isFullscreen ? <Minimize2 className="h-5 w-5" /> : <Maximize2 className="h-5 w-5" />}
           </button>
 
           <div className="hidden items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 md:flex">
@@ -201,7 +246,7 @@ export default function Navbar({ onMenuClick }) {
             </div>
           </div>
 
-          <div className="relative">
+          <div className="relative" ref={profileRef}>
             <button
               type="button"
               onClick={() => {
@@ -220,13 +265,15 @@ export default function Navbar({ onMenuClick }) {
               <ChevronDown className="hidden h-4 w-4 text-slate-400 sm:block" />
             </button>
             {showProfile && (
-              <div className="absolute right-0 mt-2 w-52 rounded-xl border border-slate-200 bg-white py-1 shadow-xl" onMouseLeave={() => setShowProfile(false)}>
+              <div className="absolute right-0 top-full z-50 w-52 pt-1">
+                <div className="rounded-xl border border-slate-200 bg-white py-1 shadow-xl">
                 <Link to="/settings" onClick={() => setShowProfile(false)} className="flex items-center gap-2 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50">
                   <UserCircle className="h-4 w-4" /> {t("common.myAccount")}
                 </Link>
                 <button type="button" onClick={() => { logout(); navigate("/login"); }} className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-red-600 hover:bg-red-50">
                   <LogOut className="h-4 w-4" /> {t("common.signOut")}
                 </button>
+                </div>
               </div>
             )}
           </div>
