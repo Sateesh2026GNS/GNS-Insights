@@ -76,6 +76,16 @@ A full-stack **Production Management**, **Inventory & Raw Material Management**,
 - Production delay alerts
 - Maintenance reminders
 
+### Notification Management (In-App Bell)
+- Notification bell in the top navigation bar with live unread badge
+- Per-user notifications stored in SQLite (`erp_notifications`)
+- Types: Information, Success, Warning, Error, Production, Inventory, Quality, Maintenance, Sales, HR, Finance, System
+- Priorities: Low, Medium, High, Critical
+- Actions: open (auto mark-read), mark as read, mark all as read, delete, clear all (with confirmation)
+- Optimistic UI updates — badge decrements instantly (e.g. 5 → 4 → 0) without page refresh
+- Paginated notification list with infinite scroll in the dropdown
+- Demo notifications seeded for each user on first backend start
+
 ### Multi-Language Support
 - **Languages:** English, Hindi (हिन्दी), Tamil (தமிழ்), Telugu (తెలుగు)
 - Language selector in top navigation bar
@@ -120,19 +130,21 @@ SMRT/
 │   ├── app/
 │   │   ├── main.py              # FastAPI app, CORS, router registration, DB init
 │   │   ├── core/                # Config, database, seed_tenant, seed_roles, seed_users, seed_products
-│   │   ├── models/              # SQLAlchemy: user, tenant, role, production, inventory, procurement, sales, accounts, hr, machine, quality, maintenance, alert, document
-│   │   ├── schemas/             # Pydantic: auth, production, inventory, procurement, sales, accounts, hr, quality, maintenance, alert, document, admin
-│   │   ├── services/            # Business logic: auth, production, inventory, procurement, sales, accounts, hr, analytics, quality, maintenance, alert, document, admin
-│   │   └── api/                 # Routers: auth, production, inventory, procurement, hr, sales, accounts, analytics, quality, maintenance, alerts, admin, documents
+│   │   ├── models/              # SQLAlchemy: user, tenant, role, production, inventory, erp_notification, …
+│   │   ├── schemas/             # Pydantic request/response models
+│   │   ├── repositories/        # Data access layer (e.g. notification_repository)
+│   │   ├── services/            # Business logic layer
+│   │   ├── routers/             # /api/notifications, /api/dashboard, /api/production, …
+│   │   └── api/                 # Legacy module routers: auth, sales, inventory, alerts, …
 │   ├── requirements.txt
 │   └── .env
 │
 ├── frontend/
 │   ├── src/
-│   │   ├── api/                 # authApi, productionApi, inventoryApi, procurementApi, salesApi, hrApi, accountsApi, analyticsApi, adminApi
-│   │   ├── components/          # layout (Navbar, Sidebar), common (Loader, Table, DataTable, EmptyState, PageHeader, PlaceholderPage, ErrorBoundary, RouteFallback)
-│   │   ├── context/             # AuthContext, SettingsContext
-│   │   ├── hooks/               # useAuth
+│   │   ├── api/                 # axiosConfig, notificationService, productionApi, salesApi, …
+│   │   ├── components/          # layout (Navbar, Sidebar), notifications (NotificationBell, …), common (ConfirmationDialog, …)
+│   │   ├── context/             # AuthContext, ToastContext, SettingsContext
+│   │   ├── hooks/               # useAuth, useNotifications
 │   │   ├── pages/               # auth, dashboard, production, inventory, procurement, sales, accounts, hr, quality, maintenance, analytics, alerts, admin, documents, settings
 │   │   └── routes/              # AppRoutes, lazyPages (code-split)
 │   ├── package.json
@@ -156,6 +168,7 @@ SMRT/
 | Quality | quality.py | quality_service.py | quality (Inspection, Defect, BatchReport, Compliance) |
 | Maintenance | maintenance.py | maintenance_service.py | maintenance (Record, Preventive, Breakdown, Schedule) |
 | Alerts | alerts.py | alert_service.py | alert |
+| Notifications | routers/notifications_api.py | notification_management_service.py | erp_notification |
 | Admin | admin.py | admin_service.py | admin (AccessLog) |
 | Documents | documents.py | document_service.py | document |
 
@@ -173,6 +186,167 @@ SMRT/
 | HR | HRDashboard, Attendance, Shifts, Payroll, Performance, Employees + create pages | hrApi |
 | Quality, Maintenance, Analytics, Alerts | Inspection, Defects, BatchReports, Compliance; MachineMaintenance, Preventive, Breakdowns, Schedule; Production/Machine/Inventory/Profit analytics; AllAlerts, LowStock, etc. | quality/maintenance/analytics/alert APIs |
 | Admin, Documents, Settings | UserManagement, RolesPermissions, AccessLogs; Purchase/Production/Quality/Reports docs; Settings sub-pages | adminApi, document APIs |
+| Notifications (navbar bell) | NotificationBell, NotificationDropdown, NotificationItem | notificationService |
+
+## Notification Management System
+
+Enterprise in-app notifications for authenticated users. Each user sees only their own notifications (scoped by `tenant_id` + `user_id`).
+
+### Architecture
+
+```
+React (NotificationBell) → notificationService.js → FastAPI Router → Service → Repository → SQLite
+```
+
+| Layer | Location |
+|-------|----------|
+| Model | `backend/app/models/erp_notification.py` |
+| Repository | `backend/app/repositories/notification_repository.py` |
+| Service | `backend/app/services/notification_management_service.py` |
+| API | `backend/app/routers/notifications_api.py` |
+| Seed | `backend/app/core/seed_notifications.py` |
+| Frontend API | `frontend/src/api/notificationService.js` |
+| Hook | `frontend/src/hooks/useNotifications.js` |
+| Components | `frontend/src/components/notifications/` |
+
+### Database (`erp_notifications`)
+
+| Column | Type | Notes |
+|--------|------|-------|
+| `id` | integer | Primary key |
+| `tenant_id` | integer | FK → tenants |
+| `user_id` | integer | FK → users (recipient) |
+| `title` | string | Notification title |
+| `message` | text | Body text |
+| `type` | string | information, success, warning, error, production, inventory, quality, maintenance, sales, hr, finance, system |
+| `priority` | string | low, medium, high, critical |
+| `module` | string | ERP module source |
+| `action_url` | string | Optional deep-link (e.g. `/production/work-orders`) |
+| `is_read` | boolean | Read status |
+| `created_by` | string | Display name of creator |
+| `created_at` | datetime | Auto-set |
+| `updated_at` | datetime | Auto-set |
+
+**Indexes:** `user_id`, `is_read`, `created_at`
+
+### API Endpoints
+
+All endpoints require JWT (`Authorization: Bearer <token>`).
+
+Every response uses the standard envelope:
+
+```json
+{
+  "success": true,
+  "message": "",
+  "data": {},
+  "errors": null,
+  "timestamp": "2026-07-12T08:53:00+00:00"
+}
+```
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/api/notifications` | Paginated list (`page`, `page_size`) |
+| `GET` | `/api/notifications/unread-count` | Unread count only |
+| `PUT` | `/api/notifications/{id}/read` | Mark one notification as read |
+| `PUT` | `/api/notifications/read-all` | Mark all unread as read |
+| `DELETE` | `/api/notifications/{id}` | Delete one notification |
+| `DELETE` | `/api/notifications/clear` | Delete all notifications for the current user |
+
+**Business rules**
+- Unread count is always derived from `is_read = false` rows for the logged-in user.
+- Opening a notification automatically marks it as read (badge decrements immediately).
+- Marking an already-read notification again does not change the count.
+- Clear/delete operations affect only the current user's notifications.
+
+### Frontend Components
+
+| Component | Purpose |
+|-----------|---------|
+| `NotificationBell` | Bell icon + badge in navbar; wires dropdown and actions |
+| `NotificationBadge` | Unread count badge (caps at `9+`) |
+| `NotificationDropdown` | Scrollable list, mark-all, clear-all, load-more |
+| `NotificationItem` | Single row with type/priority styling, read vs unread |
+| `ConfirmationDialog` | Reusable confirm modal (used for clear-all) |
+
+### Try It
+
+1. Start backend and frontend (see Setup below).
+2. Log in as `admin@smrt.local` / `admin123`.
+3. Click the bell icon in the top bar — five demo notifications are seeded on first run.
+4. Open notifications one by one; the badge count drops instantly (5 → 4 → … → 0).
+5. Use **Mark all read**, **Clear** (confirmation dialog), or per-item delete/mark-read actions.
+
+## Settings API (Users, Roles, Permissions, Audit Logs)
+
+Backend support for the **Settings** sidebar pages. Requires JWT and **Admin** role.
+
+### Architecture
+
+```
+React (Settings pages) → /admin/* or /api/settings/* → SettingsService → rbac_service → SQLite
+```
+
+| Layer | File |
+|-------|------|
+| Service | `backend/app/services/settings_service.py` |
+| RBAC logic | `backend/app/services/rbac_service.py` |
+| Legacy router | `backend/app/api/admin.py` → `/admin/*` (flat JSON) |
+| Enterprise router | `backend/app/routers/settings_api.py` → `/api/settings/*` (envelope) |
+
+### Endpoints
+
+**Users** (`/admin/users` or `/api/settings/users`)
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/users` | List all users with roles |
+| GET | `/users/stats` | Total, active, administrator counts |
+| GET | `/users/{id}` | Single user |
+| POST | `/users` | Create user |
+| PUT | `/users/{id}` | Update user |
+| DELETE | `/users/{id}` | Delete user |
+
+**Roles** (`/admin/roles` or `/api/settings/roles`)
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/roles` | List roles with permission summary & user count |
+| GET | `/roles/{id}` | Single role |
+| POST | `/roles` | Create role |
+| PUT | `/roles/{id}` | Update role name, description, permissions |
+| PUT | `/roles/{id}/permissions` | Update permissions only (`/admin` only) |
+| DELETE | `/roles/{id}` | Delete role |
+
+**Permissions** (`/admin/permissions/*` or `/api/settings/permissions/*`)
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/permissions/modules` | Module catalogue for checkboxes |
+| GET | `/permissions/matrix` | Default role → module matrix |
+| GET | `/permissions` | All roles with permissions (`/api/settings` only) |
+| PUT | `/permissions/{role_id}` | Update role permissions (`/api/settings` only) |
+
+**Audit Logs** (`/admin/access-logs` or `/api/settings/audit-logs`)
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/access-logs` | Activity list (flat array, legacy) |
+| GET | `/audit-logs` | Paginated logs with `search`, `page`, `page_size` |
+
+Login events are recorded automatically via `POST /auth/login`.
+
+### Demo users (tenant 1)
+
+| Email | Password | Role |
+|-------|----------|------|
+| admin@smrt.local | admin123 | Admin |
+| production@smrt.local | demo123 | Production Manager |
+| store@smrt.local | demo123 | Store Manager |
+| hr@smrt.local | demo123 | HR Manager |
+| accounts@smrt.local | demo123 | Accountant |
+| operator@smrt.local | demo123 | Operator |
 
 ## Prerequisites
 
@@ -305,13 +479,14 @@ JWT_SECRET_KEY=your-long-random-secret
 
 1. **Login:** API login with `admin@smrt.local` / `admin123`, or use "Continue as …" for demo without backend.
 2. **Language:** Click the Language button (🌐) in the top bar to switch between English, Hindi, Tamil, or Telugu.
-3. **Dashboard:** View production, inventory, HR, and machine status summaries.
-4. **Production:** Create production orders, work orders, machines; track batches and daily reports. Tables support search, sorting, pagination.
-5. **Inventory:** Add warehouses and suppliers, create items (SKU, barcode), record stock movements.
-6. **Procurement:** Purchase orders, vendor management, material requests, goods receipt (GRN), supplier payments.
-7. **Sales:** Manage invoices, sales orders, customers, and payments.
-8. **Accounts:** View analytics dashboard, Profit & Loss, expense tracking, tax reports; export to Excel/PDF.
-9. **Settings:** Configure theme (light/dark), language, date format, currency, company profile.
+3. **Notifications:** Click the bell icon (🔔) in the top bar to view in-app notifications. Unread items are highlighted; opening one marks it read and updates the badge without refreshing the page.
+4. **Dashboard:** View production, inventory, HR, and machine status summaries.
+5. **Production:** Create production orders, work orders, machines; track batches and daily reports. Tables support search, sorting, pagination.
+6. **Inventory:** Add warehouses and suppliers, create items (SKU, barcode), record stock movements.
+7. **Procurement:** Purchase orders, vendor management, material requests, goods receipt (GRN), supplier payments.
+8. **Sales:** Manage invoices, sales orders, customers, and payments.
+9. **Accounts:** View analytics dashboard, Profit & Loss, expense tracking, tax reports; export to Excel/PDF.
+10. **Settings:** Configure theme (light/dark), language, date format, currency, company profile.
 
 ## API Overview
 
@@ -328,7 +503,9 @@ JWT_SECRET_KEY=your-long-random-secret
 | `/quality/` | inspection, defects, batch-reports, compliance |
 | `/maintenance/` | records, preventive, breakdowns, schedule |
 | `/alerts/` | list, create, acknowledge |
-| `/admin/` | users, roles, access-logs |
+| `/api/notifications` | list, unread-count, mark read, mark all read, delete, clear (JWT) |
+| `/admin/` | users, users/stats, roles, permissions/modules, access-logs (Admin JWT) |
+| `/api/settings/` | users, roles, permissions, audit-logs (Admin JWT, envelope) |
 | `/documents/` | list, create |
 
 All list endpoints accept `tenant_id` as a query parameter (default: 1 for demo). Full docs: http://localhost:8000/docs

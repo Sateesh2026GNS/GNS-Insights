@@ -3,9 +3,8 @@ FROM node:20-alpine AS build
 
 WORKDIR /app
 
-# Build-time API base URL. In the compose setup nginx proxies /api to the
-# backend, so the bundle talks to a same-origin /api path by default.
-ARG VITE_API_BASE_URL=/api
+# Build-time API base URL. Empty string = same-origin requests via nginx proxy.
+ARG VITE_API_BASE_URL=
 ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
 
 COPY package*.json ./

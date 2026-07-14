@@ -10,6 +10,9 @@ function unwrap(res) {
 
 export const getAllBom = async () => unwrap(await api.get("/api/masters/bom"));
 
+/** Alias used by BomMaster page */
+export const getBillOfMaterials = getAllBom;
+
 export const getProductBom = async (productId) =>
   unwrap(await api.get(`/api/masters/bom/product/${productId}`));
 

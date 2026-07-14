@@ -1,7 +1,15 @@
 import axios from "axios";
 
+/** Resolve API base URL. Empty string = same-origin (Docker/nginx proxy). */
+export function getApiBaseURL() {
+  if (import.meta.env.VITE_API_BASE_URL !== undefined) {
+    return import.meta.env.VITE_API_BASE_URL;
+  }
+  return "http://localhost:8000";
+}
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || "http://localhost:8000",
+  baseURL: getApiBaseURL(),
   timeout: 30000,
 });
 
@@ -30,7 +38,7 @@ export function setApiErrorHandler(handler) {
 let refreshPromise = null;
 
 async function refreshAccessToken(refreshToken) {
-  const baseURL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
+  const baseURL = getApiBaseURL();
   const { data } = await axios.post(`${baseURL}/auth/refresh`, {
     refresh_token: refreshToken,
   });

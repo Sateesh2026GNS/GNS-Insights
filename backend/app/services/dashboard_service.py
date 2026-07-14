@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from app.models.machine import Machine
 from app.models.production import DailyProductionReport, ProductionOrder, WorkOrder
 from app.models.user import User
-from app.services.notification_service import get_user_notifications
+from app.services.notification_management_service import get_user_notifications
 from app.services.shop_floor_service import get_shop_floor_summary
 
 

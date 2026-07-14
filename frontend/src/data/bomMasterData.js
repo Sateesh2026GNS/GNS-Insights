@@ -217,23 +217,23 @@ export function computeBomSummary(boms) {
 export function groupApiBomRows(rows) {
   const groups = {};
   for (const row of rows) {
-    const key = row.product_sku || row.product;
+    const key = row.product_sku || row.product || row.product_name || String(row.product_id);
     if (!groups[key]) {
       groups[key] = {
-        product: row.product,
-        product_sku: row.product_sku,
+        product: row.product || row.product_name,
+        product_sku: row.product_sku || key,
         components: [],
       };
     }
     groups[key].components.push({
       id: row.id,
-      component: row.component,
+      component: row.component || row.component_name,
       item_code: row.component_sku,
       category: "Raw Material",
       unit: row.unit,
       qty: row.quantity,
-      unit_cost: 0,
-      total_cost: 0,
+      unit_cost: row.unit_cost || 0,
+      total_cost: row.total_cost || 0,
     });
   }
   return Object.entries(groups).map(([sku, g], i) => {

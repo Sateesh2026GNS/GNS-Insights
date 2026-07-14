@@ -13,6 +13,8 @@ from app.services.alert_service import (
     list_alerts,
     sync_low_stock_alerts,
 )
+from app.services.notification_management_service import NotificationManagementService
+from app.utils.api_response import success_response
 
 router = APIRouter(prefix="/alerts", tags=["alerts"])
 
@@ -47,10 +49,9 @@ def notifications_endpoint(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """In-app bell notifications — available to all authenticated users; content is filtered by role."""
-    from app.services.notification_service import get_user_notifications
-
-    return get_user_notifications(db, user)
+    """Legacy alias — prefer GET /api/notifications."""
+    data = NotificationManagementService(db, user).list_notifications()
+    return success_response("Notifications retrieved", data)
 
 
 @router.post("/notifications/read")
@@ -59,9 +60,10 @@ def notifications_read_endpoint(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    from app.services.notification_service import mark_notifications_read
+    from app.services.notification_management_service import mark_notifications_read
 
-    return mark_notifications_read(db, user, payload.notification_ids)
+    data = mark_notifications_read(db, user, payload.notification_ids)
+    return success_response("Notifications marked as read", data)
 
 
 @router.delete("/notifications/clear")
@@ -69,9 +71,8 @@ def notifications_clear_endpoint(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    from app.services.notification_service import clear_all_notifications
-
-    return clear_all_notifications(db, user)
+    data = NotificationManagementService(db, user).clear_all()
+    return success_response("All notifications cleared", data)
 
 
 @router.post("/sync-low-stock", response_model=list[AlertRead])

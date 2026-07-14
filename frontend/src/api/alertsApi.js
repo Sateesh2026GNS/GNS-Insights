@@ -1,14 +1,25 @@
 import api from "./axiosConfig";
+import {
+  clearAllNotifications,
+  fetchNotifications,
+  markAllNotificationsRead,
+  markNotificationRead,
+} from "./notificationService";
 
 export const getAlerts = (params = {}) =>
   api.get("/alerts", { params: { ...params } });
 
-export const getNotifications = () => api.get("/alerts/notifications");
+/** @deprecated Use notificationService.fetchNotifications */
+export const getNotifications = () => fetchNotifications();
 
-export const markNotificationsRead = (notificationIds = null) =>
-  api.post("/alerts/notifications/read", { notification_ids: notificationIds });
+/** @deprecated Use notificationService.markNotificationRead / markAllNotificationsRead */
+export const markNotificationsRead = (notificationIds = null) => {
+  if (!notificationIds?.length) return markAllNotificationsRead();
+  return markNotificationRead(notificationIds[0]);
+};
 
-export const clearNotifications = () => api.delete("/alerts/notifications/clear");
+/** @deprecated Use notificationService.clearAllNotifications */
+export const clearNotifications = () => clearAllNotifications();
 
 export const syncLowStockAlerts = () => api.post("/alerts/sync-low-stock");
 

@@ -14,21 +14,36 @@ from app.core.config import get_settings
 from app.core.logging_config import get_logger, setup_logging
 
 from app.api.accounts import router as accounts_router
+from app.api.admin import router as admin_router
 from app.api.ai_assistant import router as ai_assistant_router
 from app.api.alerts import router as alerts_router
 from app.api.analytics import router as analytics_router
+from app.api.audit_logs import router as audit_logs_router
 from app.api.auth import router as auth_router
+from app.api.dispatch import router as dispatch_router
+from app.api.documents import router as documents_router
+from app.api.factory_monitor import router as factory_monitor_router
+from app.api.forecasting import router as forecasting_router
 from app.api.hr import router as hr_router
+from app.api.integration import router as integration_router
 from app.api.inventory import router as inventory_router
+from app.api.iot import router as iot_router
 from app.api.maintenance import router as maintenance_router
 from app.api.procurement import router as procurement_router
+from app.api.production_scheduling import router as production_scheduling_router
 from app.api.quality import router as quality_router
 from app.api.sales import router as sales_router
+from app.api.settings import router as company_settings_router
+from app.api.supply_chain import router as supply_chain_router
+from app.api.task_management import router as task_management_router
+from app.api.warehouse import router as warehouse_router
 from app.routers import (
     dashboard_api_router,
     masters_api_router,
+    notifications_api_router,
     operator_api_router,
     production_api_router,
+    settings_api_router,
 )
 from app.core.database import engine
 from app.models.base import Base
@@ -42,6 +57,7 @@ from app.models import (  # noqa: F401
     company_settings,
     department,
     document,
+    erp_notification,
     hr,
     inventory,
     machine,
@@ -280,6 +296,7 @@ def on_startup():
     except Exception:
         pass
     from app.core.database import SessionLocal
+    from app.core.seed_notifications import seed_notifications
     from app.core.seed_products import seed_products
     from app.core.seed_roles import seed_roles
     from app.core.seed_tenant import seed_tenant
@@ -291,12 +308,15 @@ def on_startup():
         seed_roles(db)  # Seeds default roles for tenant 1
         seed_admin_user(db)  # admin@smrt.local / admin123 if no users
         seed_products(db)  # Seeds sample products for tenant 1
+        seed_notifications(db)  # Demo bell notifications per user
     except Exception:
         logger.exception("Seed warning during startup")
     finally:
         db.close()
 
 
+app.include_router(settings_api_router)
+app.include_router(notifications_api_router)
 app.include_router(operator_api_router)
 app.include_router(dashboard_api_router)
 app.include_router(masters_api_router)
@@ -313,3 +333,16 @@ app.include_router(analytics_router)
 app.include_router(hr_router)
 app.include_router(inventory_router)
 app.include_router(alerts_router)
+app.include_router(admin_router)
+app.include_router(company_settings_router)
+app.include_router(documents_router)
+app.include_router(dispatch_router)
+app.include_router(factory_monitor_router)
+app.include_router(forecasting_router)
+app.include_router(integration_router)
+app.include_router(iot_router)
+app.include_router(production_scheduling_router)
+app.include_router(supply_chain_router)
+app.include_router(task_management_router)
+app.include_router(audit_logs_router)
+app.include_router(warehouse_router)

@@ -2,7 +2,6 @@ import { useState, useEffect, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
-  Bell,
   Calendar,
   ChevronDown,
   LogOut,
@@ -13,9 +12,9 @@ import {
 } from "lucide-react";
 
 import useAuth from "../../hooks/useAuth";
-import useNotifications from "../../hooks/useNotifications";
 import { userCanAccess } from "../../config/permissions";
 import GlobalSearch from "../common/GlobalSearch";
+import NotificationBell from "../notifications/NotificationBell";
 
 function getPageMeta(pathname, t) {
   if (pathname === "/") {
@@ -29,62 +28,24 @@ function getPageMeta(pathname, t) {
   return { title, subtitle: null };
 }
 
-function severityDot(severity) {
-  if (severity === "high" || severity === "critical") return "bg-red-500";
-  if (severity === "medium") return "bg-orange-400";
-  return "bg-blue-500";
-}
-
-const CATEGORY_COLORS = {
-  low_stock: "bg-red-50 text-red-700",
-  machine_down: "bg-rose-50 text-rose-700",
-  pending_approval: "bg-purple-50 text-purple-700",
-  leave_request: "bg-amber-50 text-amber-700",
-  payment_due: "bg-orange-50 text-orange-700",
-  order_delay: "bg-yellow-50 text-yellow-800",
-  maintenance_due: "bg-sky-50 text-sky-700",
-};
-
 export default function Navbar({ onMenuClick }) {
   const { t } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuth();
-  const { count: notificationCount, notifications, loading: notificationsLoading, markRead } = useNotifications();
   const [now, setNow] = useState(() => new Date());
   const [showProfile, setShowProfile] = useState(false);
-  const [showNotifications, setShowNotifications] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const notificationsRef = useRef(null);
   const profileRef = useRef(null);
 
   const page = getPageMeta(location.pathname, t);
   const displayName = user?.name || "Admin";
   const displayRole = user?.role || t("nav.superAdmin");
-  const canViewAlerts = userCanAccess(user, "alerts");
 
   useEffect(() => {
     const timer = setInterval(() => setNow(new Date()), 60_000);
     return () => clearInterval(timer);
   }, []);
-
-  useEffect(() => {
-    setShowNotifications(false);
-  }, [location.pathname]);
-
-  useEffect(() => {
-    if (!showNotifications && !showProfile) return undefined;
-    const onPointerDown = (e) => {
-      if (showNotifications && notificationsRef.current && !notificationsRef.current.contains(e.target)) {
-        setShowNotifications(false);
-      }
-      if (showProfile && profileRef.current && !profileRef.current.contains(e.target)) {
-        setShowProfile(false);
-      }
-    };
-    document.addEventListener("mousedown", onPointerDown);
-    return () => document.removeEventListener("mousedown", onPointerDown);
-  }, [showNotifications, showProfile]);
 
   useEffect(() => {
     const onFullscreenChange = () => {
@@ -94,17 +55,17 @@ export default function Navbar({ onMenuClick }) {
     return () => document.removeEventListener("fullscreenchange", onFullscreenChange);
   }, []);
 
-  const handleNotificationClick = (notification) => {
-    if (!notification.read) {
-      markRead([notification.id]);
-    }
-    setShowNotifications(false);
-  };
+  useEffect(() => {
+    if (!showProfile) return undefined;
+    const onPointerDown = (e) => {
+      if (profileRef.current && !profileRef.current.contains(e.target)) {
+        setShowProfile(false);
+      }
+    };
+    document.addEventListener("mousedown", onPointerDown);
+    return () => document.removeEventListener("mousedown", onPointerDown);
+  }, [showProfile]);
 
-  const toggleNotifications = () => {
-    setShowNotifications((open) => !open);
-    setShowProfile(false);
-  };
   const toggleFullscreen = async () => {
     try {
       if (document.fullscreenElement) {
@@ -153,79 +114,7 @@ export default function Navbar({ onMenuClick }) {
         </div>
 
         <div className="flex shrink-0 items-center gap-2 sm:gap-3">
-          <div className="relative" ref={notificationsRef}>
-            <button
-              type="button"
-              onClick={toggleNotifications}
-              className="relative flex h-10 w-10 items-center justify-center rounded-xl text-slate-600 hover:bg-slate-100"
-              title={t("common.notifications")}
-              aria-expanded={showNotifications}
-              aria-haspopup="true"
-            >
-              <Bell className="h-5 w-5" />
-              {notificationCount > 0 && (
-                <span className="absolute -right-0.5 -top-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
-                  {notificationCount > 9 ? "9+" : notificationCount}
-                </span>
-              )}
-            </button>
-            {showNotifications && (
-              <div className="absolute right-0 top-full z-50 w-80 max-w-[calc(100vw-2rem)] pt-1">
-                <div className="rounded-xl border border-slate-200 bg-white shadow-xl">
-                <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
-                  <p className="text-sm font-semibold text-slate-800">{t("common.notifications")}</p>
-                  {canViewAlerts && (
-                    <Link
-                      to="/alerts"
-                      onClick={() => setShowNotifications(false)}
-                      className="text-xs font-semibold text-[#2563EB] hover:underline"
-                    >
-                      {t("common.viewAll")}
-                    </Link>
-                  )}
-                </div>
-                <ul className="max-h-72 overflow-y-auto py-1">
-                  {notificationsLoading && notifications.length === 0 && (
-                    <li className="px-4 py-6 text-center text-sm text-slate-400">Loading…</li>
-                  )}
-                  {!notificationsLoading && notifications.length === 0 && (
-                    <li className="px-4 py-6 text-center text-sm text-slate-400">{t("common.noNotifications")}</li>
-                  )}
-                  {notifications.map((n) => (
-                    <li key={n.id}>
-                      <Link
-                        to={n.link || "/"}
-                        onClick={() => handleNotificationClick(n)}
-                        className={`flex gap-3 px-4 py-3 hover:bg-slate-50 ${
-                          n.read ? "opacity-60" : "bg-white"
-                        }`}
-                      >
-                        <span
-                          className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${
-                            n.read ? "bg-slate-300" : severityDot(n.severity)
-                          }`}
-                        />
-                        <span className="min-w-0">
-                          {n.category_label && (
-                            <span
-                              className={`mb-1 inline-block rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
-                                CATEGORY_COLORS[n.category] || "bg-slate-100 text-slate-600"
-                              }`}
-                            >
-                              {t(`common.notificationCategories.${n.category}`, n.category_label || n.category)}
-                            </span>
-                          )}
-                          <p className="truncate text-sm font-medium text-slate-800">{n.title}</p>
-                          <p className="mt-0.5 line-clamp-2 text-xs text-slate-500">{n.message}</p>
-                        </span>
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-                </div>
-              </div>
-            )}
-          </div>
+          <NotificationBell />
 
           <button
             type="button"
@@ -249,10 +138,7 @@ export default function Navbar({ onMenuClick }) {
           <div className="relative" ref={profileRef}>
             <button
               type="button"
-              onClick={() => {
-                setShowProfile(!showProfile);
-                setShowNotifications(false);
-              }}
+              onClick={() => setShowProfile(!showProfile)}
               className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-2 py-1.5 hover:bg-slate-50 sm:px-3"
             >
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-[#3B82F6] to-[#2563EB] text-xs font-bold text-white">
@@ -282,4 +168,3 @@ export default function Navbar({ onMenuClick }) {
     </header>
   );
 }
-

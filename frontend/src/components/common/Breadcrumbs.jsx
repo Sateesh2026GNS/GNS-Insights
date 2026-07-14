@@ -50,6 +50,10 @@ const pathLabels = {
   "low-stock": "Low Stock",
   documents: "Documents",
   admin: "Admin",
+  users: "Users",
+  roles: "Roles",
+  permissions: "Permissions",
+  "audit-logs": "Audit Logs",
   integrations: "Integrations",
   settings: "Settings",
   "factory-monitor": "Factory Monitor",
@@ -73,13 +77,34 @@ function getLabel(segment, segments, index) {
 export default function Breadcrumbs({ items: customItems }) {
   const { pathname } = useLocation();
   const segments = pathname.split("/").filter(Boolean);
-  const items = customItems ?? [
-    { label: "Dashboard", path: "/" },
-    ...segments.map((seg, i) => ({
-      label: getLabel(seg, segments, i),
-      path: "/" + segments.slice(0, i + 1).join("/"),
-    })),
-  ];
+
+  const items = customItems ?? (() => {
+    if (segments[0] === "admin") {
+      const adminLabels = {
+        users: "Users",
+        roles: "Roles",
+        permissions: "Permissions",
+        "audit-logs": "Audit Logs",
+      };
+      const trail = [{ label: "Dashboard", path: "/" }, { label: "Settings", path: "/admin/users" }];
+      segments.slice(1).forEach((seg, i) => {
+        const slice = segments.slice(0, i + 2);
+        trail.push({
+          label: adminLabels[seg] || getLabel(seg, segments, i + 1),
+          path: `/${slice.join("/")}`,
+        });
+      });
+      return trail;
+    }
+
+    return [
+      { label: "Dashboard", path: "/" },
+      ...segments.map((seg, i) => ({
+        label: getLabel(seg, segments, i),
+        path: "/" + segments.slice(0, i + 1).join("/"),
+      })),
+    ];
+  })();
 
   if (items.length <= 1) return null;
 

@@ -37,3 +37,7 @@ class RoleUpdate(BaseModel):
     name: str | None = Field(None, min_length=1, max_length=100)
     description: str | None = Field(None, max_length=255)
     permissions: list[str] | None = None
+
+
+class RolePermissionsUpdate(BaseModel):
+    permissions: list[str] = Field(default_factory=list)

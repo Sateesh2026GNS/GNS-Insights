@@ -10,7 +10,6 @@ from app.routers.operator_deps import require_api_access, require_tenant
 from app.schemas.operator import (
     BatchUpdateRequest,
     MachineBreakdownRequest,
-    NotificationReadRequest,
     OperatorLoginRequest,
     ShopFloorUpdateRequest,
     WorkOrderActionRequest,
@@ -400,34 +399,6 @@ def api_batch_update(
 ):
     user, tenant_id = user_tenant
     return success_response("Batch updated", _svc(db, tenant_id).update_batch(user, payload))
-
-
-# ── Notifications ──────────────────────────────────────────────────────────
-
-
-@router.get("/notifications")
-def api_notifications(user_tenant: tuple[User, int] = Depends(require_tenant("notifications")), db: Session = Depends(get_db)):
-    user, tenant_id = user_tenant
-    return success_response("Notifications retrieved", _svc(db, tenant_id).get_notifications(user))
-
-
-@router.put("/notifications/read")
-def api_notifications_read(
-    payload: NotificationReadRequest,
-    user_tenant: tuple[User, int] = Depends(require_tenant("notifications")),
-    db: Session = Depends(get_db),
-):
-    user, tenant_id = user_tenant
-    return success_response("Notifications marked read", _svc(db, tenant_id).mark_notifications_read(user, payload.notification_ids))
-
-
-@router.delete("/notifications/clear")
-def api_notifications_clear(
-    user_tenant: tuple[User, int] = Depends(require_tenant("notifications")),
-    db: Session = Depends(get_db),
-):
-    user, tenant_id = user_tenant
-    return success_response("Notifications cleared", _svc(db, tenant_id).clear_notifications(user))
 
 
 # ── AI Operator Assistant ────────────────────────────────────────────────────

@@ -28,7 +28,12 @@ from app.schemas.operator import (
 from app.services.allocation_service import get_allocation_list, get_allocation_summary
 from app.services.batch_tracking_service import get_batch_detail, get_batch_summary, list_batches_enriched
 from app.services.data_scope import operator_can_access_work_order
-from app.services.notification_service import clear_all_notifications, get_user_notifications, mark_notifications_read
+from app.services.notification_management_service import (
+    NotificationManagementService,
+    clear_all_notifications,
+    get_user_notifications,
+    mark_notifications_read,
+)
 from app.services.production_planning_service import get_production_order_detail, list_production_orders_enriched
 from app.services.schedule_service import get_enhanced_timeline, get_schedule_dashboard
 from app.services.shop_floor_service import (
@@ -464,7 +469,7 @@ class OperatorService:
     # ── Notifications ────────────────────────────────────────────────────
 
     def get_notifications(self, user: User) -> dict:
-        return get_user_notifications(self.db, user)
+        return NotificationManagementService(self.db, user).list_notifications()
 
     def mark_notifications_read(self, user: User, notification_ids: list[str] | None) -> dict:
         return mark_notifications_read(self.db, user, notification_ids)

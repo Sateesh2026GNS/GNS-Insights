@@ -18,6 +18,7 @@ from app.models import (  # noqa: F401
     inventory,
     machine,
     maintenance,
+    erp_notification,
     notification,
     procurement,
     product,

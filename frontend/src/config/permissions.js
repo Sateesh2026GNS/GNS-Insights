@@ -147,3 +147,23 @@ export function isOperator(user) {
   const roles = Array.isArray(user.roles) ? user.roles : [];
   return user.role === "Operator" || roles.includes("Operator");
 }
+
+/** Human-readable label for a module code or granular permission (e.g. production:read). */
+export function permissionLabel(code, modules = []) {
+  const exact = modules.find((m) => m.code === code);
+  if (exact) return exact.label;
+  if (code.includes(":")) {
+    const [module, action] = code.split(":", 2);
+    const moduleEntry = modules.find((m) => m.code === module);
+    const moduleLabel = moduleEntry?.label || module;
+    const actionLabel = action.replace(/_/g, " ");
+    return `${moduleLabel} (${actionLabel})`;
+  }
+  return code.replace(/_/g, " ");
+}
+
+/** Count module-level grants (excludes granular action codes). */
+export function countModulePermissions(permissions = [], modules = []) {
+  const moduleCodes = new Set(modules.map((m) => m.code));
+  return permissions.filter((p) => moduleCodes.has(p)).length;
+}

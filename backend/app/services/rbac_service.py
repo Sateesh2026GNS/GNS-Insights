@@ -3,7 +3,7 @@
 from datetime import datetime, timezone
 
 from fastapi import HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
 from app.core.permissions import ADMIN_ROLE, get_role_names, get_user_permissions, is_valid_permission
@@ -334,6 +334,29 @@ def delete_role(db: Session, tenant_id: int, role_id: int) -> None:
     db.commit()
 
 
+def update_role_permissions(
+    db: Session, tenant_id: int, role_id: int, permissions: list[str]
+) -> dict:
+    return update_role(db, tenant_id, role_id, RoleUpdate(permissions=permissions))
+
+
+def get_user_stats(db: Session, tenant_id: int) -> dict:
+    users = db.scalars(
+        select(User).where(User.tenant_id == tenant_id).options(selectinload(User.roles))
+    ).all()
+    total = len(users)
+    active = sum(1 for u in users if u.is_active)
+    administrators = sum(
+        1 for u in users if u.is_active and ADMIN_ROLE in get_role_names(u)
+    )
+    return {
+        "total_users": total,
+        "active_users": active,
+        "administrators": administrators,
+        "inactive_users": total - active,
+    }
+
+
 # ---------------------------------------------------------------------------
 # Activity logging
 # ---------------------------------------------------------------------------
@@ -366,19 +389,30 @@ def log_activity(
     db.commit()
 
 
-def list_activities(db: Session, tenant_id: int, limit: int = 200) -> list[dict]:
+def list_activities(
+    db: Session,
+    tenant_id: int,
+    *,
+    search: str | None = None,
+    page: int = 1,
+    page_size: int = 200,
+) -> dict:
+    page = max(1, page)
+    page_size = min(max(1, page_size), 500)
+    offset = (page - 1) * page_size
+
+    base = select(AccessLog).where(AccessLog.tenant_id == tenant_id)
     rows = db.scalars(
-        select(AccessLog)
-        .where(AccessLog.tenant_id == tenant_id)
-        .order_by(AccessLog.logged_at.desc())
-        .limit(limit)
+        base.order_by(AccessLog.logged_at.desc()).offset(offset).limit(page_size)
     ).all()
+
     user_ids = {r.user_id for r in rows if r.user_id is not None}
     names: dict[int, str] = {}
     if user_ids:
         for u in db.scalars(select(User).where(User.id.in_(user_ids))).all():
             names[u.id] = u.full_name
-    return [
+
+    items = [
         {
             "id": r.id,
             "user_id": r.user_id,
@@ -391,3 +425,37 @@ def list_activities(db: Session, tenant_id: int, limit: int = 200) -> list[dict]
         }
         for r in rows
     ]
+
+    if search:
+        needle = search.strip().lower()
+        if needle:
+            items = [
+                item
+                for item in items
+                if needle in (item["user_name"] or "").lower()
+                or needle in (item["action"] or "").lower()
+                or needle in (item["resource"] or "").lower()
+                or needle in (item["ip_address"] or "").lower()
+            ]
+
+    total = len(items) if search else int(
+        db.scalar(
+            select(func.count()).select_from(
+                select(AccessLog).where(AccessLog.tenant_id == tenant_id).subquery()
+            )
+        )
+        or 0
+    )
+
+    return {
+        "items": items,
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+        "has_more": page * page_size < total,
+    }
+
+
+def list_activities_legacy(db: Session, tenant_id: int, limit: int = 200) -> list[dict]:
+    """Backward-compatible flat list for legacy /admin/access-logs consumers."""
+    return list_activities(db, tenant_id, page_size=limit)["items"]
