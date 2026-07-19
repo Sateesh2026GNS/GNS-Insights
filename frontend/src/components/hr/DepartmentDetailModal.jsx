@@ -55,41 +55,83 @@ export function DepartmentFormModal({ department, onClose, onSave }) {
     manager_name: department?.manager_name || "",
     manager_mobile: department?.manager_mobile || "",
     manager_email: department?.manager_email || "",
-    manager_designation: department?.manager_designation || "",
+    manager_designation: department?.manager_designation || "Manager",
   });
 
+  const labelClass = "block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1";
+  const inputClass = "w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 placeholder:text-slate-400 focus:border-[#2563EB] focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all";
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    onSave(form);
+  };
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl">
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-bold">{department?.id ? "Edit Department" : "Add Department"}</h2>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+      <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl border border-slate-200 max-h-[95vh] flex flex-col">
+        <div className="mb-4 flex items-center justify-between shrink-0">
+          <h2 className="text-lg font-bold text-slate-900">{department?.id ? "Edit Department" : "Add Department"}</h2>
           <button type="button" onClick={onClose} className="rounded-lg p-2 text-slate-400 hover:bg-slate-100">
             <X className="h-5 w-5" />
           </button>
         </div>
-        <div className="grid gap-3 sm:grid-cols-2">
-          <input placeholder="Department Code" value={form.code} onChange={(e) => setForm((f) => ({ ...f, code: e.target.value }))} className="rounded-lg border px-3 py-2 text-sm" />
-          <input placeholder="Department Name" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} className="rounded-lg border px-3 py-2 text-sm" />
-          <select value={form.department_type} onChange={(e) => setForm((f) => ({ ...f, department_type: e.target.value }))} className="rounded-lg border px-3 py-2 text-sm">
-            <option value="production">Production</option>
-            <option value="support">Support</option>
-            <option value="admin">Administration</option>
-          </select>
-          <select value={form.status} onChange={(e) => setForm((f) => ({ ...f, status: e.target.value }))} className="rounded-lg border px-3 py-2 text-sm">
-            <option value="active">Active</option>
-            <option value="inactive">Inactive</option>
-          </select>
-          <input placeholder="Plant" value={form.plant} onChange={(e) => setForm((f) => ({ ...f, plant: e.target.value }))} className="rounded-lg border px-3 py-2 text-sm" />
-          <input placeholder="Branch" value={form.branch} onChange={(e) => setForm((f) => ({ ...f, branch: e.target.value }))} className="rounded-lg border px-3 py-2 text-sm" />
-          <input placeholder="Manager Name" value={form.manager_name} onChange={(e) => setForm((f) => ({ ...f, manager_name: e.target.value }))} className="rounded-lg border px-3 py-2 text-sm sm:col-span-2" />
-          <input placeholder="Mobile" value={form.manager_mobile} onChange={(e) => setForm((f) => ({ ...f, manager_mobile: e.target.value }))} className="rounded-lg border px-3 py-2 text-sm" />
-          <input placeholder="Email" value={form.manager_email} onChange={(e) => setForm((f) => ({ ...f, manager_email: e.target.value }))} className="rounded-lg border px-3 py-2 text-sm" />
-          <textarea placeholder="Description" value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} className="rounded-lg border px-3 py-2 text-sm sm:col-span-2" rows={2} />
-        </div>
-        <div className="mt-4 flex justify-end gap-2">
-          <button type="button" onClick={onClose} className="rounded-lg border px-4 py-2 text-sm font-semibold text-slate-600">Cancel</button>
-          <button type="button" onClick={() => onSave(form)} className="ui-btn-primary">Save</button>
-        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4 overflow-y-auto pr-1 flex-1">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <label className={labelClass}>Department Code *</label>
+              <input required placeholder="e.g. DEP001" value={form.code} onChange={(e) => setForm((f) => ({ ...f, code: e.target.value }))} className={inputClass} />
+            </div>
+            <div>
+              <label className={labelClass}>Department Name *</label>
+              <input required placeholder="e.g. Quality Control" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} className={inputClass} />
+            </div>
+            <div>
+              <label className={labelClass}>Department Type</label>
+              <select value={form.department_type} onChange={(e) => setForm((f) => ({ ...f, department_type: e.target.value }))} className={inputClass}>
+                <option value="production">Production</option>
+                <option value="support">Support</option>
+                <option value="admin">Administration</option>
+              </select>
+            </div>
+            <div>
+              <label className={labelClass}>Status</label>
+              <select value={form.status} onChange={(e) => setForm((f) => ({ ...f, status: e.target.value }))} className={inputClass}>
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+              </select>
+            </div>
+            <div>
+              <label className={labelClass}>Plant</label>
+              <input placeholder="e.g. Plant 1" value={form.plant} onChange={(e) => setForm((f) => ({ ...f, plant: e.target.value }))} className={inputClass} />
+            </div>
+            <div>
+              <label className={labelClass}>Branch</label>
+              <input placeholder="e.g. Hyderabad" value={form.branch} onChange={(e) => setForm((f) => ({ ...f, branch: e.target.value }))} className={inputClass} />
+            </div>
+            <div className="sm:col-span-2">
+              <label className={labelClass}>Manager Name</label>
+              <input placeholder="e.g. Rajesh Kumar" value={form.manager_name} onChange={(e) => setForm((f) => ({ ...f, manager_name: e.target.value }))} className={inputClass} />
+            </div>
+            <div>
+              <label className={labelClass}>Manager Mobile</label>
+              <input placeholder="e.g. +91 9999999999" value={form.manager_mobile} onChange={(e) => setForm((f) => ({ ...f, manager_mobile: e.target.value }))} className={inputClass} />
+            </div>
+            <div>
+              <label className={labelClass}>Manager Email</label>
+              <input type="email" placeholder="e.g. rajesh@company.com" value={form.manager_email} onChange={(e) => setForm((f) => ({ ...f, manager_email: e.target.value }))} className={inputClass} />
+            </div>
+            <div className="sm:col-span-2">
+              <label className={labelClass}>Description</label>
+              <textarea placeholder="Brief details about department responsibilities..." value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} className={`${inputClass} resize-none`} rows={2} />
+            </div>
+          </div>
+
+          <div className="mt-4 flex justify-end gap-2 border-t pt-4 shrink-0">
+            <button type="button" onClick={onClose} className="rounded-xl border px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-colors">Cancel</button>
+            <button type="submit" className="inline-flex items-center gap-1.5 rounded-xl bg-[#2563EB] px-5 py-2 text-sm font-semibold text-white hover:bg-blue-700 transition-all shadow-sm">Save</button>
+          </div>
+        </form>
       </div>
     </div>
   );

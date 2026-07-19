@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Link, useLocation } from "react-router-dom";
 import {
   ArrowRight,
   CheckCircle2,
@@ -55,22 +55,31 @@ function ModuleCard({ label, to, color }) {
 
 export default function ProductionDashboard() {
   const { addToast } = useToast();
+  const location = useLocation();
   const [loading, setLoading] = useState(true);
   const [hub, setHub] = useState(DEMO_HUB);
+  const hasLoadedRef = useRef(false);
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const load = useCallback(async (showLoader = false) => {
+    if (showLoader) setLoading(true);
     try {
       const res = await getProductionHub();
       if (res?.data) setHub({ ...DEMO_HUB, ...res.data });
     } catch {
-      addToast("Using demo hub data", "info");
+      if (!hasLoadedRef.current) {
+        addToast("Using demo hub data", "info");
+      }
     } finally {
-      setLoading(false);
+      if (showLoader || !hasLoadedRef.current) {
+        setLoading(false);
+        hasLoadedRef.current = true;
+      }
     }
   }, [addToast]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load(true);
+  }, [location.key, load]);
 
   if (loading) return <Loader label="Loading production hub..." />;
 
@@ -85,7 +94,7 @@ export default function ProductionDashboard() {
             Unified production control center — planning, schedule, allocation, shop floor, batches, and quality.
           </p>
         </div>
-        <button type="button" onClick={load} className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+        <button type="button" onClick={() => load(true)} className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">
           <RefreshCw className="h-4 w-4" /> Refresh
         </button>
       </header>

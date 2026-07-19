@@ -14,6 +14,11 @@ class CustomerBase(BaseModel):
     gstin: str | None = None
     email: str | None = None
     phone: str | None = None
+    city: str | None = None
+    credit_limit: float | None = None
+    outstanding: float | None = None
+    customer_type: str | None = None
+    status: str | None = None
 
 
 class CustomerCreate(CustomerBase):
@@ -130,6 +135,12 @@ class LeadBase(BaseModel):
     source: str | None = None
     status: str = "new"
     notes: str | None = None
+    priority: str = "medium"
+    opportunity_value: float | None = None
+    sales_executive: str | None = None
+    industry: str | None = None
+    region: str | None = None
+    next_followup: date | None = None
 
 
 class LeadCreate(LeadBase):

@@ -1,13 +1,5 @@
 """Legacy shim — delegates to notification_management_service."""
 
-<<<<<<< HEAD
-from app.services.notification_management_service import (  # noqa: F401
-    NotificationManagementService,
-    clear_all_notifications,
-    get_user_notifications,
-    mark_notifications_read,
-)
-=======
 from datetime import datetime, timezone
 
 from sqlalchemy import select
@@ -295,4 +287,3 @@ def clear_all_notifications(db: Session, user: User) -> dict:
     if keys:
         _upsert_states(db, user, keys, "cleared")
     return get_user_notifications(db, user)
->>>>>>> 42502626 (first commit)

@@ -158,6 +158,8 @@ def get_production_planning_summary(
         "delayed": 0,
         "cancelled": 0,
     }
+    todays_target = 0
+    todays_production = 0
     for o in orders:
         if o.status == "cancelled":
             counts["cancelled"] += 1
@@ -170,24 +172,11 @@ def get_production_planning_summary(
         if _is_delayed(o):
             counts["delayed"] += 1
 
-    today = date.today()
-    todays_target = int(
-        db.scalar(
-            select(func.coalesce(func.sum(ProductionOrder.planned_quantity), 0)).where(
-                ProductionOrder.tenant_id == tenant_id,
-                ProductionOrder.status.in_(tuple(IN_PROGRESS_STATUSES | PLANNED_STATUSES)),
-            )
-        ) or 0
-    ) // max(len(orders), 1)
+        if o.status in (PLANNED_STATUSES | IN_PROGRESS_STATUSES):
+            todays_target += int(o.planned_quantity or 0)
 
-    todays_production = int(
-        db.scalar(
-            select(func.count(ProductionOrder.id)).where(
-                ProductionOrder.tenant_id == tenant_id,
-                func.date(ProductionOrder.start_date) == today,
-            )
-        ) or 0
-    )
+        ctx = _order_context(db, tenant_id, o)
+        todays_production += int(ctx["produced"] or 0)
 
     return ProductionPlanningSummaryRead(
         total_orders=len(orders),

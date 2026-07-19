@@ -2,6 +2,7 @@ import api from "./axiosConfig";
 
 export const getCustomers = () => api.get("/sales/customers");
 export const createCustomer = (payload) => api.post("/sales/customers", payload);
+export const deleteCustomer = (id) => api.delete(`/sales/customers/${id}`);
 
 export const getSalesOrders = (_tenantId, status = null) =>
   api.get("/sales/sales-orders", { params: { status } });

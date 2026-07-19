@@ -182,8 +182,18 @@ export function computeMachineSummary(machines) {
     else counts.idle += 1;
     todaysProduction += Number(m.todays_output || 0);
   });
-  const active = machines.filter((m) => normalizeStatus(m) !== "offline").length;
-  const utilization = active ? Math.round((counts.running / active) * 1000) / 10 : 0;
+  const activeMachines = machines.filter((m) => normalizeStatus(m) !== "offline");
+  const oeeVals = activeMachines.map((m) => m.oee_pct).filter((v) => v !== null && v !== undefined && v !== 0);
+  const effVals = activeMachines.map((m) => m.efficiency_pct).filter((v) => v !== null && v !== undefined && v !== 0);
+
+  let utilization = 0;
+  if (oeeVals.length > 0) {
+    utilization = Math.round((oeeVals.reduce((s, v) => s + Number(v), 0) / oeeVals.length) * 10) / 10;
+  } else if (effVals.length > 0) {
+    utilization = Math.round((effVals.reduce((s, v) => s + Number(v), 0) / effVals.length) * 10) / 10;
+  } else {
+    utilization = activeMachines.length ? Math.round((counts.running / activeMachines.length) * 1000) / 10 : 0;
+  }
   return {
     total_machines: machines.length,
     running: counts.running,

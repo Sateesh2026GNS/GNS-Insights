@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { Download, Eye, Filter, IndianRupee, Plus, RefreshCw, ShoppingCart, Truck } from "lucide-react";
+import { Download, Eye, Filter, IndianRupee, Plus, RefreshCw, ShoppingCart, Truck, Clock, CheckCircle, Package, XCircle } from "lucide-react";
 
 import DataTable from "../../components/common/DataTable";
 import RowActionMenu from "../../components/common/RowActionMenu";
 import Loader from "../../components/common/Loader";
 import SODetailModal from "../../components/sales/SODetailModal";
+import SalesOrderFormModal from "../../components/sales/SalesOrderFormModal";
 import { useToast } from "../../context/ToastContext";
 import { getSOSummary, getSalesOrdersEnriched } from "../../api/salesApi";
 import { DEMO_SO_LIST, DEMO_SO_SUMMARY, formatInr, statusColor } from "../../data/salesMasterData";
@@ -13,10 +14,17 @@ import { exportToExcel } from "../../utils/exportUtils";
 
 function KpiCard({ label, value, icon: Icon, color }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-      <div className="flex items-center justify-between">
-        <div><p className="text-xs font-medium text-slate-500">{label}</p><p className="mt-1 text-xl font-bold tabular-nums text-slate-900">{value}</p></div>
-        {Icon && <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${color}`}><Icon className="h-5 w-5 text-white" /></div>}
+    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm min-w-0">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1 space-y-1">
+          <p className="text-xs font-medium text-slate-500" title={label}>{label}</p>
+          <p className="text-xl font-bold tabular-nums text-slate-900 leading-tight">{value}</p>
+        </div>
+        {Icon && (
+          <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${color}`}>
+            <Icon className="h-5 w-5 text-white" />
+          </div>
+        )}
       </div>
     </div>
   );
@@ -33,6 +41,7 @@ export default function SalesOrders() {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [selected, setSelected] = useState(null);
   const [openMenu, setOpenMenu] = useState(null);
+  const [showCreate, setShowCreate] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -92,20 +101,20 @@ export default function SalesOrders() {
           <p className="mt-1 text-sm text-slate-500">Manage orders from quotation to dispatch with production and inventory integration.</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Link to="/sales/orders/create" className="ui-btn-primary"><Plus className="h-4 w-4" /> New Sales Order</Link>
+          <button type="button" onClick={() => setShowCreate(true)} className="ui-btn-primary"><Plus className="h-4 w-4" /> New Sales Order</button>
           <button type="button" onClick={() => exportToExcel(filtered, columns.filter((c) => !c.render), "sales-orders")} className="inline-flex items-center gap-2 rounded-lg border bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50"><Download className="h-4 w-4" /> Export</button>
           <button type="button" onClick={load} className="inline-flex items-center gap-2 rounded-lg border bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50"><RefreshCw className="h-4 w-4" /> Refresh</button>
         </div>
       </header>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <KpiCard label="Total Orders" value={summary.total_orders} icon={ShoppingCart} color="bg-blue-600" />
-        <KpiCard label="Pending" value={summary.pending} icon={ShoppingCart} color="bg-amber-500" />
-        <KpiCard label="Confirmed" value={summary.confirmed} icon={ShoppingCart} color="bg-indigo-600" />
-        <KpiCard label="Packed" value={summary.packed} icon={ShoppingCart} color="bg-purple-600" />
+        <KpiCard label="Pending" value={summary.pending} icon={Clock} color="bg-amber-500" />
+        <KpiCard label="Confirmed" value={summary.confirmed} icon={CheckCircle} color="bg-indigo-600" />
+        <KpiCard label="Packed" value={summary.packed} icon={Package} color="bg-purple-600" />
         <KpiCard label="Shipped" value={summary.shipped} icon={Truck} color="bg-teal-600" />
-        <KpiCard label="Delivered" value={summary.delivered} icon={Truck} color="bg-green-600" />
-        <KpiCard label="Cancelled" value={summary.cancelled} icon={ShoppingCart} color="bg-red-500" />
+        <KpiCard label="Delivered" value={summary.delivered} icon={CheckCircle} color="bg-green-600" />
+        <KpiCard label="Cancelled" value={summary.cancelled} icon={XCircle} color="bg-red-500" />
         <KpiCard label="Revenue" value={formatInr(summary.revenue)} icon={IndianRupee} color="bg-emerald-600" />
       </div>
 
@@ -125,6 +134,7 @@ export default function SalesOrders() {
       </div>
 
       {selected && <SODetailModal order={selected} onClose={() => setSelected(null)} />}
+      {showCreate && <SalesOrderFormModal onClose={() => setShowCreate(false)} onSave={() => { setShowCreate(false); load(); }} />}
     </div>
   );
 }

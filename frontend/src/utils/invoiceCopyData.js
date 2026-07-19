@@ -106,9 +106,15 @@ export function mapDetailToInvoiceCopy(detail, companySettings = {}) {
 
   const inv = detail.invoice;
   const cust = detail.customer || {};
+
+  const cgstPct = Number(inv.cgst_pct) || 0;
+  const sgstPct = Number(inv.sgst_pct) || 0;
+  const igstPct = Number(inv.igst_pct) || 0;
+
   const items = (detail.items || []).map((item, i) => {
     const taxable = Number(item.amount) || 0;
-    const igstPct = Number(inv.igst_pct) || 0;
+    const cgstAmount = cgstPct ? Math.round(taxable * cgstPct) / 100 : 0;
+    const sgstAmount = sgstPct ? Math.round(taxable * sgstPct) / 100 : 0;
     const igstAmount = igstPct ? Math.round(taxable * igstPct) / 100 : 0;
     return {
       si: i + 1,
@@ -118,14 +124,20 @@ export function mapDetailToInvoiceCopy(detail, companySettings = {}) {
       unit: (item.unit || "pcs").toUpperCase(),
       rate: Number(item.rate).toFixed(3),
       amount: taxable,
+      cgstPct,
+      sgstPct,
       igstPct,
+      cgstAmount,
+      sgstAmount,
       igstAmount,
     };
   });
 
   const taxableTotal = items.reduce((s, it) => s + it.amount, 0);
+  const cgstTotal = Number(inv.cgst_amount) || items.reduce((s, it) => s + it.cgstAmount, 0);
+  const sgstTotal = Number(inv.sgst_amount) || items.reduce((s, it) => s + it.sgstAmount, 0);
   const igstTotal = Number(inv.igst_amount) || items.reduce((s, it) => s + it.igstAmount, 0);
-  const grandTotal = Number(inv.grand_total) || taxableTotal + igstTotal + Number(inv.round_off || 0);
+  const grandTotal = Number(inv.grand_total) || taxableTotal + cgstTotal + sgstTotal + igstTotal + Number(inv.round_off || 0);
 
   const formatDate = (d) => {
     if (!d) return "";
@@ -133,24 +145,24 @@ export function mapDetailToInvoiceCopy(detail, companySettings = {}) {
     return dt.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "2-digit" }).replace(/ /g, "-");
   };
 
-  const sellerName = companySettings.company_name || companySettings.name || "SMRT Manufacturing Pvt Ltd";
-  const sellerGstin = companySettings.gstin || companySettings.gst_number || "36XXXXX0000X1Z0";
+  const sellerName = companySettings.company_name || companySettings.name || "SMRT PVT LTD";
+  const sellerGstin = companySettings.gstin || companySettings.gst_number || "36AABCS1234F1Z9";
 
   return {
     title: "Tax Invoice",
-    eInvoice: Boolean(companySettings.e_invoice_enabled),
+    eInvoice: true,
     irn: companySettings.irn || "—",
     ackNo: companySettings.ack_no || "—",
     ackDate: formatDate(inv.issue_date),
     seller: {
       name: sellerName,
-      tagline: companySettings.tagline || "Systematic Manufacturing Real-time Tracking",
+      tagline: companySettings.tagline || "Sales & Billing Division",
       address: [companySettings.address_line1, companySettings.address_line2, companySettings.city, companySettings.state, companySettings.pincode].filter(Boolean).join(", ") || "Hyderabad, Telangana",
       udyam: companySettings.udyam || "",
       gstin: sellerGstin,
       state: `${companySettings.state || "Telangana"}, Code: ${companySettings.state_code || "36"}`,
       cin: companySettings.cin || "",
-      email: companySettings.email || companySettings.contact_email || "",
+      email: companySettings.email || "billing@smrt.com",
     },
     meta: {
       invoiceNo: inv.invoice_number,
@@ -184,6 +196,8 @@ export function mapDetailToInvoiceCopy(detail, companySettings = {}) {
     roundOff: Number(inv.round_off) || 0,
     grandTotal,
     taxableTotal,
+    cgstTotal,
+    sgstTotal,
     igstTotal,
     remarks: `Being material sold vide Invoice No : ${inv.invoice_number}`,
   };

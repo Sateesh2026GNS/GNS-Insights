@@ -1,9 +1,25 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
+from app.api.auth_deps import get_current_user
 from app.api.deps import get_db
-from app.core.permissions import require_permission, tenant_scope
+from app.core.permissions import require_permission, tenant_scope, user_has_permission
 from app.models.user import User
+
+
+def require_vendor_access(current_user: User = Depends(get_current_user)) -> User:
+    if not (user_has_permission(current_user, "procurement") or user_has_permission(current_user, "accounts")):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have permission to access vendors (requires procurement or accounts permission)."
+        )
+    return current_user
+
+
+def vendor_tenant_scope(current_user: User = Depends(require_vendor_access)) -> int:
+    return current_user.tenant_id
+
+
 from app.schemas.inventory import SupplierRead
 from app.schemas.vendor import (
     VendorCreate,
@@ -116,14 +132,14 @@ def update_purchase_order_status_endpoint(
 
 @router.get("/vendors/summary", response_model=VendorSummaryRead)
 def vendor_summary_endpoint(
-    tenant_id: int = Depends(tenant_scope(MODULE)), db: Session = Depends(get_db)
+    tenant_id: int = Depends(vendor_tenant_scope), db: Session = Depends(get_db)
 ) -> VendorSummaryRead:
     return get_vendor_summary(db, tenant_id)
 
 
 @router.get("/vendors", response_model=list[VendorListRead])
 def list_vendors_endpoint(
-    tenant_id: int = Depends(tenant_scope(MODULE)), db: Session = Depends(get_db)
+    tenant_id: int = Depends(vendor_tenant_scope), db: Session = Depends(get_db)
 ) -> list[VendorListRead]:
     return list_vendors_enriched(db, tenant_id)
 
@@ -131,7 +147,7 @@ def list_vendors_endpoint(
 @router.post("/vendors", response_model=VendorListRead)
 def create_vendor_endpoint(
     payload: VendorCreate,
-    user: User = Depends(require_permission(MODULE)),
+    user: User = Depends(require_vendor_access),
     db: Session = Depends(get_db),
 ) -> VendorListRead:
     payload.tenant_id = user.tenant_id
@@ -144,7 +160,7 @@ def create_vendor_endpoint(
 @router.get("/vendors/{vendor_id}", response_model=VendorDetailRead)
 def get_vendor_endpoint(
     vendor_id: int,
-    tenant_id: int = Depends(tenant_scope(MODULE)),
+    tenant_id: int = Depends(vendor_tenant_scope),
     db: Session = Depends(get_db),
 ) -> VendorDetailRead:
     detail = get_vendor_detail(db, tenant_id, vendor_id)
@@ -157,7 +173,7 @@ def get_vendor_endpoint(
 def update_vendor_endpoint(
     vendor_id: int,
     payload: VendorUpdate,
-    tenant_id: int = Depends(tenant_scope(MODULE)),
+    tenant_id: int = Depends(vendor_tenant_scope),
     db: Session = Depends(get_db),
 ) -> VendorListRead:
     supplier = update_vendor(db, tenant_id, vendor_id, payload)
@@ -173,7 +189,7 @@ def update_vendor_endpoint(
 @router.patch("/vendors/{vendor_id}/deactivate", response_model=VendorListRead)
 def deactivate_vendor_endpoint(
     vendor_id: int,
-    tenant_id: int = Depends(tenant_scope(MODULE)),
+    tenant_id: int = Depends(vendor_tenant_scope),
     db: Session = Depends(get_db),
 ) -> VendorListRead:
     supplier = deactivate_vendor(db, tenant_id, vendor_id)
@@ -190,7 +206,7 @@ def deactivate_vendor_endpoint(
 def update_vendor_approval_endpoint(
     vendor_id: int,
     status: str = Query(..., description="approved or rejected"),
-    tenant_id: int = Depends(tenant_scope(MODULE)),
+    tenant_id: int = Depends(vendor_tenant_scope),
     db: Session = Depends(get_db),
 ) -> SupplierRead:
     if status not in ("approved", "rejected", "pending"):
@@ -238,7 +254,7 @@ def list_goods_receipts_endpoint(
 @router.post("/supplier-payments", response_model=SupplierPaymentRead)
 def create_supplier_payment_endpoint(
     payload: SupplierPaymentCreate,
-    user: User = Depends(require_permission(MODULE)),
+    user: User = Depends(require_vendor_access),
     db: Session = Depends(get_db),
 ) -> SupplierPaymentRead:
     payload.tenant_id = user.tenant_id
@@ -247,7 +263,7 @@ def create_supplier_payment_endpoint(
 
 @router.get("/supplier-payments", response_model=list[SupplierPaymentRead])
 def list_supplier_payments_endpoint(
-    tenant_id: int = Depends(tenant_scope(MODULE)), db: Session = Depends(get_db)
+    tenant_id: int = Depends(vendor_tenant_scope), db: Session = Depends(get_db)
 ) -> list[SupplierPaymentRead]:
     return list_supplier_payments(db, tenant_id)
 
@@ -305,6 +321,48 @@ def vendor_bill_summary(tenant_id: int = Depends(tenant_scope(MODULE)), db: Sess
 @router.get("/vendor-bills", response_model=list[VendorBillListRead])
 def vendor_bills_list(tenant_id: int = Depends(tenant_scope(MODULE)), db: Session = Depends(get_db)):
     return list_vendor_bills_enriched(db, tenant_id)
+
+
+from pydantic import BaseModel
+from datetime import date
+
+class VendorBillUpdate(BaseModel):
+    bill_number: str
+    amount: float
+    gst_amount: float
+    bill_date: date
+    due_date: date
+
+@router.put("/vendor-bills/{bill_id}", response_model=VendorBillListRead)
+def update_vendor_bill_endpoint(
+    bill_id: int,
+    payload: VendorBillUpdate,
+    user: User = Depends(require_vendor_access),
+    db: Session = Depends(get_db)
+):
+    from app.models.procurement import VendorBill
+    bill = db.get(VendorBill, bill_id)
+    if not bill or bill.tenant_id != user.tenant_id:
+        raise HTTPException(status_code=404, detail="Bill not found")
+    
+    bill.bill_number = payload.bill_number
+    bill.amount = payload.amount
+    bill.gst_amount = payload.gst_amount
+    bill.bill_date = payload.bill_date
+    bill.due_date = payload.due_date
+    
+    db.commit()
+    db.refresh(bill)
+    
+    return VendorBillListRead(
+        id=bill.id,
+        bill_number=bill.bill_number,
+        vendor_name=bill.supplier.name if bill.supplier else "—",
+        amount=float(bill.amount),
+        gst_amount=float(bill.gst_amount),
+        due_date=bill.due_date.isoformat() if bill.due_date else None,
+        status=bill.status
+    )
 
 
 @router.get("/hub", response_model=ProcurementHubRead)

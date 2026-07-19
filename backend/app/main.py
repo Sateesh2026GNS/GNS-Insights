@@ -33,18 +33,10 @@ from app.api.procurement import router as procurement_router
 from app.api.production_scheduling import router as production_scheduling_router
 from app.api.quality import router as quality_router
 from app.api.sales import router as sales_router
-<<<<<<< HEAD
 from app.api.settings import router as company_settings_router
 from app.api.supply_chain import router as supply_chain_router
 from app.api.task_management import router as task_management_router
 from app.api.warehouse import router as warehouse_router
-=======
-from app.api.settings import router as settings_router
-from app.api.admin import router as admin_router
-from app.api.production_scheduling import router as production_scheduling_router
-from app.api.factory_monitor import router as factory_monitor_router
-from app.api.dispatch import router as dispatch_router
->>>>>>> 42502626 (first commit)
 from app.routers import (
     dashboard_api_router,
     masters_api_router,
@@ -298,6 +290,44 @@ def on_startup():
                 conn.execute(text(ddl))
         except Exception:
             pass
+    _customer_columns = [
+        "ALTER TABLE customers ADD COLUMN city VARCHAR(128)",
+        "ALTER TABLE customers ADD COLUMN credit_limit NUMERIC(12, 2)",
+        "ALTER TABLE customers ADD COLUMN outstanding NUMERIC(12, 2)",
+        "ALTER TABLE customers ADD COLUMN customer_type VARCHAR(64)",
+        "ALTER TABLE customers ADD COLUMN status VARCHAR(32)",
+    ]
+    for ddl in _customer_columns:
+        try:
+            with engine.begin() as conn:
+                conn.execute(text(ddl))
+        except Exception:
+            pass
+    _product_columns = [
+        "ALTER TABLE products ADD COLUMN category VARCHAR(128)",
+        "ALTER TABLE products ADD COLUMN product_type VARCHAR(64)",
+        "ALTER TABLE products ADD COLUMN unit VARCHAR(32)",
+        "ALTER TABLE products ADD COLUMN brand VARCHAR(128)",
+        "ALTER TABLE products ADD COLUMN warehouse VARCHAR(128)",
+        "ALTER TABLE products ADD COLUMN min_stock INTEGER",
+        "ALTER TABLE products ADD COLUMN max_stock INTEGER",
+        "ALTER TABLE products ADD COLUMN current_stock INTEGER",
+        "ALTER TABLE products ADD COLUMN status VARCHAR(32)",
+        "ALTER TABLE products ADD COLUMN barcode VARCHAR(128)",
+        "ALTER TABLE products ADD COLUMN bom VARCHAR(128)",
+        "ALTER TABLE products ADD COLUMN production_time VARCHAR(64)",
+        "ALTER TABLE products ADD COLUMN machine_required VARCHAR(64)",
+        "ALTER TABLE products ADD COLUMN quality_standard VARCHAR(128)",
+        "ALTER TABLE products ADD COLUMN batch_tracking BOOLEAN",
+        "ALTER TABLE products ADD COLUMN serial_number BOOLEAN",
+        "ALTER TABLE products ADD COLUMN expiry_date VARCHAR(64)",
+    ]
+    for ddl in _product_columns:
+        try:
+            with engine.begin() as conn:
+                conn.execute(text(ddl))
+        except Exception:
+            pass
     try:
         with engine.begin() as conn:
             conn.execute(text("UPDATE users SET email_verified = 1 WHERE email_verified = 0"))
@@ -317,11 +347,7 @@ def on_startup():
         seed_roles(db)  # Seeds default roles for tenant 1
         seed_admin_user(db)  # admin@smrt.local / admin123 if no users
         seed_products(db)  # Seeds sample products for tenant 1
-<<<<<<< HEAD
         seed_notifications(db)  # Demo bell notifications per user
-=======
-        # seed_dashboard_data(db)  # Seeds dashboard data for testing
->>>>>>> 42502626 (first commit)
     except Exception:
         logger.exception("Seed warning during startup")
     finally:
@@ -338,7 +364,7 @@ app.include_router(production_scheduling_router)
 app.include_router(factory_monitor_router)
 app.include_router(ai_assistant_router)
 app.include_router(auth_router)
-# ERP domain modules (Sales, Finance, Procurement, Quality, Maintenance, Analytics, HR, Inventory)
+# ERP domain modules
 app.include_router(sales_router)
 app.include_router(dispatch_router)
 app.include_router(accounts_router)
@@ -349,21 +375,13 @@ app.include_router(analytics_router)
 app.include_router(hr_router)
 app.include_router(inventory_router)
 app.include_router(alerts_router)
-<<<<<<< HEAD
 app.include_router(admin_router)
 app.include_router(company_settings_router)
 app.include_router(documents_router)
-app.include_router(dispatch_router)
-app.include_router(factory_monitor_router)
 app.include_router(forecasting_router)
 app.include_router(integration_router)
 app.include_router(iot_router)
-app.include_router(production_scheduling_router)
 app.include_router(supply_chain_router)
 app.include_router(task_management_router)
 app.include_router(audit_logs_router)
 app.include_router(warehouse_router)
-=======
-app.include_router(settings_router)
-app.include_router(admin_router)
->>>>>>> 42502626 (first commit)

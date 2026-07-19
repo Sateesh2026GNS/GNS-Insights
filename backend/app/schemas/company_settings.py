@@ -1,10 +1,5 @@
-<<<<<<< HEAD
 from pydantic import BaseModel, ConfigDict, Field
 
-=======
-from pydantic import BaseModel, ConfigDict
-from decimal import Decimal
->>>>>>> 42502626 (first commit)
 
 class CompanySettingsBase(BaseModel):
     company_name: str | None = None
@@ -38,7 +33,6 @@ class CompanySettingsBase(BaseModel):
     payment_terms_note: str | None = None
 
 
-<<<<<<< HEAD
 class CompanySettingsUpdate(BaseModel):
     """All fields optional so any settings sub-page can patch its own slice."""
 
@@ -71,10 +65,6 @@ class CompanySettingsUpdate(BaseModel):
 
     default_payment_terms_days: int | None = Field(None, ge=0)
     payment_terms_note: str | None = None
-=======
-class CompanySettingsUpdate(CompanySettingsBase):
-    pass
->>>>>>> 42502626 (first commit)
 
 
 class CompanySettingsRead(CompanySettingsBase):

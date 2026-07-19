@@ -37,7 +37,6 @@ import {
   PRODUCT_STATUSES,
   PRODUCT_TYPES,
   WAREHOUSES,
-  categoryChartData,
   computeQuickStats,
   computeSummary,
   enrichApiProduct,
@@ -98,23 +97,15 @@ export default function ProductsMaster() {
     try {
       const res = await getProducts();
       const apiRows = res.data || [];
-      if (apiRows.length > 0) {
-        const enriched = apiRows.map((row, i) => enrichApiProduct(row, i));
-        const demoSkus = new Set(DEMO_PRODUCTS.map((p) => p.sku));
-        const merged = [
-          ...DEMO_PRODUCTS,
-          ...enriched.filter((p) => !demoSkus.has(p.sku)),
-        ];
-        setProducts(merged);
-      } else {
-        setProducts(DEMO_PRODUCTS);
-      }
-    } catch {
-      setProducts(DEMO_PRODUCTS);
+      const enriched = apiRows.map((row, i) => enrichApiProduct(row, i));
+      setProducts(enriched);
+    } catch (err) {
+      addToast("Failed to load products from database", "error");
+      setProducts([]);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [addToast]);
 
   useEffect(() => {
     loadProducts();
@@ -133,6 +124,21 @@ export default function ProductsMaster() {
 
   const summary = useMemo(() => computeSummary(filteredProducts), [filteredProducts]);
   const quickStats = useMemo(() => computeQuickStats(filteredProducts), [filteredProducts]);
+
+  const COLORS = ["#3B82F6", "#22C55E", "#F97316", "#A855F7", "#64748B", "#EC4899", "#EAB308"];
+
+  const dynamicCategoryChartData = useMemo(() => {
+    const counts = {};
+    filteredProducts.forEach((p) => {
+      const cat = p.category || "Uncategorized";
+      counts[cat] = (counts[cat] || 0) + 1;
+    });
+    return Object.keys(counts).map((name, i) => ({
+      name,
+      value: counts[name],
+      color: COLORS[i % COLORS.length],
+    }));
+  }, [filteredProducts]);
 
   const topSelling = useMemo(
     () => [...filteredProducts].sort((a, b) => (b.units_sold || 0) - (a.units_sold || 0)).slice(0, 5),
@@ -214,36 +220,29 @@ export default function ProductsMaster() {
       description: form.description || null,
       unit_cost: form.purchase_price ? Number(form.purchase_price) : null,
       unit_price: form.selling_price ? Number(form.selling_price) : null,
+      category: form.category || null,
+      product_type: form.product_type || null,
+      unit: form.unit || null,
+      brand: form.brand || null,
+      warehouse: form.warehouse || null,
+      min_stock: form.min_stock ? Number(form.min_stock) : null,
+      max_stock: form.max_stock ? Number(form.max_stock) : null,
+      current_stock: form.current_stock ? Number(form.current_stock) : 0,
+      status: form.status || "active",
     };
     try {
       if (formProduct?.id && typeof formProduct.id === "number") {
         await updateProduct(formProduct.id, payload);
-        addToast("Product updated");
+        addToast("Product updated successfully", "success");
       } else {
         await createProduct(payload);
-        addToast("Product created");
+        addToast("Product created successfully", "success");
       }
       setFormProduct(null);
       loadProducts();
     } catch (err) {
-      const localId = `new-${Date.now()}`;
-      const code = `PRD${String(products.length + 1).padStart(3, "0")}`;
-      const newProduct = {
-        ...enrichApiProduct({ id: localId, ...payload }, products.length),
-        id: localId,
-        product_code: code,
-        ...form,
-        purchase_price: Number(form.purchase_price) || 0,
-        selling_price: Number(form.selling_price) || 0,
-      };
-      if (formProduct?.id) {
-        setProducts((prev) => prev.map((p) => (p.id === formProduct.id ? { ...p, ...newProduct, id: formProduct.id } : p)));
-        addToast("Product updated locally");
-      } else {
-        setProducts((prev) => [...prev, newProduct]);
-        addToast("Product added locally");
-      }
-      setFormProduct(null);
+      const errMsg = err.response?.data?.detail || "Failed to save product to database.";
+      addToast(errMsg, "error");
     }
   };
 
@@ -279,17 +278,26 @@ export default function ProductsMaster() {
   const clearFilters = () => setFilters({ category: "", brand: "", product_type: "", status: "", warehouse: "" });
 
   const columns = [
-    { key: "product_code", label: "Product Code" },
     { key: "name", label: "Product Name" },
-    { key: "category", label: "Category" },
     { key: "sku", label: "SKU" },
+    { key: "category", label: "Category" },
+    { key: "product_type", label: "Product Type" },
     { key: "unit", label: "Unit" },
+    { key: "brand", label: "Brand" },
+    { key: "warehouse", label: "Warehouse" },
+    {
+      key: "purchase_price",
+      label: "Purchase Price",
+      render: (r) => `₹${Number(r.purchase_price || 0).toLocaleString("en-IN")}`,
+    },
     {
       key: "selling_price",
-      label: "Price",
+      label: "Selling Price",
       render: (r) => `₹${Number(r.selling_price || 0).toLocaleString("en-IN")}`,
     },
-    { key: "current_stock", label: "Stock" },
+    { key: "min_stock", label: "Min Stock" },
+    { key: "current_stock", label: "Current Stock" },
+    { key: "description", label: "Description" },
     {
       key: "status",
       label: "Status",
@@ -410,8 +418,8 @@ export default function ProductsMaster() {
           <div className="h-[200px]">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
-                <Pie data={categoryChartData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={50} outerRadius={75} paddingAngle={2}>
-                  {categoryChartData.map((e) => (
+                <Pie data={dynamicCategoryChartData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={50} outerRadius={75} paddingAngle={2}>
+                  {dynamicCategoryChartData.map((e) => (
                     <Cell key={e.name} fill={e.color} />
                   ))}
                 </Pie>

@@ -48,7 +48,7 @@ export default function TaxReports() {
   const [data, setData] = useState(INITIAL_GST);
   const [year, setYear] = useState(new Date().getFullYear());
   const [search, setSearch] = useState("");
-  const [financialYear, setFinancialYear] = useState("2025-26");
+  const [financialYear, setFinancialYear] = useState("2026-27");
   const [month, setMonth] = useState("All Months");
   const [branch, setBranch] = useState("");
   const [activeReport, setActiveReport] = useState("GSTR-3B");
@@ -56,7 +56,7 @@ export default function TaxReports() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await getGSTExtended(year);
+      const res = await getGSTExtended(year, financialYear, month, branch);
       if (res.data) setData(res.data);
     } catch {
       setData(INITIAL_GST);
@@ -64,7 +64,7 @@ export default function TaxReports() {
     } finally {
       setLoading(false);
     }
-  }, [year, addToast]);
+  }, [year, financialYear, month, branch, addToast]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -130,9 +130,13 @@ export default function TaxReports() {
         onBranchChange={setBranch}
         searchPlaceholder="Search GSTIN, customer..."
       >
-        <div>
-          <label className="mb-1 block text-xs font-medium text-slate-500">Year</label>
-          <select value={year} onChange={(e) => setYear(Number(e.target.value))} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm">
+        <div className="w-full">
+          <label className="block text-xs font-semibold uppercase text-slate-500 dark:text-slate-400 mb-1.5">Year</label>
+          <select
+            value={year}
+            onChange={(e) => setYear(Number(e.target.value))}
+            className="w-full rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:border-[#2563EB] focus:outline-none focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-900/30 transition-all cursor-pointer"
+          >
             {[2026, 2025, 2024, 2023].map((y) => <option key={y} value={y}>{y}</option>)}
           </select>
         </div>

@@ -32,6 +32,7 @@ export const createGoodsReceipt = (payload) => api.post("/procurement/goods-rece
 
 export const getVendorBills = () => api.get("/procurement/vendor-bills");
 export const getVendorBillSummary = () => api.get("/procurement/vendor-bills/summary");
+export const updateVendorBill = (id, payload) => api.put(`/procurement/vendor-bills/${id}`, payload);
 
 export const getSupplierPayments = () => api.get("/procurement/supplier-payments");
 export const createSupplierPayment = (payload) => api.post("/procurement/supplier-payments", payload);

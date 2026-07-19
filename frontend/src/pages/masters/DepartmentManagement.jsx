@@ -149,8 +149,6 @@ export default function DepartmentManagement() {
     { key: "name", label: "Department" },
     { key: "manager_name", label: "Manager" },
     { key: "employee_count", label: "Employees" },
-    { key: "machine_count", label: "Machines" },
-    { key: "work_center_count", label: "Work Centers" },
     { key: "status", label: "Status" },
   ];
 
@@ -174,8 +172,6 @@ export default function DepartmentManagement() {
         dept.name || "—",
         dept.manager_name || "—",
         dept.employee_count ?? 0,
-        dept.machine_count ?? 0,
-        dept.work_center_count ?? 0,
         dept.status || "—",
       ];
       return `<tr>${row.map((value) => `<td>${String(value)}</td>`).join("")}</tr>`;
@@ -199,7 +195,7 @@ export default function DepartmentManagement() {
           <h1>Department Master Report</h1>
           <p>Generated on ${new Date().toLocaleString()}</p>
           <table>
-            <thead><tr><th>Code</th><th>Department</th><th>Manager</th><th>Employees</th><th>Machines</th><th>Work Centers</th><th>Status</th></tr></thead>
+            <thead><tr><th>Code</th><th>Department</th><th>Manager</th><th>Employees</th><th>Status</th></tr></thead>
             <tbody>${rowsHtml}</tbody>
           </table>
           <script>
@@ -280,55 +276,31 @@ export default function DepartmentManagement() {
     };
     try {
       if (formDept?.id && typeof formDept.id === "number") {
-        await updateDepartment(formDept.id, form);
-        addToast("Department updated");
-        loadDepartments();
-        setFormDept(null);
-        return;
+        await updateDepartment(formDept.id, payload);
+        addToast("Department updated successfully", "success");
+      } else {
+        await createDepartment(payload);
+        addToast("Department created successfully", "success");
       }
-      await createDepartment(payload);
-      addToast("Department created");
       loadDepartments();
       setFormDept(null);
-      return;
-    } catch {
-      /* local fallback */
+    } catch (err) {
+      const errorMsg = err.response?.data?.detail || err.message || "Failed to save department";
+      addToast(errorMsg, "error");
     }
-    if (formDept?.id) {
-      setDepartments((prev) => prev.map((d) => (d.id === formDept.id ? { ...d, ...form } : d)));
-      addToast("Department updated locally");
-    } else {
-      const newD = {
-        ...enrichApiDepartment({ id: `new-${Date.now()}`, ...payload }, departments.length),
-        id: `new-${Date.now()}`,
-        code: form.code || `DEP${String(departments.length + 1).padStart(3, "0")}`,
-        employee_count: 0,
-        machine_count: 0,
-        work_center_count: 0,
-      };
-      setDepartments((prev) => [...prev, newD]);
-      addToast("Department added");
-    }
-    setFormDept(null);
   };
 
   const handleDeactivate = async (dept) => {
     if (!window.confirm(`Deactivate ${dept.name}?`)) return;
-    if (typeof dept.id === "number") {
-      try {
-        await deactivateDepartment(dept.id);
-        addToast("Department deactivated");
-        loadDepartments();
-        setSelected(null);
-        return;
-      } catch {
-        addToast("Could not deactivate", "error");
-        return;
-      }
+    try {
+      await deactivateDepartment(dept.id);
+      addToast("Department deactivated successfully", "success");
+      loadDepartments();
+      setSelected(null);
+    } catch (err) {
+      const errorMsg = err.response?.data?.detail || err.message || "Could not deactivate department";
+      addToast(errorMsg, "error");
     }
-    setDepartments((prev) => prev.map((d) => (d.id === dept.id ? { ...d, status: "inactive" } : d)));
-    setSelected(null);
-    addToast("Department deactivated");
   };
 
   const columns = [
@@ -339,16 +311,6 @@ export default function DepartmentManagement() {
       key: "employee_count",
       label: "Employees",
       render: (r) => r.employee_count ?? 0,
-    },
-    {
-      key: "machine_count",
-      label: "Machines",
-      render: (r) => r.machine_count ?? 0,
-    },
-    {
-      key: "work_center_count",
-      label: "Work Centers",
-      render: (r) => r.work_center_count ?? 0,
     },
     {
       key: "status",

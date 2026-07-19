@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
+import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, PieChart, Pie, Cell } from "recharts";
 import * as XLSX from "xlsx";
 import { jsPDF } from "jspdf";
 import { Factory, IndianRupee, Package, RefreshCw, TrendingDown, TrendingUp, Wallet } from "lucide-react";
@@ -11,6 +11,7 @@ import { useToast } from "../../context/ToastContext";
 import { getProfitLossExtended } from "../../api/accountsApi";
 import { formatInr } from "../../data/financeMasterData";
 
+const PIE_COLORS = ["#2563EB", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#06b6d4"];
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 function KpiCard({ label, value, icon: Icon, color }) {
@@ -54,14 +55,14 @@ export default function ProfitLoss() {
   const [data, setData] = useState(INITIAL_PL);
   const [year, setYear] = useState(new Date().getFullYear());
   const [search, setSearch] = useState("");
-  const [financialYear, setFinancialYear] = useState("2025-26");
+  const [financialYear, setFinancialYear] = useState("2026-27");
   const [month, setMonth] = useState("All Months");
   const [branch, setBranch] = useState("");
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await getProfitLossExtended(year);
+      const res = await getProfitLossExtended(year, financialYear, month, branch);
       if (res.data) setData(res.data);
     } catch {
       setData(INITIAL_PL);
@@ -69,7 +70,7 @@ export default function ProfitLoss() {
     } finally {
       setLoading(false);
     }
-  }, [year, addToast]);
+  }, [year, financialYear, month, branch, addToast]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -139,9 +140,13 @@ export default function ProfitLoss() {
         onBranchChange={setBranch}
         searchPlaceholder="Search category, department..."
       >
-        <div>
-          <label className="mb-1 block text-xs font-medium text-slate-500">Year</label>
-          <select value={year} onChange={(e) => setYear(Number(e.target.value))} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm">
+        <div className="w-full">
+          <label className="block text-xs font-semibold uppercase text-slate-500 dark:text-slate-400 mb-1.5">Year</label>
+          <select
+            value={year}
+            onChange={(e) => setYear(Number(e.target.value))}
+            className="w-full rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:border-[#2563EB] focus:outline-none focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-900/30 transition-all cursor-pointer"
+          >
             {[2026, 2025, 2024, 2023].map((y) => <option key={y} value={y}>{y}</option>)}
           </select>
         </div>
@@ -208,25 +213,61 @@ export default function ProfitLoss() {
         </div>
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <h2 className="mb-4 font-semibold text-slate-900">Department Cost</h2>
-          <ul className="space-y-2">
-            {(data.department_cost || []).map((d) => (
-              <li key={d.name} className="flex justify-between rounded-lg bg-slate-50 px-3 py-2 text-sm">
-                <span className="font-medium">{d.name}</span>
-                <span className="font-semibold text-[#2563EB]">{formatInr(d.amount)}</span>
-              </li>
-            ))}
-          </ul>
+          <div className="h-48">
+            {data.department_cost && data.department_cost.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={data.department_cost}
+                    dataKey="amount"
+                    nameKey="name"
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={65}
+                    label={({ name }) => name}
+                  >
+                    {data.department_cost.map((_, i) => (
+                      <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip formatter={(v) => formatInr(v)} />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex h-full items-center justify-center">
+                <p className="text-sm text-slate-400">No department cost recorded</p>
+              </div>
+            )}
+          </div>
         </div>
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <h2 className="mb-4 font-semibold text-slate-900">Factory Cost Analysis</h2>
-          <ul className="space-y-2">
-            {(data.factory_cost || []).map((d) => (
-              <li key={d.name} className="flex justify-between rounded-lg bg-slate-50 px-3 py-2 text-sm">
-                <span className="font-medium">{d.name}</span>
-                <span className="font-semibold text-[#2563EB]">{formatInr(d.amount)}</span>
-              </li>
-            ))}
-          </ul>
+          <div className="h-48">
+            {data.factory_cost && data.factory_cost.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={data.factory_cost}
+                    dataKey="amount"
+                    nameKey="name"
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={65}
+                    label={({ name }) => name}
+                  >
+                    {data.factory_cost.map((_, i) => (
+                      <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip formatter={(v) => formatInr(v)} />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex h-full items-center justify-center">
+                <p className="text-sm text-slate-400">No factory cost recorded</p>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 

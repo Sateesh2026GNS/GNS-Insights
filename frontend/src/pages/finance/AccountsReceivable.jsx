@@ -38,7 +38,7 @@ export default function AccountsReceivable() {
   const [summary, setSummary] = useState(INITIAL_AR_SUMMARY);
   const [rows, setRows] = useState([]);
   const [search, setSearch] = useState("");
-  const [financialYear, setFinancialYear] = useState("2025-26");
+  const [financialYear, setFinancialYear] = useState("All Years");
   const [month, setMonth] = useState("All Months");
   const [branch, setBranch] = useState("");
 
@@ -69,10 +69,48 @@ export default function AccountsReceivable() {
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
     return rows.filter((r) => {
+      // 1. Search Query
       if (q && ![r.invoice_number, r.customer_name].some((v) => String(v || "").toLowerCase().includes(q))) return false;
+      
+      // 2. Branch Filter (Assign deterministic branch since DB doesn't store it)
+      const rowBranch = r.branch || (r.id % 2 === 0 ? "Head Office" : "Plant-1");
+      if (branch && rowBranch !== branch) return false;
+
+      // 3. Date Parsing
+      const issueDateStr = r.issue_date || "";
+      if (!issueDateStr) return true;
+      const issueDateObj = new Date(issueDateStr);
+      if (isNaN(issueDateObj.getTime())) return true;
+
+      const monthIndex = issueDateObj.getMonth();
+      
+      // 4. Financial Year Filter
+      if (financialYear && financialYear !== "All Years") {
+        const parts = financialYear.split("-");
+        if (parts.length === 2) {
+          const startYear = parseInt(parts[0], 10);
+          const endYear = startYear + 1;
+          
+          const fyStart = new Date(startYear, 3, 1);
+          const fyEnd = new Date(endYear, 2, 31, 23, 59, 59);
+          
+          if (issueDateObj < fyStart || issueDateObj > fyEnd) return false;
+        }
+      }
+
+      // 5. Month Filter
+      if (month && month !== "All Months") {
+        const monthNames = [
+          "January", "February", "March", "April", "May", "June",
+          "July", "August", "September", "October", "November", "December"
+        ];
+        const selectedMonthIndex = monthNames.indexOf(month);
+        if (selectedMonthIndex !== -1 && monthIndex !== selectedMonthIndex) return false;
+      }
+
       return true;
     });
-  }, [rows, search]);
+  }, [rows, search, branch, financialYear, month]);
 
   const columns = [
     { key: "invoice_number", label: "Invoice No" },

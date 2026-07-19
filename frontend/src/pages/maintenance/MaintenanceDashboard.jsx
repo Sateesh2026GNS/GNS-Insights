@@ -43,10 +43,11 @@ const INITIAL_MAINTENANCE_HUB = {
 };
 
 function KpiCard({ label, value, icon: Icon, color, suffix }) {
+  const displayValue = value ?? 0;
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
       <div className="flex items-center justify-between">
-        <div><p className="text-xs font-medium text-slate-500">{label}</p><p className="mt-1 text-xl font-bold tabular-nums text-slate-900">{value}{suffix || ""}</p></div>
+        <div><p className="text-xs font-medium text-slate-500">{label}</p><p className="mt-1 text-xl font-bold tabular-nums text-slate-900">{displayValue}{suffix || ""}</p></div>
         {Icon && <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${color}`}><Icon className="h-5 w-5 text-white" /></div>}
       </div>
     </div>
@@ -54,6 +55,26 @@ function KpiCard({ label, value, icon: Icon, color, suffix }) {
 }
 
 const alertIcons = { due: Timer, breakdown: AlertTriangle, spare: Wrench, completed: TrendingUp };
+
+function normalizeMaintenanceHub(payload) {
+  const source = payload && typeof payload === "object" ? payload : {};
+  return {
+    ...INITIAL_MAINTENANCE_HUB,
+    ...source,
+    calendar_events: Array.isArray(source.calendar_events) ? source.calendar_events : [],
+    machine_health: Array.isArray(source.machine_health) ? source.machine_health : [],
+    downtime_trend: Array.isArray(source.downtime_trend) ? source.downtime_trend : [],
+    availability_trend: Array.isArray(source.availability_trend) ? source.availability_trend : [],
+    cost_trend: Array.isArray(source.cost_trend) ? source.cost_trend : [],
+    breakdown_frequency: Array.isArray(source.breakdown_frequency) ? source.breakdown_frequency : [],
+    mttr_trend: Array.isArray(source.mttr_trend) ? source.mttr_trend : [],
+    mtbf_trend: Array.isArray(source.mtbf_trend) ? source.mtbf_trend : [],
+    preventive_vs_breakdown: Array.isArray(source.preventive_vs_breakdown) ? source.preventive_vs_breakdown : [],
+    spare_parts: Array.isArray(source.spare_parts) ? source.spare_parts : [],
+    work_orders: Array.isArray(source.work_orders) ? source.work_orders : [],
+    alerts: Array.isArray(source.alerts) ? source.alerts : [],
+  };
+}
 
 export default function MaintenanceDashboard() {
   const { addToast } = useToast();
@@ -66,7 +87,8 @@ export default function MaintenanceDashboard() {
     setError(null);
     try {
       const res = await getMaintenanceHub();
-      if (res.data) setHub(res.data);
+      const payload = res?.data ?? res;
+      setHub(normalizeMaintenanceHub(payload));
     } catch (e) {
       setError(e.message || "Network error");
       setHub(INITIAL_MAINTENANCE_HUB);
@@ -76,7 +98,13 @@ export default function MaintenanceDashboard() {
     }
   }, [addToast]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+    const intervalId = window.setInterval(() => {
+      load();
+    }, 15000);
+    return () => window.clearInterval(intervalId);
+  }, [load]);
 
   if (loading) return <Loader label="Loading maintenance dashboard..." />;
   if (error && !hub.total_machines) return <MaintenanceErrorState message={error} onRetry={load} />;
@@ -279,11 +307,17 @@ export default function MaintenanceDashboard() {
   );
 }
 
-function ChartCard({ title, children }) {
+function ChartCard({ title, children, emptyMessage = "No graph data available" }) {
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
       <h2 className="mb-4 text-sm font-semibold text-slate-900">{title}</h2>
-      <div className="h-44"><ResponsiveContainer width="100%" height="100%">{children}</ResponsiveContainer></div>
+      <div className="h-44">
+        {children ? (
+          <ResponsiveContainer width="100%" height="100%">{children}</ResponsiveContainer>
+        ) : (
+          <div className="flex h-full items-center justify-center rounded-lg border border-dashed border-slate-200 bg-slate-50 text-sm text-slate-500">{emptyMessage}</div>
+        )}
+      </div>
     </div>
   );
 }

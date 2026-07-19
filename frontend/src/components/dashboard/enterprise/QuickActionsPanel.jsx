@@ -1,7 +1,17 @@
 import { Link } from "react-router-dom";
 
-import { quickActions } from "../../../data/dashboardDummyData";
 import DashboardIcon from "./DashboardIcons";
+
+const quickActions = [
+  { label: "Create Work Order", icon: "Assignment", to: "/production/work-orders/create-quick", color: "#2563EB" },
+  { label: "Material Issue", icon: "Inventory", to: "/inventory/stock-movement", color: "#22C55E" },
+  { label: "Production Entry", icon: "Factory", to: "/production/create", color: "#8B5CF6" },
+  { label: "QC Entry", icon: "FactCheck", to: "/quality/inspection", color: "#0EA5E9" },
+  { label: "Purchase Order", icon: "ShoppingCart", to: "/procurement/purchase-orders/create", color: "#F59E0B" },
+  { label: "Sales Order", icon: "Receipt", to: "/sales/orders/create", color: "#EC4899" },
+  { label: "Reports", icon: "Assessment", to: "/analytics/production", color: "#6366F1" },
+  { label: "Settings", icon: "Settings", to: "/settings", color: "#64748B" },
+];
 
 export default function QuickActionsPanel() {
   return (

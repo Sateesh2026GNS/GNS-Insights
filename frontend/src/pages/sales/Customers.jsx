@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   AlertCircle,
   Download,
@@ -20,7 +21,7 @@ import { ImportExportActionBar } from "../../components/common/PageActionBar";
 import CustomerDetailModal, { CustomerFormModal } from "../../components/sales/CustomerDetailModal";
 import { useToast } from "../../context/ToastContext";
 import useTenantId from "../../hooks/useTenantId";
-import { getCustomers, createCustomer } from "../../api/salesApi";
+import { getCustomers, createCustomer, deleteCustomer } from "../../api/salesApi";
 import {
   CUSTOMER_STATUSES,
   CUSTOMER_TYPES,
@@ -80,6 +81,7 @@ const defaultFilters = {
 
 export default function Customers() {
   const { addToast } = useToast();
+  const navigate = useNavigate();
   const tenantId = useTenantId();
   const [loading, setLoading] = useState(true);
   const [customers, setCustomers] = useState([]);
@@ -102,12 +104,13 @@ export default function Customers() {
       } else {
         setCustomers(DEMO_CUSTOMERS);
       }
-    } catch {
+    } catch (err) {
+      addToast("Failed to load customers from database", "error");
       setCustomers(DEMO_CUSTOMERS);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [addToast]);
 
   useEffect(() => {
     loadCustomers();
@@ -115,15 +118,25 @@ export default function Customers() {
 
   const filteredCustomers = useMemo(() => {
     return customers.filter((c) => {
-      if (filters.customer_code && !c.customer_code.toLowerCase().includes(filters.customer_code.toLowerCase())) return false;
-      if (filters.company && !c.company.toLowerCase().includes(filters.company.toLowerCase())) return false;
-      if (filters.contact && !c.contact_person.toLowerCase().includes(filters.contact.toLowerCase())) return false;
-      if (filters.gstin && !String(c.gstin).toLowerCase().includes(filters.gstin.toLowerCase())) return false;
-      if (filters.state && c.state !== filters.state) return false;
-      if (filters.city && !c.city.toLowerCase().includes(filters.city.toLowerCase())) return false;
-      if (filters.status && c.status !== filters.status) return false;
-      if (filters.customer_type && c.customer_type !== filters.customer_type) return false;
-      if (filters.sales_executive && c.sales_executive !== filters.sales_executive) return false;
+      const code = String(c.customer_code || "").toLowerCase();
+      const comp = String(c.company || c.name || "").toLowerCase();
+      const contactVal = String(c.contact_person || "").toLowerCase();
+      const gst = String(c.gstin || "").toLowerCase();
+      const state = String(c.state || "").trim();
+      const city = String(c.city || "").toLowerCase();
+      const status = String(c.status || "").toLowerCase();
+      const type = String(c.customer_type || "").toLowerCase();
+      const exec = String(c.sales_executive || "").toLowerCase();
+
+      if (filters.customer_code && !code.includes(filters.customer_code.toLowerCase())) return false;
+      if (filters.company && !comp.includes(filters.company.toLowerCase())) return false;
+      if (filters.contact && !contactVal.includes(filters.contact.toLowerCase())) return false;
+      if (filters.gstin && !gst.includes(filters.gstin.toLowerCase())) return false;
+      if (filters.state && state !== filters.state.trim()) return false;
+      if (filters.city && !city.includes(filters.city.toLowerCase())) return false;
+      if (filters.status && status !== filters.status.toLowerCase()) return false;
+      if (filters.customer_type && type !== filters.customer_type.toLowerCase()) return false;
+      if (filters.sales_executive && exec !== filters.sales_executive.toLowerCase()) return false;
       if (filters.date_from && c.created_at && c.created_at < filters.date_from) return false;
       if (filters.date_to && c.created_at && c.created_at > filters.date_to) return false;
       return true;
@@ -261,6 +274,11 @@ export default function Customers() {
       gstin: form.gstin,
       state: form.state,
       address_line1: form.billing_address,
+      city: form.city,
+      credit_limit: form.credit_limit !== "" ? Number(form.credit_limit) : null,
+      outstanding: form.outstanding !== "" ? Number(form.outstanding) : null,
+      customer_type: form.customer_type,
+      status: form.status,
     };
     try {
       if (formCustomer?.id && typeof formCustomer.id === "number") {
@@ -294,11 +312,94 @@ export default function Customers() {
     setFormCustomer(null);
   };
 
-  const handleDelete = (customer) => {
+  const handleDelete = async (customer) => {
     if (!window.confirm(`Delete ${customer.company}?`)) return;
-    setCustomers((prev) => prev.filter((c) => c.id !== customer.id));
-    setSelected(null);
-    addToast("Customer deleted");
+    try {
+      if (customer.id && typeof customer.id === "number") {
+        await deleteCustomer(customer.id);
+      }
+      setCustomers((prev) => prev.filter((c) => c.id !== customer.id));
+      setSelected(null);
+      addToast("Customer deleted", "success");
+    } catch {
+      addToast("Failed to delete customer", "error");
+    }
+  };
+
+  const handleReportClick = (report) => {
+    let reportColumns = [];
+    let title = "";
+    let filename = "";
+
+    switch (report) {
+      case "Customer Ledger":
+        reportColumns = [
+          { key: "customer_code", label: "Customer Code" },
+          { key: "company", label: "Company" },
+          { key: "credit_limit", label: "Credit Limit" },
+          { key: "outstanding", label: "Outstanding" },
+          { key: "payment_terms", label: "Payment Terms" },
+          { key: "status", label: "Status" },
+        ];
+        title = "Customer Ledger Report";
+        filename = "customer_ledger";
+        break;
+      case "Customer Aging Report":
+        reportColumns = [
+          { key: "customer_code", label: "Customer Code" },
+          { key: "company", label: "Company" },
+          { key: "outstanding", label: "Outstanding" },
+          { key: "pending_payments", label: "Pending Payments" },
+          { key: "last_payment", label: "Last Payment Date" },
+        ];
+        title = "Customer Aging Report";
+        filename = "customer_aging";
+        break;
+      case "Outstanding Report":
+        reportColumns = [
+          { key: "customer_code", label: "Customer Code" },
+          { key: "company", label: "Company" },
+          { key: "credit_limit", label: "Credit Limit" },
+          { key: "outstanding", label: "Outstanding Balance" },
+          { key: "pending_payments", label: "Pending Bills" },
+        ];
+        title = "Outstanding Balance Report";
+        filename = "customer_outstanding";
+        break;
+      case "Sales Report":
+        reportColumns = [
+          { key: "customer_code", label: "Customer Code" },
+          { key: "company", label: "Company" },
+          { key: "total_orders", label: "Total Orders" },
+          { key: "total_sales", label: "Total Sales" },
+          { key: "last_order", label: "Last Order Date" },
+        ];
+        title = "Customer Sales Report";
+        filename = "customer_sales";
+        break;
+      case "Payment Report":
+        reportColumns = [
+          { key: "customer_code", label: "Customer Code" },
+          { key: "company", label: "Company" },
+          { key: "outstanding", label: "Outstanding Amount" },
+          { key: "last_payment", label: "Last Payment Date" },
+          { key: "pending_payments", label: "Pending Payments" },
+        ];
+        title = "Customer Payment Report";
+        filename = "customer_payments";
+        break;
+      default:
+        addToast(`${report} — coming soon`, "info");
+        return;
+    }
+
+    if (!filteredCustomers.length) {
+      addToast("No data available to export", "warning");
+      return;
+    }
+
+    exportToPdf(filteredCustomers, reportColumns, title, filename);
+    addToast(`Downloaded ${report}`);
   };
 
   const columns = [
@@ -430,7 +531,7 @@ export default function Customers() {
           <ul className="space-y-2">
             {REPORT_TYPES.map((r) => (
               <li key={r}>
-                <button type="button" onClick={() => addToast(`${r} — coming soon`, "info")} className="text-sm font-medium text-[#2563EB] hover:underline">
+                <button type="button" onClick={() => handleReportClick(r)} className="text-sm font-medium text-[#2563EB] hover:underline">
                   {r}
                 </button>
               </li>

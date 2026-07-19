@@ -10,13 +10,16 @@ export const getProductionLines = () =>
   api.get("/factory-monitor/production-lines");
 
 export const getShopFloorSummary = () =>
-  api.get("/factory-monitor/shop-floor/summary");
+  api.get("/api/shopfloor/status");
 
 export const getShopFloorGrid = () =>
-  api.get("/factory-monitor/shop-floor/grid");
+  api.get("/api/shopfloor/live");
 
 export const getShopFloorAlerts = () =>
-  api.get("/factory-monitor/shop-floor/alerts");
+  api.get("/api/shopfloor/live");
 
 export const getShopFloorTimeline = () =>
-  api.get("/factory-monitor/shop-floor/timeline");
+  api.get("/api/shopfloor/live");
+
+export const getShopFloorLive = () =>
+  api.get("/api/shopfloor/live");

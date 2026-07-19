@@ -27,39 +27,47 @@ export function guessCategory(sku = "", name = "") {
 }
 
 export function enrichApiProduct(apiRow, index = 0) {
-  const category = guessCategory(apiRow.sku, apiRow.name);
-  const stock = 50 + ((apiRow.id || index) * 37) % 450;
-  const minStock = 20;
+  const category = apiRow.category || guessCategory(apiRow.sku, apiRow.name);
+  const stock = apiRow.current_stock ?? (50 + ((apiRow.id || index) * 37) % 450);
+  const minStock = apiRow.min_stock ?? 20;
+  const maxStock = apiRow.max_stock ?? (minStock * 10);
+  const unit = apiRow.unit || (category === "Raw Material" ? "KG" : "Nos");
+  const brand = apiRow.brand || BRANDS[index % BRANDS.length];
+  const warehouse = apiRow.warehouse || WAREHOUSES[index % WAREHOUSES.length];
+  const status = apiRow.status || "active";
+  const desc = apiRow.description || "";
+  const product_type = apiRow.product_type || (category === "Raw Material" ? "Raw Material" : "Finished Goods");
+
   return {
     id: apiRow.id,
-    product_code: `PRD${String(apiRow.id).padStart(3, "0")}`,
+    product_code: apiRow.product_code || `PRD${String(apiRow.id).padStart(3, "0")}`,
     name: apiRow.name,
     category,
-    product_type: category === "Raw Material" ? "Raw Material" : "Finished Goods",
+    product_type,
     sku: apiRow.sku,
-    barcode: `890${String(apiRow.id).padStart(10, "0")}`,
-    brand: BRANDS[index % BRANDS.length],
-    unit: category === "Raw Material" ? "KG" : "Nos",
-    hsn_code: "—",
-    gst_percent: 18,
+    barcode: apiRow.barcode || `890${String(apiRow.id).padStart(10, "0")}`,
+    brand,
+    unit,
+    hsn_code: apiRow.hsn_code || "—",
+    gst_percent: apiRow.gst_percent ?? 18,
     purchase_price: apiRow.unit_cost ?? 0,
     selling_price: apiRow.unit_price ?? 0,
     min_stock: minStock,
-    max_stock: minStock * 10,
+    max_stock: maxStock,
     current_stock: stock,
-    warehouse: WAREHOUSES[index % WAREHOUSES.length],
-    description: apiRow.description || "",
-    status: "active",
-    bom: `BOM-${apiRow.sku}`,
-    production_time: category === "Raw Material" ? "—" : "2 hrs",
-    machine_required: category === "Raw Material" ? "—" : "CNC-01",
-    quality_standard: "ISO 9001",
-    batch_tracking: category !== "Raw Material",
-    serial_number: false,
-    expiry_date: null,
-    units_sold: 50 + index * 30,
-    stock_value: stock * (apiRow.unit_price ?? 100),
-    created_at: new Date().toISOString().slice(0, 10),
+    warehouse,
+    description: desc,
+    status,
+    bom: apiRow.bom || `BOM-${apiRow.sku}`,
+    production_time: apiRow.production_time || (category === "Raw Material" ? "—" : "2 hrs"),
+    machine_required: apiRow.machine_required || (category === "Raw Material" ? "—" : "CNC-01"),
+    quality_standard: apiRow.quality_standard || "ISO 9001",
+    batch_tracking: apiRow.batch_tracking ?? (category !== "Raw Material"),
+    serial_number: apiRow.serial_number ?? false,
+    expiry_date: apiRow.expiry_date || null,
+    units_sold: apiRow.units_sold ?? (50 + index * 30),
+    stock_value: stock * (apiRow.unit_price ?? apiRow.unit_cost ?? 100),
+    created_at: apiRow.created_at || new Date().toISOString().slice(0, 10),
   };
 }
 

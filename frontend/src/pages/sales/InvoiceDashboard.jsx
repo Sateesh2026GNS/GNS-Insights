@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Eye, FileText, IndianRupee, Plus, Printer, RefreshCw } from "lucide-react";
+import { jsPDF } from "jspdf";
+import autoTable from "jspdf-autotable";
 
 import DataTable from "../../components/common/DataTable";
 import RowActionMenu from "../../components/common/RowActionMenu";
@@ -31,7 +33,6 @@ export default function InvoiceDashboard() {
   const [summary, setSummary] = useState(DEMO_INVOICE_SUMMARY);
   const [rows, setRows] = useState(DEMO_INVOICE_LIST);
   const [selected, setSelected] = useState(null);
-  const [openMenu, setOpenMenu] = useState(null);
   const [detail, setDetail] = useState(null);
   const [statusFilter, setStatusFilter] = useState("");
   const [view, setView] = useState("table");
@@ -41,8 +42,12 @@ export default function InvoiceDashboard() {
     try {
       const [sumRes, listRes] = await Promise.allSettled([getInvoiceSummary(), getInvoicesEnriched()]);
       if (sumRes.status === "fulfilled" && sumRes.value?.data) setSummary({ ...DEMO_INVOICE_SUMMARY, ...sumRes.value.data });
-      if (listRes.status === "fulfilled" && listRes.value?.data?.length) setRows(listRes.value.data);
-      else setRows(DEMO_INVOICE_LIST);
+      if (listRes.status === "fulfilled" && listRes.value?.data?.length) {
+        // Keep both invoices and bills so bills can get invoices
+        setRows(listRes.value.data);
+      } else {
+        setRows(DEMO_INVOICE_LIST);
+      }
     } catch {
       addToast("Using demo invoice data", "info");
     } finally {
@@ -65,10 +70,97 @@ export default function InvoiceDashboard() {
     return rows.filter((r) => r.status === statusFilter);
   }, [rows, statusFilter]);
 
+  const visibleSummary = useMemo(() => {
+    const pending = rows.filter((row) => ["sent", "partial"].includes(String(row.status || "").toLowerCase())).length;
+    const overdue = rows.filter((row) => String(row.status || "").toLowerCase() === "overdue").length;
+    return {
+      ...summary,
+      total_invoices: rows.length,
+      draft: rows.filter((row) => String(row.status || "").toLowerCase() === "draft").length,
+      paid: rows.filter((row) => String(row.status || "").toLowerCase() === "paid").length,
+      pending,
+      overdue,
+      revenue: rows.reduce((sum, row) => sum + Number(row.amount || row.grand_total || 0), 0),
+    };
+  }, [rows, summary]);
+
   const copyData = useMemo(() => {
     if (!detail?.invoice) return SAMPLE_INVOICE_COPY;
     return mergeWithSampleIfEmpty(mapDetailToInvoiceCopy(detail, settings || {}));
   }, [detail, settings]);
+
+  const handlePdfDownload = () => {
+    if (!detail?.invoice) return;
+    const doc = new jsPDF();
+    doc.setFontSize(18);
+    doc.text("TAX INVOICE", 14, 20);
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "bold");
+    doc.text(copyData.seller.name, 14, 30);
+    doc.setFont("helvetica", "normal");
+    const sellerLines = [
+      copyData.seller.address,
+      `GSTIN/UIN: ${copyData.seller.gstin}`,
+      `State: ${copyData.seller.state}`
+    ];
+    doc.text(sellerLines, 14, 35);
+    const metaLines = [
+      `Invoice No: ${copyData.meta.invoiceNo}`,
+      `Dated: ${copyData.meta.date}`,
+      `e-Way Bill No: ${copyData.meta.eWayBillNo || "—"}`,
+      `Mode/Terms of Payment: ${copyData.meta.modeTerms || "—"}`
+    ];
+    doc.text(metaLines, 120, 30);
+    doc.setFont("helvetica", "bold");
+    doc.text("Consignee (Ship to)", 14, 60);
+    doc.text("Buyer (Bill to)", 110, 60);
+    doc.setFont("helvetica", "normal");
+    const consigneeLines = [
+      copyData.consignee.name,
+      copyData.consignee.address,
+      `GSTIN/UIN: ${copyData.consignee.gstin || "—"}`,
+      `State: ${copyData.consignee.state || "—"}`
+    ];
+    doc.text(consigneeLines, 14, 65);
+    const buyerLines = [
+      copyData.buyer.name,
+      copyData.buyer.address,
+      `GSTIN/UIN: ${copyData.buyer.gstin || "—"}`,
+      `State: ${copyData.buyer.state || "—"}`,
+      `Place of Supply: ${copyData.placeOfSupply || "—"}`
+    ];
+    doc.text(buyerLines, 110, 65);
+    const headers = ["SI", "Description", "HSN/SAC", "Qty", "Rate", "per", "Amount"];
+    const rowsData = copyData.items.map((item) => [
+      item.si,
+      item.description,
+      item.hsn,
+      item.qty,
+      item.rate,
+      item.unit,
+      `₹${Number(item.amount).toFixed(2)}`
+    ]);
+    autoTable(doc, {
+      head: [headers],
+      body: rowsData,
+      startY: 95,
+      styles: { fontSize: 8 },
+      headStyles: { fillColor: [37, 99, 235] },
+    });
+    const finalY = doc.lastAutoTable.finalY + 10;
+    doc.setFont("helvetica", "bold");
+    doc.text(`Taxable Total: ₹${copyData.taxableTotal.toFixed(2)}`, 14, finalY);
+    if (copyData.cgstTotal > 0) {
+      doc.text(`CGST: ₹${copyData.cgstTotal.toFixed(2)}`, 14, finalY + 5);
+      doc.text(`SGST: ₹${copyData.sgstTotal.toFixed(2)}`, 14, finalY + 10);
+    } else if (copyData.igstTotal > 0) {
+      doc.text(`IGST: ₹${copyData.igstTotal.toFixed(2)}`, 14, finalY + 5);
+    }
+    doc.setFontSize(12);
+    doc.text(`Grand Total: ₹${copyData.grandTotal.toFixed(2)}`, 140, finalY);
+    doc.save(`Invoice_${copyData.meta.invoiceNo}.pdf`);
+    addToast("Invoice PDF downloaded successfully", "success");
+  };
 
   const columns = [
     { key: "invoice_number", label: "Invoice No", render: (r) => <span className="font-medium text-[#2563EB]">{r.invoice_number}</span> },
@@ -81,8 +173,6 @@ export default function InvoiceDashboard() {
     { key: "actions", label: "Actions", sortable: false, render: (r) => (
       <RowActionMenu
         rowId={r.id}
-        openMenu={openMenu}
-        setOpenMenu={setOpenMenu}
         items={[
           { label: "View", icon: <Eye className="h-4 w-4" />, onClick: () => { setSelected(r.id); setView("copy"); } },
           { label: "Print", icon: <Printer className="h-4 w-4" />, onClick: () => navigate(`/sales/invoices/${r.id}/copy`), hidden: typeof r.id !== "number" },
@@ -108,12 +198,12 @@ export default function InvoiceDashboard() {
       </header>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-        <KpiCard label="Total Invoices" value={summary.total_invoices} icon={FileText} color="bg-blue-600" />
-        <KpiCard label="Draft" value={summary.draft} icon={FileText} color="bg-slate-500" />
-        <KpiCard label="Paid" value={summary.paid} icon={FileText} color="bg-green-600" />
-        <KpiCard label="Pending" value={summary.pending} icon={FileText} color="bg-amber-500" />
-        <KpiCard label="Overdue" value={summary.overdue} icon={FileText} color="bg-red-500" />
-        <KpiCard label="Revenue" value={formatInr(summary.revenue)} icon={IndianRupee} color="bg-emerald-600" />
+        <KpiCard label="Total Invoices" value={visibleSummary.total_invoices} icon={FileText} color="bg-blue-600" />
+        <KpiCard label="Draft" value={visibleSummary.draft} icon={FileText} color="bg-slate-500" />
+        <KpiCard label="Paid" value={visibleSummary.paid} icon={FileText} color="bg-green-600" />
+        <KpiCard label="Pending" value={visibleSummary.pending} icon={FileText} color="bg-amber-500" />
+        <KpiCard label="Overdue" value={visibleSummary.overdue} icon={FileText} color="bg-red-500" />
+        <KpiCard label="Revenue" value={formatInr(visibleSummary.revenue)} icon={IndianRupee} color="bg-emerald-600" />
       </div>
 
       <div className="flex gap-1 self-start rounded-lg bg-slate-100 p-0.5">
@@ -154,12 +244,11 @@ export default function InvoiceDashboard() {
             {selected ? (
               <>
                 <div className="mb-4 flex flex-wrap gap-2 border-b pb-3">
-                  <button type="button" className="rounded-lg border px-3 py-1.5 text-xs font-semibold text-slate-700">Print</button>
-                  <button type="button" className="rounded-lg border px-3 py-1.5 text-xs font-semibold text-slate-700">PDF</button>
-                  <button type="button" className="rounded-lg border px-3 py-1.5 text-xs font-semibold text-slate-700">Email</button>
+                  <button type="button" onClick={() => window.print()} className="rounded-lg border px-3 py-1.5 text-xs font-semibold text-slate-700">Print</button>
+                  <button type="button" onClick={handlePdfDownload} className="rounded-lg border px-3 py-1.5 text-xs font-semibold text-slate-700">PDF</button>
                   <Link to="/sales/payments/create" className="rounded-lg bg-[#2563EB] px-3 py-1.5 text-xs font-semibold text-white">Record Payment</Link>
                 </div>
-                <TaxInvoiceCopy data={copyData} />
+                <TaxInvoiceCopy data={copyData} showPrintButton={false} />
               </>
             ) : (
               <p className="py-12 text-center text-slate-400">Select an invoice to preview</p>

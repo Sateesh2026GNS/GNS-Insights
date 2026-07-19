@@ -103,7 +103,7 @@ export default function SalesOrderDetail() {
                     addToast(err.response?.data?.detail || "Update failed", "error");
                   }
                 }}
-                className="rounded-lg border border-teal-200 px-3 py-1.5 text-sm font-medium text-teal-700 hover:bg-teal-50"
+                className="rounded-lg border border-blue-200 px-3 py-1.5 text-sm font-medium text-blue-700 hover:bg-blue-50"
               >
                 Mark packed
               </button>
@@ -149,7 +149,7 @@ function BackLink() {
   return (
     <Link
       to="/sales/orders"
-      className="inline-flex items-center gap-2 text-sm font-medium text-teal-600 hover:text-teal-700 dark:text-teal-400"
+      className="inline-flex items-center gap-2 text-sm font-medium text-[#2563EB] hover:underline"
     >
       <ArrowLeft className="h-4 w-4" />
       Back to sales orders

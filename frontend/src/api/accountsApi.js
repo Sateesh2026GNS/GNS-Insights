@@ -21,16 +21,45 @@ export const getProfitLoss = (_tenantId, year, ytdMonth = 12) =>
     params: { year, ytd_month: ytdMonth },
   });
 
-export const getProfitLossExtended = (year) =>
-  api.get("/accounts/profit-loss/extended", { params: { year } });
+export const getProfitLossExtended = (year, financialYear = null, month = null, branch = null) =>
+  api.get("/accounts/profit-loss/extended", {
+    params: {
+      year,
+      financial_year: financialYear,
+      month: month,
+      branch: branch,
+    },
+  });
+
+export const getExtendedReports = (financialYear = null, month = null, branch = null) =>
+  api.get("/accounts/extended-reports", {
+    params: {
+      financial_year: financialYear,
+      month: month,
+      branch: branch,
+    },
+  });
+
+export const createJournalEntry = (payload) => api.post("/accounts/journal-entries", payload);
+
+export const createGLAccount = (payload) => api.post("/accounts/gl-accounts", payload);
+
+export const createFixedAsset = (payload) => api.post("/accounts/fixed-assets", payload);
 
 export const getTaxReport = (_tenantId, year) =>
   api.get("/accounts/tax-report", {
     params: { year },
   });
 
-export const getGSTExtended = (year) =>
-  api.get("/accounts/gst/extended", { params: { year } });
+export const getGSTExtended = (year, financialYear = null, month = null, branch = null) =>
+  api.get("/accounts/gst/extended", {
+    params: {
+      year,
+      financial_year: financialYear,
+      month: month,
+      branch: branch,
+    },
+  });
 
 export const listIncome = (_tenantId, year = null) =>
   api.get("/accounts/income", {

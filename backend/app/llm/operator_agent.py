@@ -1,5 +1,3 @@
-"""AI Operator Agent — orchestrates LLM function calling with live ERP data."""
-
 from __future__ import annotations
 
 import json

@@ -143,6 +143,7 @@ export default function Leads() {
     { key: "customer_name", label: "Customer" },
     { key: "company", label: "Company" },
     { key: "contact", label: "Contact" },
+    { key: "email", label: "Email" },
     { key: "source", label: "Source" },
     { key: "sales_executive", label: "Sales Executive" },
     { key: "priority", label: "Priority", render: (r) => <span className={`rounded-full px-2 py-0.5 text-xs font-semibold capitalize ${priorityColor(r.priority)}`}>{r.priority}</span> },
@@ -229,7 +230,7 @@ export default function Leads() {
         )}
 
         {view === "table" ? (
-          <DataTable columns={columns} data={filtered} searchPlaceholder="Search leads..." searchKeys={["customer_name", "company", "sales_executive"]} />
+          <DataTable columns={columns} data={filtered} searchPlaceholder="Search leads..." searchKeys={["customer_name", "company", "sales_executive", "email"]} />
         ) : (
           <div className="grid gap-4 overflow-x-auto lg:grid-cols-5">
             {KANBAN_COLUMNS.map((col) => (

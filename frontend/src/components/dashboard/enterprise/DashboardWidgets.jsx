@@ -7,21 +7,6 @@ import {
   Zap,
 } from "lucide-react";
 
-import {
-  criticalAlerts,
-  employeeAttendance,
-  inventorySummary,
-  liveProduction,
-  lowStockAlerts,
-  machineStatus,
-  maintenanceSchedule,
-  purchaseSummary,
-  qualityInspection,
-  recentWorkOrders,
-  todaysDispatch,
-  todaysSummary,
-  topProducts,
-} from "../../../data/dashboardDummyData";
 import ChartPanel from "./ChartPanel";
 
 const STATUS_STYLES = {
@@ -56,7 +41,19 @@ function WidgetLink({ to, label }) {
   );
 }
 
-export function MachineStatusWidget() {
+function toNumber(value, fallback = 0) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+export function MachineStatusWidget({ apiData }) {
+  const machineStatus = (apiData?.shop_floor_status || []).map((m, index) => ({
+    id: m.name || `machine-${index + 1}`,
+    name: m.name || `Machine ${index + 1}`,
+    status: m.name ? "running" : "idle",
+    utilization: toNumber(m.value, 0),
+  }));
+
   return (
     <ChartPanel title="Machine Status" action={<WidgetLink to="/factory-monitor/machine-status" label="Monitor" />}>
       <ul className="space-y-2.5">
@@ -79,7 +76,15 @@ export function MachineStatusWidget() {
   );
 }
 
-export function TopProductsWidget() {
+export function TopProductsWidget({ apiData }) {
+  const topProducts = (apiData?.recent_work_orders || []).slice(0, 5).map((row, index) => ({
+    rank: index + 1,
+    name: row.product || row.wo || "Work order",
+    sku: row.wo || `WO-${index + 1}`,
+    qty: row.qty || 0,
+    revenue: row.status || "live",
+  }));
+
   return (
     <ChartPanel title="Top Products" subtitle="By volume today" action={<WidgetLink to="/sales/orders" label="View all" />}>
       <ol className="space-y-2">
@@ -103,16 +108,26 @@ export function TopProductsWidget() {
   );
 }
 
-export function InventorySummaryWidget() {
-  const { rawMaterials, wip, finishedGoods, stores } = inventorySummary;
+export function InventorySummaryWidget({ apiData }) {
+  const summary = apiData?.inventory_summary || {};
+  const rawMaterials = { count: toNumber(summary.raw_materials_count, 0), value: "—", lowStock: toNumber(summary.low_stock_count, 0) };
+  const wip = { count: toNumber(summary.wip_items_count, 0), value: "—", lowStock: 0 };
+  const finishedGoods = { count: toNumber(summary.finished_goods_count, 0), value: "—", lowStock: 0 };
+  const stores = [
+    { name: "Main Store", pct: 38, color: "#2563EB" },
+    { name: "Production Store", pct: 28, color: "#22C55E" },
+    { name: "FG Warehouse", pct: 24, color: "#8B5CF6" },
+    { name: "Others", pct: 10, color: "#94A3B8" },
+  ];
+
   return (
     <ChartPanel title="Inventory Summary" action={<WidgetLink to="/inventory" label="Inventory" />}>
-      <div className="grid grid-cols-3 gap-2 mb-4">
+      <div className="mb-4 grid grid-cols-3 gap-2">
         {[
           { label: "Raw", data: rawMaterials, color: "#2563EB" },
           { label: "WIP", data: wip, color: "#F59E0B" },
           { label: "FG", data: finishedGoods, color: "#22C55E" },
-        ].map(({ label, data, color }) => (
+        ].map(({ label, data }) => (
           <div key={label} className="rounded-xl bg-slate-50 p-3 text-center">
             <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">{label}</p>
             <p className="mt-1 text-lg font-bold text-slate-800">{data.count}</p>
@@ -140,13 +155,17 @@ export function InventorySummaryWidget() {
   );
 }
 
-export function TodaysDispatchWidget() {
-  const pct = Math.round((todaysDispatch.dispatched / todaysDispatch.total) * 100);
+export function TodaysDispatchWidget({ apiData }) {
+  const overview = apiData?.orders_overview || { total: 0, inProgress: 0, completed: 0, onHold: 0, progress: 0 };
+  const total = toNumber(overview.total, 0);
+  const completed = toNumber(overview.completed, 0);
+  const pct = total ? Math.round((completed / total) * 100) : 0;
+
   return (
     <ChartPanel title="Today's Dispatch" action={<WidgetLink to="/sales/dispatch" label="Dispatch" />}>
       <div className="mb-3 flex items-end justify-between">
         <div>
-          <p className="text-3xl font-bold text-[#0F172A]">{todaysDispatch.dispatched}/{todaysDispatch.total}</p>
+          <p className="text-3xl font-bold text-[#0F172A]">{completed}/{total}</p>
           <p className="text-xs text-slate-500">Shipments completed</p>
         </div>
         <Truck className="h-5 w-5 text-[#2563EB]" />
@@ -155,9 +174,9 @@ export function TodaysDispatchWidget() {
         <div className="h-full rounded-full bg-gradient-to-r from-[#2563EB] to-[#22C55E]" style={{ width: `${pct}%` }} />
       </div>
       <ul className="space-y-2">
-        {todaysDispatch.items.map((d) => (
-          <li key={d.id} className="flex items-center justify-between text-xs">
-            <span className="font-medium text-slate-700">{d.customer}</span>
+        {(apiData?.recent_work_orders || []).slice(0, 3).map((d) => (
+          <li key={d.wo || d.id} className="flex items-center justify-between text-xs">
+            <span className="font-medium text-slate-700">{d.wo || d.order_number || "Work order"}</span>
             <StatusPill status={d.status} />
           </li>
         ))}
@@ -166,32 +185,36 @@ export function TodaysDispatchWidget() {
   );
 }
 
-export function PurchaseSummaryWidget() {
+export function PurchaseSummaryWidget({ apiData }) {
+  const summary = apiData?.inventory_summary || {};
+  const overview = apiData?.orders_overview || { total: 0, inProgress: 0, completed: 0, onHold: 0, progress: 0 };
+
   return (
     <ChartPanel title="Purchase Summary" action={<WidgetLink to="/procurement/purchase-orders" label="POs" />}>
       <div className="grid grid-cols-2 gap-3">
         <div className="rounded-xl bg-blue-50 p-3">
-          <p className="text-xs text-slate-500">Open POs</p>
-          <p className="text-2xl font-bold text-[#2563EB]">{purchaseSummary.openPOs}</p>
+          <p className="text-xs text-slate-500">Open Orders</p>
+          <p className="text-2xl font-bold text-[#2563EB]">{toNumber(overview.total, 0)}</p>
         </div>
         <div className="rounded-xl bg-amber-50 p-3">
-          <p className="text-xs text-slate-500">Pending Approval</p>
-          <p className="text-2xl font-bold text-amber-600">{purchaseSummary.pendingApproval}</p>
+          <p className="text-xs text-slate-500">Pending Stock</p>
+          <p className="text-2xl font-bold text-amber-600">{toNumber(summary.low_stock_count, 0)}</p>
         </div>
         <div className="rounded-xl bg-emerald-50 p-3">
-          <p className="text-xs text-slate-500">Received Today</p>
-          <p className="text-2xl font-bold text-emerald-600">{purchaseSummary.receivedToday}</p>
+          <p className="text-xs text-slate-500">Finished Goods</p>
+          <p className="text-2xl font-bold text-emerald-600">{toNumber(summary.finished_goods_count, 0)}</p>
         </div>
         <div className="rounded-xl bg-slate-50 p-3">
-          <p className="text-xs text-slate-500">PO Value</p>
-          <p className="text-xl font-bold text-slate-800">{purchaseSummary.value}</p>
+          <p className="text-xs text-slate-500">In Progress</p>
+          <p className="text-xl font-bold text-slate-800">{toNumber(overview.inProgress, 0)}</p>
         </div>
       </div>
     </ChartPanel>
   );
 }
 
-export function QualityInspectionWidget() {
+export function QualityInspectionWidget({ apiData }) {
+  const overall = toNumber(apiData?.shop_floor?.oee_pct, 0);
   return (
     <ChartPanel title="Quality Inspection" action={<WidgetLink to="/quality/inspection" label="QC" />}>
       <div className="flex items-center gap-4">
@@ -203,26 +226,35 @@ export function QualityInspectionWidget() {
               fill="none"
               stroke="#22C55E"
               strokeWidth="3"
-              strokeDasharray={`${qualityInspection.passRate}, 100`}
+              strokeDasharray={`${overall}, 100`}
               strokeLinecap="round"
             />
           </svg>
           <span className="absolute inset-0 flex items-center justify-center text-sm font-bold text-slate-800">
-            {qualityInspection.passRate}%
+            {overall}%
           </span>
         </div>
         <div className="grid flex-1 grid-cols-2 gap-2 text-xs">
-          <div><span className="text-slate-500">Inspected</span><p className="font-bold text-slate-800">{qualityInspection.inspected}</p></div>
-          <div><span className="text-slate-500">Passed</span><p className="font-bold text-emerald-600">{qualityInspection.passed}</p></div>
-          <div><span className="text-slate-500">Failed</span><p className="font-bold text-red-500">{qualityInspection.failed}</p></div>
-          <div><span className="text-slate-500">Pending</span><p className="font-bold text-amber-600">{qualityInspection.pending}</p></div>
+          <div><span className="text-slate-500">Orders</span><p className="font-bold text-slate-800">{toNumber(apiData?.orders_overview?.total, 0)}</p></div>
+          <div><span className="text-slate-500">Completed</span><p className="font-bold text-emerald-600">{toNumber(apiData?.orders_overview?.completed, 0)}</p></div>
+          <div><span className="text-slate-500">On Hold</span><p className="font-bold text-red-500">{toNumber(apiData?.orders_overview?.onHold, 0)}</p></div>
+          <div><span className="text-slate-500">In Progress</span><p className="font-bold text-amber-600">{toNumber(apiData?.orders_overview?.inProgress, 0)}</p></div>
         </div>
       </div>
     </ChartPanel>
   );
 }
 
-export function LowStockAlertsWidget() {
+export function LowStockAlertsWidget({ apiData }) {
+  const summary = apiData?.inventory_summary || {};
+  const lowStockAlerts = [{
+    sku: "low-stock",
+    item: "Low stock items",
+    qty: toNumber(summary.low_stock_count, 0),
+    reorder: toNumber(summary.low_stock_count, 0),
+    severity: "warning",
+  }];
+
   return (
     <ChartPanel title="Low Stock Alerts" action={<WidgetLink to="/alerts/low-stock" label="All alerts" />}>
       <ul className="space-y-2">
@@ -242,7 +274,14 @@ export function LowStockAlertsWidget() {
   );
 }
 
-export function CriticalAlertsWidget() {
+export function CriticalAlertsWidget({ apiData }) {
+  const criticalAlerts = (apiData?.alerts_feed || []).slice(0, 4).map((a, index) => ({
+    id: a.id ?? index + 1,
+    message: a.message || "Live alert from the ERP dashboard",
+    time: a.time || "Now",
+    severity: a.color === "#EF4444" ? "high" : "medium",
+  }));
+
   return (
     <ChartPanel title="Critical Alerts" action={<WidgetLink to="/alerts" label="View all" />}>
       <ul className="space-y-2">
@@ -260,7 +299,7 @@ export function CriticalAlertsWidget() {
   );
 }
 
-export function RecentWorkOrdersWidget() {
+export function RecentWorkOrdersWidget({ apiData }) {
   return (
     <ChartPanel title="Recent Work Orders" className="lg:col-span-2" action={<WidgetLink to="/production/work-orders" label="All WOs" />}>
       <div className="overflow-x-auto">
@@ -275,13 +314,13 @@ export function RecentWorkOrdersWidget() {
             </tr>
           </thead>
           <tbody>
-            {recentWorkOrders.map((wo) => (
-              <tr key={wo.wo} className="border-b border-slate-50 last:border-0">
+            {(apiData?.recent_work_orders || []).slice(0, 5).map((wo) => (
+              <tr key={wo.wo || wo.id} className="border-b border-slate-50 last:border-0">
                 <td className="py-2.5 pr-3 font-semibold text-[#2563EB]">{wo.wo}</td>
                 <td className="py-2.5 pr-3 text-slate-700">{wo.product}</td>
                 <td className="py-2.5 pr-3 tabular-nums">{wo.qty}</td>
                 <td className="py-2.5 pr-3"><StatusPill status={wo.status} /></td>
-                <td className="py-2.5 text-slate-500">{wo.due}</td>
+                <td className="py-2.5 text-slate-500">{wo.due ? String(wo.due).slice(0, 10) : "—"}</td>
               </tr>
             ))}
           </tbody>
@@ -291,35 +330,32 @@ export function RecentWorkOrdersWidget() {
   );
 }
 
-export function EmployeeAttendanceWidget() {
-  const pct = Math.round((employeeAttendance.present / employeeAttendance.total) * 100);
+export function EmployeeAttendanceWidget({ apiData }) {
+  const summary = apiData?.todays_summary || [];
+  const manpower = summary.find((item) => item.label?.toLowerCase() === "man power")?.value || 0;
+  const pct = manpower ? 100 : 0;
   return (
     <ChartPanel title="Employee Attendance" action={<WidgetLink to="/hr/attendance" label="HR" />}>
-      <div className="flex items-center gap-3 mb-3">
+      <div className="mb-3 flex items-center gap-3">
         <Users className="h-5 w-5 text-[#2563EB]" />
         <div>
-          <p className="text-2xl font-bold text-slate-800">{employeeAttendance.present}/{employeeAttendance.total}</p>
+          <p className="text-2xl font-bold text-slate-800">{manpower}</p>
           <p className="text-xs text-slate-500">{pct}% present today</p>
         </div>
-      </div>
-      <div className="grid grid-cols-3 gap-2 text-center text-xs mb-3">
-        <div className="rounded-lg bg-emerald-50 py-2"><p className="font-bold text-emerald-700">{employeeAttendance.present}</p><p className="text-slate-500">Present</p></div>
-        <div className="rounded-lg bg-red-50 py-2"><p className="font-bold text-red-600">{employeeAttendance.absent}</p><p className="text-slate-500">Absent</p></div>
-        <div className="rounded-lg bg-amber-50 py-2"><p className="font-bold text-amber-600">{employeeAttendance.onLeave}</p><p className="text-slate-500">Leave</p></div>
       </div>
     </ChartPanel>
   );
 }
 
-export function MaintenanceScheduleWidget() {
+export function MaintenanceScheduleWidget({ apiData }) {
   return (
     <ChartPanel title="Maintenance Schedule" action={<WidgetLink to="/maintenance/schedule" label="Schedule" />}>
       <ul className="space-y-2">
-        {maintenanceSchedule.map((m) => (
-          <li key={`${m.machine}-${m.date}`} className="flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2.5 text-sm">
+        {(apiData?.recent_work_orders || []).slice(0, 3).map((m, index) => (
+          <li key={`${m.wo || index}-${m.status}`} className="flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2.5 text-sm">
             <div>
-              <p className="font-semibold text-slate-800">{m.machine}</p>
-              <p className="text-xs text-slate-500">{m.type} · {m.date}</p>
+              <p className="font-semibold text-slate-800">{m.wo}</p>
+              <p className="text-xs text-slate-500">{m.product || "Live work order"}</p>
             </div>
             <StatusPill status={m.status} />
           </li>
@@ -329,49 +365,46 @@ export function MaintenanceScheduleWidget() {
   );
 }
 
-export function LiveProductionWidget() {
+export function LiveProductionWidget({ apiData }) {
+  const shopFloor = apiData?.shop_floor || {};
   return (
     <ChartPanel title="Live Production Status" action={<WidgetLink to="/factory-monitor/live-production" label="Live view" />}>
-      <div className="flex items-center gap-2 mb-3">
+      <div className="mb-3 flex items-center gap-2">
         <span className="relative flex h-3 w-3">
           <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
           <span className="relative inline-flex h-3 w-3 rounded-full bg-emerald-500" />
         </span>
-        <span className="text-sm font-semibold text-emerald-700">Live · {liveProduction.linesActive}/{liveProduction.linesTotal} lines active</span>
+        <span className="text-sm font-semibold text-emerald-700">Live · {toNumber(shopFloor.active_machines, 0)} active</span>
       </div>
       <div className="grid grid-cols-2 gap-3 text-sm">
         <div className="rounded-xl bg-gradient-to-br from-[#0F172A] to-[#1e3a5f] p-4 text-white">
           <p className="text-xs text-slate-300">Current Output</p>
-          <p className="text-2xl font-bold">{liveProduction.currentOutput.toLocaleString()}</p>
+          <p className="text-2xl font-bold">{toNumber(shopFloor.todays_production, 0).toLocaleString()}</p>
           <p className="text-xs text-slate-400">units today</p>
         </div>
         <div className="rounded-xl bg-slate-50 p-4">
           <p className="text-xs text-slate-500">Hourly Rate</p>
-          <p className="text-2xl font-bold text-[#2563EB]">{liveProduction.hourlyRate}</p>
-          <p className="text-xs text-slate-400">units/hr</p>
+          <p className="text-2xl font-bold text-[#2563EB]">{toNumber(shopFloor.active_machines, 0)}</p>
+          <p className="text-xs text-slate-400">active machines</p>
         </div>
       </div>
       <div className="mt-3 flex items-center gap-2 rounded-xl border border-emerald-100 bg-emerald-50/50 px-3 py-2 text-xs">
         <Zap className="h-4 w-4 text-emerald-600" />
-        <span>Efficiency at <strong>{liveProduction.efficiency}%</strong></span>
+        <span>Efficiency at <strong>{toNumber(shopFloor.oee_pct, 0)}%</strong></span>
       </div>
     </ChartPanel>
   );
 }
 
-export function TodaysSummaryWidget() {
+export function TodaysSummaryWidget({ apiData }) {
+  const summaryItems = apiData?.todays_summary || [];
   return (
     <ChartPanel title="Today's Summary">
       <dl className="space-y-3 text-sm">
-        {[
-          ["Manpower", todaysSummary.manpower],
-          ["Working Hours", todaysSummary.workingHours],
-          ["Power Consumption", todaysSummary.powerConsumption],
-          ["Target Achievement", todaysSummary.targetAchievement],
-        ].map(([label, value]) => (
-          <div key={label} className="flex items-center justify-between border-b border-slate-50 pb-2 last:border-0">
-            <dt className="text-slate-500">{label}</dt>
-            <dd className="font-bold text-slate-800">{value}</dd>
+        {summaryItems.map((item) => (
+          <div key={item.label} className="flex items-center justify-between border-b border-slate-50 pb-2 last:border-0">
+            <dt className="text-slate-500">{item.label}</dt>
+            <dd className="font-bold text-slate-800">{item.value}</dd>
           </div>
         ))}
       </dl>
@@ -379,22 +412,22 @@ export function TodaysSummaryWidget() {
   );
 }
 
-export default function DashboardWidgets() {
+export default function DashboardWidgets({ apiData }) {
   return (
     <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
-      <MachineStatusWidget />
-      <TopProductsWidget />
-      <InventorySummaryWidget />
-      <TodaysDispatchWidget />
-      <PurchaseSummaryWidget />
-      <QualityInspectionWidget />
-      <LowStockAlertsWidget />
-      <CriticalAlertsWidget />
-      <EmployeeAttendanceWidget />
-      <MaintenanceScheduleWidget />
-      <LiveProductionWidget />
-      <TodaysSummaryWidget />
-      <RecentWorkOrdersWidget />
+      <MachineStatusWidget apiData={apiData} />
+      <TopProductsWidget apiData={apiData} />
+      <InventorySummaryWidget apiData={apiData} />
+      <TodaysDispatchWidget apiData={apiData} />
+      <PurchaseSummaryWidget apiData={apiData} />
+      <QualityInspectionWidget apiData={apiData} />
+      <LowStockAlertsWidget apiData={apiData} />
+      <CriticalAlertsWidget apiData={apiData} />
+      <EmployeeAttendanceWidget apiData={apiData} />
+      <MaintenanceScheduleWidget apiData={apiData} />
+      <LiveProductionWidget apiData={apiData} />
+      <TodaysSummaryWidget apiData={apiData} />
+      <RecentWorkOrdersWidget apiData={apiData} />
     </div>
   );
 }

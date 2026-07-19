@@ -31,13 +31,17 @@ export default function useNotifications() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState(null);
 
+  const resetState = useCallback(() => {
+    setCount(0);
+    setNotifications([]);
+    setHasMore(false);
+    setPage(1);
+    setError(null);
+  }, []);
+
   const refresh = useCallback(async () => {
     if (!isAuthenticated) {
-      setCount(0);
-      setNotifications([]);
-      setHasMore(false);
-      setPage(1);
-      setError(null);
+      resetState();
       return;
     }
 
@@ -47,14 +51,12 @@ export default function useNotifications() {
       applyListData(setNotifications, setCount, setHasMore, setPage, res.data);
       setError(null);
     } catch (err) {
-      setCount(0);
-      setNotifications([]);
-      setHasMore(false);
+      resetState();
       setError(err.response?.data?.detail || err.response?.data?.message || "Failed to load notifications");
     } finally {
       setLoading(false);
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, resetState]);
 
   const refreshCount = useCallback(async () => {
     if (!isAuthenticated) return;
@@ -158,14 +160,15 @@ export default function useNotifications() {
   );
 
   const clearAll = useCallback(async () => {
-    if (!isAuthenticated) return;
+    if (!isAuthenticated) {
+      resetState();
+      return;
+    }
 
     const previousNotifications = notifications;
     const previousCount = count;
 
-    setNotifications([]);
-    setCount(0);
-    setHasMore(false);
+    resetState();
 
     try {
       await clearAllNotifications();
@@ -175,7 +178,7 @@ export default function useNotifications() {
       await refresh();
       throw new Error("Failed to clear notifications");
     }
-  }, [count, isAuthenticated, notifications, refresh]);
+  }, [count, isAuthenticated, notifications, refresh, resetState]);
 
   useEffect(() => {
     refresh();
@@ -197,5 +200,6 @@ export default function useNotifications() {
     markAllRead,
     deleteNotification,
     clearAll,
+    resetState,
   };
 }

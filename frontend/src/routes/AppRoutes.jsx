@@ -318,6 +318,39 @@ export default function AppRoutes() {
         }
       />
       <Route
+        path="/hr/incidents"
+        element={
+          <ProtectedRoute>
+            <P.IncidentReports />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/hr/incidents/create"
+        element={
+          <ProtectedRoute>
+            <P.CreateIncident />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/hr/assets"
+        element={
+          <ProtectedRoute>
+            <P.AssetManagement />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/hr/assets/create"
+        element={
+          <ProtectedRoute>
+            <P.CreateAsset />
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/sales/dashboard"
         element={
           <ProtectedRoute>
@@ -378,6 +411,30 @@ export default function AppRoutes() {
         element={
           <ProtectedRoute>
             <P.TaxInvoiceForm />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/sales/bills"
+        element={
+          <ProtectedRoute>
+            <P.SalesBills />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/sales/bills/create"
+        element={
+          <ProtectedRoute>
+            <P.CreateBill />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/sales/bills/:id"
+        element={
+          <ProtectedRoute>
+            <P.BillDetail />
           </ProtectedRoute>
         }
       />
@@ -443,10 +500,20 @@ export default function AppRoutes() {
       <Route path="/accounts/expenses/record" element={<ProtectedRoute><P.RecordExpense /></ProtectedRoute>} />
       <Route path="/accounts/tax-reports" element={<ProtectedRoute><P.TaxReports /></ProtectedRoute>} />
       <Route path="/accounts/income/record" element={<ProtectedRoute><P.RecordIncome /></ProtectedRoute>} />
+      <Route path="/accounts/balance-sheet" element={<ProtectedRoute><P.BalanceSheet /></ProtectedRoute>} />
+      <Route path="/accounts/journal-entries" element={<ProtectedRoute><P.JournalEntries /></ProtectedRoute>} />
+      <Route path="/accounts/multi-branch-ledger" element={<ProtectedRoute><P.MultiBranchLedger /></ProtectedRoute>} />
+      <Route path="/accounts/trial-balance" element={<ProtectedRoute><P.TrialBalance /></ProtectedRoute>} />
+      <Route path="/accounts/chart-of-accounts" element={<ProtectedRoute><P.ChartOfAccounts /></ProtectedRoute>} />
+      <Route path="/accounts/fixed-assets" element={<ProtectedRoute><P.FixedAssets /></ProtectedRoute>} />
+      <Route path="/accounts/year-closing" element={<ProtectedRoute><P.YearClosing /></ProtectedRoute>} />
+      <Route path="/accounts/cost-allocation" element={<ProtectedRoute><P.CostAllocation /></ProtectedRoute>} />
+      <Route path="/accounts/bank-reconciliation" element={<ProtectedRoute><P.BankReconciliation /></ProtectedRoute>} />
+      <Route path="/accounts/budget-actual" element={<ProtectedRoute><P.BudgetActual /></ProtectedRoute>} />
       <Route path="/procurement/purchase-orders" element={<ProtectedRoute><P.PurchaseOrders /></ProtectedRoute>} />
       <Route path="/procurement/purchase-orders/create" element={<ProtectedRoute><P.CreatePurchaseOrder /></ProtectedRoute>} />
-      <Route path="/procurement/vendors" element={<ProtectedRoute><P.VendorManagement /></ProtectedRoute>} />
-      <Route path="/procurement/vendors/create" element={<ProtectedRoute><P.CreateVendor /></ProtectedRoute>} />
+      <Route path="/vendors" element={<ProtectedRoute><P.VendorManagement /></ProtectedRoute>} />
+      <Route path="/vendors/create" element={<ProtectedRoute><P.CreateVendor /></ProtectedRoute>} />
       <Route path="/procurement/material-requests" element={<ProtectedRoute><P.MaterialRequests /></ProtectedRoute>} />
       <Route path="/procurement/material-requests/create" element={<ProtectedRoute><P.CreateMaterialRequest /></ProtectedRoute>} />
       <Route path="/procurement/goods-receipt" element={<ProtectedRoute><P.GoodsReceipt /></ProtectedRoute>} />

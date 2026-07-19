@@ -80,7 +80,7 @@ export default function SupplyChainDashboard() {
               </li>
             ))}
           </ul>
-          <Link to="/procurement/vendors" className="mt-3 inline-block text-sm font-semibold text-[#2563EB] hover:underline">View all vendors →</Link>
+          <Link to="/vendors" className="mt-3 inline-block text-sm font-semibold text-[#2563EB] hover:underline">View all vendors →</Link>
         </div>
 
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -118,7 +118,7 @@ export default function SupplyChainDashboard() {
         <QuickLink to="/procurement/purchase-orders" label="Purchase Orders" />
         <QuickLink to="/procurement/goods-receipt" label="GRN" />
         <QuickLink to="/procurement/supplier-payments" label="Vendor Bills" />
-        <QuickLink to="/procurement/vendors" label="Vendors" />
+        <QuickLink to="/vendors" label="Vendors" />
         <QuickLink to="/inventory/raw-materials" label="Raw Materials" />
         <QuickLink to="/inventory/stock-ledger" label="Stock Ledger" />
       </div>

@@ -273,6 +273,8 @@ def quick_work_order(
     db: Session = Depends(get_db),
 ):
     payload.tenant_id = user.tenant_id
+    if user.plant_code:
+        payload.plant_code = user.plant_code
     wo = quick_create_work_order(db, payload)
     return success_response("Work order created", _dump(wo))
 

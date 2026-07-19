@@ -188,19 +188,39 @@ def list_leave_enriched(db: Session, tenant_id: int) -> list[LeaveListRead]:
 
 def get_payroll_summary(db: Session, tenant_id: int) -> PayrollSummaryRead:
     records = list(db.scalars(select(PayrollRecord).where(PayrollRecord.tenant_id == tenant_id)).all())
-    monthly = sum(float(r.net_pay or 0) for r in records)
-    pending = sum(float(r.net_pay or 0) for r in records if r.status == "draft")
-    processed = sum(float(r.net_pay or 0) for r in records if r.status == "processed")
-    ot_cost = sum(float(r.overtime_pay or 0) for r in records)
-    pf = sum(float(getattr(r, "pf", 0) or 0) for r in records)
-    esi = sum(float(getattr(r, "esi", 0) or 0) for r in records)
+    monthly = 0.0
+    pending = 0.0
+    processed = 0.0
+    ot_cost = 0.0
+    pf_total = 0.0
+    esi_total = 0.0
+    
+    for r in records:
+        basic = float(getattr(r, "basic", None) or r.regular_pay or 0)
+        allowance = float(getattr(r, "allowance", None) or 0)
+        bonus = float(getattr(r, "bonus", None) or 0)
+        overtime = float(r.overtime_pay or 0)
+        pf_val = float(getattr(r, "pf", None) or basic * 0.12)
+        esi_val = float(getattr(r, "esi", None) or basic * 0.0075)
+        tax_val = float(getattr(r, "tax", None) or 0)
+        net_val = max(0.0, (basic + allowance + overtime + bonus) - (pf_val + esi_val + tax_val))
+        
+        monthly += net_val
+        if r.status == "draft":
+            pending += net_val
+        elif r.status in ("processed", "paid"):
+            processed += net_val
+        ot_cost += overtime
+        pf_total += pf_val
+        esi_total += esi_val
+        
     return PayrollSummaryRead(
         monthly_payroll=monthly,
         pending_salary=pending,
         processed_salary=processed,
         overtime_cost=ot_cost,
-        pf=pf,
-        esi=esi,
+        pf=pf_total,
+        esi=esi_total,
         professional_tax=2500 * len(records),
     )
 
@@ -219,18 +239,23 @@ def list_payroll_enriched(db: Session, tenant_id: int) -> list[PayrollListRead]:
         basic = float(getattr(r, "basic", None) or r.regular_pay or 0)
         allowance = float(getattr(r, "allowance", None) or 0)
         bonus = float(getattr(r, "bonus", None) or 0)
+        overtime = float(r.overtime_pay or 0)
+        pf_val = float(getattr(r, "pf", None) or basic * 0.12)
+        esi_val = float(getattr(r, "esi", None) or basic * 0.0075)
+        tax_val = float(getattr(r, "tax", None) or 0)
+        net_val = max(0.0, (basic + allowance + overtime + bonus) - (pf_val + esi_val + tax_val))
         result.append(
             PayrollListRead(
                 id=r.id,
                 employee_name=r.employee.full_name if r.employee else "—",
                 basic=basic,
                 allowance=allowance,
-                overtime=float(r.overtime_pay or 0),
+                overtime=overtime,
                 bonus=bonus,
-                pf=float(getattr(r, "pf", None) or basic * 0.12),
-                esi=float(getattr(r, "esi", None) or basic * 0.0075),
-                tax=float(getattr(r, "tax", None) or 0),
-                net_salary=float(r.net_pay or 0),
+                pf=pf_val,
+                esi=esi_val,
+                tax=tax_val,
+                net_salary=net_val,
                 status=r.status,
                 period_start=r.period_start.isoformat() if r.period_start else None,
                 period_end=r.period_end.isoformat() if r.period_end else None,

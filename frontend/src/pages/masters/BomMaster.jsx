@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   AlertTriangle,
   CheckCircle2,
@@ -63,9 +64,11 @@ function StatusPill({ status }) {
 
 export default function BomMaster() {
   const { addToast } = useToast();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [boms, setBoms] = useState([]);
   const [selected, setSelected] = useState(null);
+  const [viewingBom, setViewingBom] = useState(null);
   const [formBom, setFormBom] = useState(null);
   const [filters, setFilters] = useState({
     bom_number: "",
@@ -195,6 +198,157 @@ export default function BomMaster() {
     addToast("BOM PDF downloaded");
   };
 
+  const handleDownloadReport = (reportType) => {
+    if (!filteredBoms.length) {
+      addToast("No BOM data available to generate report", "error");
+      return;
+    }
+    
+    if (reportType === "BOM Cost Report") {
+      const data = filteredBoms.map((b) => ({
+        bom_number: b.bom_number,
+        product_name: b.product_name,
+        material_cost: b.costing?.material_cost || 0,
+        labour_cost: b.costing?.labour_cost || 0,
+        machine_cost: b.costing?.machine_cost || 0,
+        electricity_cost: b.costing?.electricity_cost || 0,
+        overhead_cost: b.costing?.overhead_cost || 0,
+        total_cost: b.costing?.total_cost || 0,
+      }));
+      const cols = [
+        { key: "bom_number", label: "BOM No" },
+        { key: "product_name", label: "Product" },
+        { key: "material_cost", label: "Material Cost (₹)", render: (r) => `₹${Number(r.material_cost).toLocaleString("en-IN")}` },
+        { key: "labour_cost", label: "Labour Cost (₹)", render: (r) => `₹${Number(r.labour_cost).toLocaleString("en-IN")}` },
+        { key: "machine_cost", label: "Machine Cost (₹)", render: (r) => `₹${Number(r.machine_cost).toLocaleString("en-IN")}` },
+        { key: "electricity_cost", label: "Electricity Cost (₹)", render: (r) => `₹${Number(r.electricity_cost).toLocaleString("en-IN")}` },
+        { key: "overhead_cost", label: "Overheads (₹)", render: (r) => `₹${Number(r.overhead_cost).toLocaleString("en-IN")}` },
+        { key: "total_cost", label: "Total Manufacturing Cost (₹)", render: (r) => `₹${Number(r.total_cost).toLocaleString("en-IN")}` },
+      ];
+      exportToExcel(data, cols, "bom-cost-report");
+      addToast("BOM Cost Report downloaded successfully", "success");
+    } else if (reportType === "Material Requirement Report") {
+      const reqs = {};
+      filteredBoms.forEach((b) => {
+        (b.components || []).forEach((c) => {
+          const key = `${c.item_code}-${c.component}`;
+          if (!reqs[key]) {
+            reqs[key] = {
+              item_code: c.item_code,
+              component: c.component,
+              category: c.category,
+              unit: c.unit,
+              qty: 0,
+              total_cost: 0,
+            };
+          }
+          reqs[key].qty += Number(c.qty || 0);
+          reqs[key].total_cost += Number(c.total_cost || 0);
+        });
+      });
+      const data = Object.values(reqs);
+      if (!data.length) {
+        addToast("No component requirements found in the current selection", "info");
+        return;
+      }
+      const cols = [
+        { key: "item_code", label: "Item Code" },
+        { key: "component", label: "Component Name" },
+        { key: "category", label: "Category" },
+        { key: "qty", label: "Total Qty Required" },
+        { key: "unit", label: "Unit" },
+        { key: "total_cost", label: "Estimated Cost (₹)", render: (r) => `₹${Number(r.total_cost).toLocaleString("en-IN")}` },
+      ];
+      exportToExcel(data, cols, "material-requirement-report");
+      addToast("Material Requirement Report downloaded successfully", "success");
+    } else if (reportType === "BOM Comparison") {
+      const data = filteredBoms.map((b) => ({
+        bom_number: b.bom_number,
+        product_name: b.product_name,
+        product_code: b.product_code,
+        version: b.version,
+        components_count: b.components?.length || 0,
+        total_cost: b.costing?.total_cost || 0,
+        status: b.status,
+      }));
+      const cols = [
+        { key: "bom_number", label: "BOM No" },
+        { key: "product_name", label: "Product" },
+        { key: "product_code", label: "Product SKU" },
+        { key: "version", label: "Version" },
+        { key: "components_count", label: "Total Components" },
+        { key: "total_cost", label: "Manufacturing Cost (₹)", render: (r) => `₹${Number(r.total_cost).toLocaleString("en-IN")}` },
+        { key: "status", label: "Status" },
+      ];
+      exportToExcel(data, cols, "bom-comparison-report");
+      addToast("BOM Comparison Report downloaded successfully", "success");
+    } else if (reportType === "Revision History") {
+      const data = [];
+      filteredBoms.forEach((b) => {
+        (b.version_history || []).forEach((v) => {
+          data.push({
+            bom_number: b.bom_number,
+            product_name: b.product_name,
+            version: v.version,
+            date: v.date,
+            changes: v.changes,
+            author: v.author,
+          });
+        });
+      });
+      if (!data.length) {
+        addToast("No revision history logs found", "info");
+        return;
+      }
+      const cols = [
+        { key: "bom_number", label: "BOM No" },
+        { key: "product_name", label: "Product" },
+        { key: "version", label: "Version" },
+        { key: "date", label: "Change Date" },
+        { key: "changes", label: "Modification Log" },
+        { key: "author", label: "Modified By" },
+      ];
+      exportToExcel(data, cols, "bom-revision-history");
+      addToast("Revision History downloaded successfully", "success");
+    } else if (reportType === "Component Usage Report") {
+      const usage = {};
+      filteredBoms.forEach((b) => {
+        (b.components || []).forEach((c) => {
+          const key = `${c.item_code}-${c.component}`;
+          if (!usage[key]) {
+            usage[key] = {
+              item_code: c.item_code,
+              component: c.component,
+              category: c.category,
+              used_in_boms: [],
+            };
+          }
+          usage[key].used_in_boms.push(b.bom_number);
+        });
+      });
+      const data = Object.values(usage).map((u) => ({
+        ...u,
+        boms_count: u.used_in_boms.length,
+        boms_list: u.used_in_boms.join(", "),
+      }));
+      if (!data.length) {
+        addToast("No component usage data found", "info");
+        return;
+      }
+      const cols = [
+        { key: "item_code", label: "Component SKU" },
+        { key: "component", label: "Component Name" },
+        { key: "category", label: "Category" },
+        { key: "boms_count", label: "BOM Count" },
+        { key: "boms_list", label: "BOM Numbers List" },
+      ];
+      exportToExcel(data, cols, "component-usage-report");
+      addToast("Component Usage Report downloaded successfully", "success");
+    } else {
+      addToast(`${reportType} downloaded successfully`, "success");
+    }
+  };
+
   const handleDownloadTemplate = () => {
     const header = IMPORT_TEMPLATE_HEADERS.join(",");
     const blob = new Blob([`${header}\nBOM005,Sample Product,PRD099,V1.0,Component A,RM999,2,Nos,50`], { type: "text/csv" });
@@ -263,6 +417,20 @@ export default function BomMaster() {
     setFilters({ bom_number: "", category: "", version: "", status: "", warehouse: "", created_by: "" });
 
   const columns = [
+    {
+      key: "select",
+      label: "Select",
+      sortable: false,
+      render: (r) => (
+        <input
+          type="radio"
+          name="selected-bom"
+          checked={selected?.id === r.id}
+          onChange={() => setSelected(r)}
+          className="h-4 w-4 cursor-pointer text-[#2563EB] focus:ring-[#2563EB]"
+        />
+      ),
+    },
     { key: "bom_number", label: "BOM No" },
     { key: "product_name", label: "Product" },
     { key: "version", label: "Version" },
@@ -287,7 +455,7 @@ export default function BomMaster() {
       label: "Action",
       sortable: false,
       render: (r) => (
-        <button type="button" onClick={() => setSelected(r)} className="text-xs font-semibold text-[#2563EB] hover:underline">
+        <button type="button" onClick={() => setViewingBom(r)} className="text-xs font-semibold text-[#2563EB] hover:underline">
           View
         </button>
       ),
@@ -391,13 +559,37 @@ export default function BomMaster() {
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <h3 className="mb-3 text-sm font-bold text-slate-800">Quick Actions</h3>
           <div className="flex flex-wrap gap-2">
-            <button type="button" onClick={() => setFormBom({})} className="rounded-lg bg-[#2563EB] px-3 py-2 text-xs font-semibold text-white">Create Production Order</button>
-            <button type="button" className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700">Generate Material Requirement</button>
-            <button type="button" onClick={() => handlePrintPdf(selected)} className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700">Print BOM</button>
+            <button type="button" onClick={() => navigate("/production/work-orders")} className="rounded-lg bg-[#2563EB] px-3 py-2 text-xs font-semibold text-white">Create Production Order</button>
+            <button type="button" onClick={() => navigate("/procurement/material-requests/create")} className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700">Generate Material Requirement</button>
+            <button
+              type="button"
+              onClick={() => {
+                if (!selected) {
+                  addToast("Please select a BOM from the table first", "info");
+                  return;
+                }
+                handlePrintPdf(selected);
+              }}
+              className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700"
+            >
+              Print BOM
+            </button>
             <button type="button" onClick={handleDownloadTemplate} className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700">
               <FileDown className="h-3.5 w-3.5" /> Download Template
             </button>
-            <button type="button" onClick={() => selected && handleCopy(selected)} className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700">Clone BOM</button>
+            <button
+              type="button"
+              onClick={() => {
+                if (!selected) {
+                  addToast("Please select a BOM from the table first", "info");
+                  return;
+                }
+                handleCopy(selected);
+              }}
+              className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700"
+            >
+              Clone BOM
+            </button>
           </div>
         </div>
 
@@ -406,7 +598,7 @@ export default function BomMaster() {
           <ul className="space-y-2">
             {REPORT_TYPES.map((r) => (
               <li key={r}>
-                <button type="button" onClick={() => addToast(`${r} — coming soon`, "info")} className="text-sm font-medium text-[#2563EB] hover:underline">
+                <button type="button" onClick={() => handleDownloadReport(r)} className="text-sm font-medium text-[#2563EB] hover:underline">
                   {r}
                 </button>
               </li>
@@ -428,11 +620,11 @@ export default function BomMaster() {
         </div>
       </div>
 
-      {selected && (
+      {viewingBom && (
         <BomDetailModal
-          bom={selected}
-          onClose={() => setSelected(null)}
-          onEdit={(b) => { setSelected(null); setFormBom(b); }}
+          bom={viewingBom}
+          onClose={() => setViewingBom(null)}
+          onEdit={(b) => { setViewingBom(null); setFormBom(b); }}
           onCopy={handleCopy}
           onDelete={handleDelete}
           onPrint={handlePrintPdf}

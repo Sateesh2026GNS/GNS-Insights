@@ -1,7 +1,8 @@
 """Request schemas for admin user & role management (RBAC)."""
 
 from datetime import datetime
-from pydantic import BaseModel, EmailStr, Field, ConfigDict
+
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 
 class UserCreate(BaseModel):
@@ -40,10 +41,10 @@ class RoleUpdate(BaseModel):
     permissions: list[str] | None = None
 
 
-<<<<<<< HEAD
 class RolePermissionsUpdate(BaseModel):
     permissions: list[str] = Field(default_factory=list)
-=======
+
+
 class RoleRead(BaseModel):
     id: int
     tenant_id: int
@@ -93,4 +94,3 @@ class AccessLogRead(BaseModel):
     logged_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
->>>>>>> 42502626 (first commit)

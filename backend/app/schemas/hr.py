@@ -12,6 +12,12 @@ class EmployeeBase(BaseModel):
     hire_date: date | None = None
     hourly_rate: float | None = None
     is_active: bool = True
+    designation: str | None = None
+    shift_name: str | None = None
+    reporting_manager: str | None = None
+    employment_type: str | None = None
+    phone: str | None = None
+    salary: float | None = None
 
 
 class EmployeeCreate(EmployeeBase):
@@ -76,6 +82,12 @@ class PayrollRecordBase(BaseModel):
     deductions: float = 0
     net_pay: float = 0
     status: str = "draft"
+    basic: float | None = None
+    allowance: float | None = None
+    bonus: float | None = None
+    pf: float | None = None
+    esi: float | None = None
+    tax: float | None = None
 
 
 class PayrollRecordCreate(PayrollRecordBase):

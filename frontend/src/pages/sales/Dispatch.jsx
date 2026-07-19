@@ -65,8 +65,8 @@ function Field({ label, value }) {
 export default function Dispatch() {
   const { addToast } = useToast();
   const [loading, setLoading] = useState(true);
-  const [summary, setSummary] = useState(DEMO_DISPATCH_SUMMARY);
-  const [rows, setRows] = useState(DEMO_DISPATCH_LIST);
+  const [summary, setSummary] = useState({ ready_to_dispatch: 0, packed: 0, in_transit: 0, delivered: 0, delayed: 0 });
+  const [rows, setRows] = useState([]);
   const [selected, setSelected] = useState(null);
   const [openMenu, setOpenMenu] = useState(null);
 
@@ -74,11 +74,18 @@ export default function Dispatch() {
     setLoading(true);
     try {
       const [sumRes, listRes] = await Promise.allSettled([getDispatchSummary(), getDispatchEnriched()]);
-      if (sumRes.status === "fulfilled" && sumRes.value?.data) setSummary({ ...DEMO_DISPATCH_SUMMARY, ...sumRes.value.data });
-      if (listRes.status === "fulfilled" && listRes.value?.data?.length) setRows(listRes.value.data);
-      else setRows(DEMO_DISPATCH_LIST);
+      if (sumRes.status === "fulfilled" && sumRes.value?.data) {
+        setSummary(sumRes.value.data);
+      } else {
+        setSummary({ ready_to_dispatch: 0, packed: 0, in_transit: 0, delivered: 0, delayed: 0 });
+      }
+      if (listRes.status === "fulfilled" && listRes.value?.data) {
+        setRows(listRes.value.data);
+      } else {
+        setRows([]);
+      }
     } catch {
-      addToast("Using demo dispatch data", "info");
+      addToast("Failed to load dispatch data", "error");
     } finally {
       setLoading(false);
     }
@@ -95,8 +102,6 @@ export default function Dispatch() {
       } catch (err) {
         addToast(err.response?.data?.detail || "Update failed", "error");
       }
-    } else {
-      addToast("Shipment tracked (demo)");
     }
   };
 

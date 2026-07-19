@@ -54,7 +54,7 @@ PERMISSION_MATRIX = {
         "description": "HR and payroll modules only.",
     },
     "Accountant": {
-        "modules": ["dashboard", "accounts", "sales", "documents"],
+        "modules": ["dashboard", "accounts", "sales", "procurement", "documents"],
         "description": "Finance and accounts modules only.",
     },
     "Operator": {

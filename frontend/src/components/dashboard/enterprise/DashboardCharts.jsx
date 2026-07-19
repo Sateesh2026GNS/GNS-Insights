@@ -1,4 +1,3 @@
-import { Link } from "react-router-dom";
 import {
   Area,
   AreaChart,
@@ -19,14 +18,6 @@ import {
   YAxis,
 } from "recharts";
 
-import {
-  inventoryTrend,
-  machineUtilization,
-  monthlyProduction,
-  oeeData,
-  orderStatus,
-  productionTrend,
-} from "../../../data/dashboardDummyData";
 import ChartPanel from "./ChartPanel";
 
 const tooltipStyle = {
@@ -36,9 +27,21 @@ const tooltipStyle = {
   fontSize: 12,
 };
 
-export function ProductionTrendChart() {
+function toNumber(value, fallback = 0) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+export function ProductionTrendChart({ apiData }) {
+  const productionTrend = (apiData?.production_overview || []).map((row) => ({
+    day: row.date,
+    planned: toNumber(row.planned),
+    actual: toNumber(row.actual),
+    target: Math.max(toNumber(row.planned), toNumber(row.actual)),
+  }));
+
   return (
-    <ChartPanel title="Production Trend" subtitle="Planned vs actual output — last 7 days">
+    <ChartPanel title="Production Trend" subtitle="Planned vs actual output — live trend">
       <div className="h-64 w-full min-w-0">
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={productionTrend} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
@@ -67,8 +70,9 @@ export function ProductionTrendChart() {
   );
 }
 
-export function OEEChart() {
-  const overall = Math.round(oeeData.reduce((s, d) => s * (d.value / 100), 1) * 100);
+export function OEEChart({ apiData }) {
+  const overall = Math.round(toNumber(apiData?.shop_floor?.oee_pct, 0));
+  const oeeData = [{ name: "Overall OEE", value: overall, fill: "#2563EB" }];
 
   return (
     <ChartPanel title="OEE Overview" subtitle={`Overall OEE: ${overall}%`}>
@@ -93,7 +97,12 @@ export function OEEChart() {
   );
 }
 
-export function MachineUtilizationChart() {
+export function MachineUtilizationChart({ apiData }) {
+  const machineUtilization = (apiData?.top_machines || []).map((row) => ({
+    machine: row.name || row.id,
+    utilization: toNumber(row.utilization, 0),
+  }));
+
   return (
     <ChartPanel title="Machine Utilization" subtitle="Top shop floor assets">
       <div className="space-y-3">
@@ -106,7 +115,7 @@ export function MachineUtilizationChart() {
             <div className="h-2 overflow-hidden rounded-full bg-slate-100">
               <div
                 className="h-full rounded-full bg-gradient-to-r from-[#2563EB] to-[#22C55E] transition-all duration-700"
-                style={{ width: `${row.utilization}%` }}
+                style={{ width: `${Math.min(row.utilization, 100)}%` }}
               />
             </div>
           </div>
@@ -116,7 +125,14 @@ export function MachineUtilizationChart() {
   );
 }
 
-export function OrderStatusChart() {
+export function OrderStatusChart({ apiData }) {
+  const overview = apiData?.orders_overview || { total: 0, inProgress: 0, completed: 0, onHold: 0, progress: 0 };
+  const orderStatus = [
+    { name: "In Progress", value: toNumber(overview.inProgress, 0), color: "#2563EB" },
+    { name: "Completed", value: toNumber(overview.completed, 0), color: "#22C55E" },
+    { name: "On Hold", value: toNumber(overview.onHold, 0), color: "#F59E0B" },
+    { name: "Pending", value: Math.max(0, toNumber(overview.total, 0) - toNumber(overview.inProgress, 0) - toNumber(overview.completed, 0) - toNumber(overview.onHold, 0)), color: "#94A3B8" },
+  ];
   const total = orderStatus.reduce((s, d) => s + d.value, 0);
 
   return (
@@ -159,7 +175,13 @@ export function OrderStatusChart() {
   );
 }
 
-export function MonthlyProductionChart() {
+export function MonthlyProductionChart({ apiData }) {
+  const monthlyProduction = (apiData?.production_overview_monthly || []).map((row) => ({
+    month: row.date,
+    output: toNumber(row.actual),
+    target: toNumber(row.planned),
+  }));
+
   return (
     <ChartPanel title="Monthly Production" subtitle="Output vs target (units)">
       <div className="h-56 w-full min-w-0">
@@ -179,9 +201,17 @@ export function MonthlyProductionChart() {
   );
 }
 
-export function InventoryTrendChart() {
+export function InventoryTrendChart({ apiData }) {
+  const summary = apiData?.inventory_summary || {};
+  const inventoryTrend = [{
+    week: "Current",
+    raw: toNumber(summary.raw_materials_count),
+    wip: toNumber(summary.wip_items_count),
+    fg: toNumber(summary.finished_goods_count),
+  }];
+
   return (
-    <ChartPanel title="Inventory Trend" subtitle="Stock levels by category (₹ Lakhs)">
+    <ChartPanel title="Inventory Trend" subtitle="Current stock profile by category">
       <div className="h-56 w-full min-w-0">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={inventoryTrend} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
@@ -200,26 +230,26 @@ export function InventoryTrendChart() {
   );
 }
 
-export default function DashboardCharts() {
+export default function DashboardCharts({ apiData }) {
   return (
     <div className="grid gap-5 lg:grid-cols-12">
       <div className="lg:col-span-7">
-        <ProductionTrendChart />
+        <ProductionTrendChart apiData={apiData} />
       </div>
       <div className="lg:col-span-5">
-        <OEEChart />
+        <OEEChart apiData={apiData} />
       </div>
       <div className="lg:col-span-4">
-        <MachineUtilizationChart />
+        <MachineUtilizationChart apiData={apiData} />
       </div>
       <div className="lg:col-span-4">
-        <OrderStatusChart />
+        <OrderStatusChart apiData={apiData} />
       </div>
       <div className="lg:col-span-4">
-        <MonthlyProductionChart />
+        <MonthlyProductionChart apiData={apiData} />
       </div>
       <div className="lg:col-span-12">
-        <InventoryTrendChart />
+        <InventoryTrendChart apiData={apiData} />
       </div>
     </div>
   );

@@ -26,6 +26,7 @@ from app.services.finance_extended_service import (
     list_ar_enriched,
     list_gl_enriched,
     list_payments_enriched,
+    get_extended_reports,
 )
 
 router = APIRouter(prefix="/accounts", tags=["accounts"])
@@ -164,15 +165,150 @@ def gl_enriched_endpoint(
 def gst_extended_endpoint(
     tenant_id: int = Depends(tenant_scope(MODULE)),
     year: int = Query(...),
+    financial_year: str | None = Query(None),
+    month: str | None = Query(None),
+    branch: str | None = Query(None),
     db: Session = Depends(get_db),
 ):
-    return get_gst_extended(db, tenant_id, year)
+    return get_gst_extended(db, tenant_id, year, financial_year, month, branch)
 
 
 @router.get("/profit-loss/extended")
 def pl_extended_endpoint(
     tenant_id: int = Depends(tenant_scope(MODULE)),
     year: int = Query(...),
+    financial_year: str | None = Query(None),
+    month: str | None = Query(None),
+    branch: str | None = Query(None),
     db: Session = Depends(get_db),
 ):
-    return get_pl_extended(db, tenant_id, year)
+    return get_pl_extended(db, tenant_id, year, financial_year, month, branch)
+
+
+@router.get("/extended-reports")
+def extended_reports_endpoint(
+    tenant_id: int = Depends(tenant_scope(MODULE)),
+    financial_year: str | None = Query(None),
+    month: str | None = Query(None),
+    branch: str | None = Query(None),
+    db: Session = Depends(get_db),
+):
+    return get_extended_reports(db, tenant_id, financial_year, month, branch)
+
+
+@router.post("/journal-entries")
+def create_journal_entry_endpoint(
+    payload: dict,
+    user: User = Depends(require_permission(MODULE)),
+    db: Session = Depends(get_db),
+):
+    from sqlalchemy import func, select
+    import datetime
+    from app.models.accounts import JournalEntry, JournalLeg
+    
+    date_str = payload.get("date")
+    if not date_str:
+        date_str = datetime.date.today().isoformat()
+    
+    try:
+        entry_date = datetime.datetime.strptime(date_str, "%Y-%m-%d").date()
+    except ValueError:
+        entry_date = datetime.date.today()
+
+    count = db.scalar(
+        select(func.count(JournalEntry.id)).where(JournalEntry.tenant_id == user.tenant_id)
+    ) or 0
+    entry_number = f"JV-{entry_date.year}-{count + 1:04d}"
+
+    entry = JournalEntry(
+        tenant_id=user.tenant_id,
+        entry_number=entry_number,
+        entry_date=entry_date,
+        reference=payload.get("ref"),
+        description=payload.get("desc"),
+        status=payload.get("status", "Posted"),
+        branch=payload.get("branch", "Head Office")
+    )
+    db.add(entry)
+    db.flush()
+
+    for leg_data in payload.get("legs", []):
+        leg = JournalLeg(
+            entry_id=entry.id,
+            account=leg_data.get("account"),
+            debit=float(leg_data.get("debit", 0.0)),
+            credit=float(leg_data.get("credit", 0.0))
+        )
+        db.add(leg)
+    
+    db.commit()
+    return {"status": "success", "entry_number": entry_number}
+
+
+@router.post("/gl-accounts")
+def create_gl_account_endpoint(
+    payload: dict,
+    user: User = Depends(require_permission(MODULE)),
+    db: Session = Depends(get_db),
+):
+    from sqlalchemy import select
+    from app.models.accounts import GLAccount
+    
+    # Check if code already exists
+    existing = db.scalar(
+        select(GLAccount).where(GLAccount.tenant_id == user.tenant_id, GLAccount.code == payload.get("code"))
+    )
+    if existing:
+        return {"status": "error", "message": "Account code already exists"}
+
+    acc = GLAccount(
+        tenant_id=user.tenant_id,
+        code=payload.get("code"),
+        name=payload.get("name"),
+        parent=payload.get("parent", "Current Assets"),
+        type=payload.get("type", "Assets"),
+        balance=float(payload.get("balance", 0.0) or 0.0),
+        status=payload.get("status", "Active")
+    )
+    db.add(acc)
+    db.commit()
+    return {"status": "success"}
+
+
+@router.post("/fixed-assets")
+def create_fixed_asset_endpoint(
+    payload: dict,
+    user: User = Depends(require_permission(MODULE)),
+    db: Session = Depends(get_db),
+):
+    from sqlalchemy import select
+    import datetime
+    from app.models.accounts import FixedAsset
+    
+    # Check if code already exists
+    existing = db.scalar(
+        select(FixedAsset).where(FixedAsset.tenant_id == user.tenant_id, FixedAsset.code == payload.get("code"))
+    )
+    if existing:
+        return {"status": "error", "message": "Asset code already exists"}
+
+    date_str = payload.get("purchaseDate")
+    try:
+        purchase_date = datetime.datetime.strptime(date_str, "%Y-%m-%d").date()
+    except (ValueError, TypeError):
+        purchase_date = datetime.date.today()
+
+    asset = FixedAsset(
+        tenant_id=user.tenant_id,
+        code=payload.get("code"),
+        name=payload.get("name"),
+        purchase_date=purchase_date,
+        cost=float(payload.get("cost", 0.0) or 0.0),
+        salvage=float(payload.get("salvage", 0.0) or 0.0),
+        life=int(payload.get("life", 1) or 1),
+        method=payload.get("method", "Straight Line"),
+        accum_dep=float(payload.get("accumDep", 0.0) or 0.0)
+    )
+    db.add(asset)
+    db.commit()
+    return {"status": "success"}

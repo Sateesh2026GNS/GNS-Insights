@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Check } from "lucide-react";
+import { Check, XCircle } from "lucide-react";
 
 import { useToast } from "../../context/ToastContext";
 import {
@@ -117,124 +117,120 @@ export default function QuickCreateWorkOrder() {
   }
 
   return (
-    <div className="mx-auto max-w-md rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/50 p-6 shadow-sm">
-      <div className="mb-6 flex items-center justify-between">
-        <h2 className="text-xl font-bold text-slate-800 dark:text-white">
-          {t("quickCreateWorkOrder.title", { defaultValue: "Create Work Order" })}
-        </h2>
-        <Link
-          to="/"
-          className="text-sm font-medium text-teal-600 dark:text-teal-400 hover:underline"
-        >
-          ← Dashboard
-        </Link>
-      </div>
-      <p className="mb-6 text-sm text-slate-500 dark:text-slate-400">
-        {t("quickCreateWorkOrder.subtitle", {
-          defaultValue: "3 steps: Select product, enter quantity, assign machine. Done.",
-        })}
-      </p>
-
-      <form onSubmit={handleSubmit} className="space-y-5">
-        <div>
-          <label
-            htmlFor="product_id"
-            className="block text-sm font-medium text-slate-700 dark:text-slate-300"
-          >
-            1. {t("quickCreateWorkOrder.product", { defaultValue: "Product" })}
-          </label>
-          <select
-            id="product_id"
-            name="product_id"
-            value={form.product_id}
-            onChange={handleChange}
-            required
-            disabled={products.length === 0}
-            className="mt-1.5 w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2.5 text-sm shadow-sm focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500 disabled:opacity-50"
-          >
-            <option value="">
-              {products.length === 0
-                ? (seeding ? "Loading..." : "No products – seed first")
-                : t("quickCreateWorkOrder.selectProduct", { defaultValue: "Select product" })}
-            </option>
-            {products.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name} ({p.sku})
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div>
-          <label
-            htmlFor="planned_quantity"
-            className="block text-sm font-medium text-slate-700 dark:text-slate-300"
-          >
-            2. {t("quickCreateWorkOrder.quantity", { defaultValue: "Quantity" })}
-          </label>
-          <input
-            id="planned_quantity"
-            type="text"
-            inputMode="numeric"
-            pattern="[0-9]*"
-            name="planned_quantity"
-            value={form.planned_quantity}
-            onChange={handleChange}
-            required
-            minLength="1"
-            placeholder="e.g. 100"
-            className="mt-1.5 w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2.5 text-sm shadow-sm focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
-          />
-        </div>
-
-        <div>
-          <label
-            htmlFor="machine_id"
-            className="block text-sm font-medium text-slate-700 dark:text-slate-300"
-          >
-            3. {t("quickCreateWorkOrder.machine", { defaultValue: "Machine" })} (optional)
-          </label>
-          <select
-            id="machine_id"
-            name="machine_id"
-            value={form.machine_id}
-            onChange={handleChange}
-            className="mt-1.5 w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2.5 text-sm shadow-sm focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
-          >
-            <option value="">{t("quickCreateWorkOrder.selectMachine", { defaultValue: "None" })}</option>
-            {machines.map((m) => (
-              <option key={m.id} value={m.id}>
-                {m.name} ({m.code})
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {error && (
-          <div className="rounded-lg bg-red-50 dark:bg-red-900/20 px-4 py-3 text-sm text-red-700 dark:text-red-300">
-            {error}
-          </div>
-        )}
-
-        <div className="flex gap-3 pt-2">
-          <button
-            type="submit"
-            disabled={saving || products.length === 0}
-            className="inline-flex items-center gap-2 rounded-xl bg-teal-600 px-5 py-2.5 text-sm font-semibold text-white shadow-md transition-all hover:bg-teal-700 disabled:opacity-50"
-          >
-            <Check className="h-4 w-4" />
-            {saving
-              ? t("quickCreateWorkOrder.creating", { defaultValue: "Creating..." })
-              : t("quickCreateWorkOrder.save", { defaultValue: "Save & Done" })}
-          </button>
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 sm:items-center">
+      <div className="flex max-h-[94vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl bg-white shadow-2xl text-left">
+        <div className="flex items-start justify-between border-b px-5 py-4">
+          <h2 className="text-xl font-bold text-slate-900">
+            {t("quickCreateWorkOrder.title", { defaultValue: "Create Work Order" })}
+          </h2>
           <Link
-            to="/production"
-            className="rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-4 py-2.5 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50"
+            to="/production/work-orders"
+            className="rounded-lg p-2 text-slate-400 hover:bg-slate-100"
           >
-            {t("common.cancel", { defaultValue: "Cancel" })}
+            <XCircle className="h-5 w-5" />
           </Link>
         </div>
-      </form>
+
+        <form onSubmit={handleSubmit} className="overflow-y-auto p-5 space-y-4">
+          <div>
+            <label
+              htmlFor="product_id"
+              className="block text-xs font-semibold text-slate-500 uppercase"
+            >
+              1. {t("quickCreateWorkOrder.product", { defaultValue: "Product" })}
+            </label>
+            <select
+              id="product_id"
+              name="product_id"
+              value={form.product_id}
+              onChange={handleChange}
+              required
+              disabled={products.length === 0}
+              className="mt-1 w-full rounded-lg border px-3 py-2 text-sm bg-white font-medium text-slate-700 disabled:opacity-50"
+            >
+              <option value="">
+                {products.length === 0
+                  ? (seeding ? "Loading..." : "No products – seed first")
+                  : t("quickCreateWorkOrder.selectProduct", { defaultValue: "Select product" })}
+              </option>
+              {products.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name} ({p.sku})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label
+              htmlFor="planned_quantity"
+              className="block text-xs font-semibold text-slate-500 uppercase"
+            >
+              2. {t("quickCreateWorkOrder.quantity", { defaultValue: "Quantity" })}
+            </label>
+            <input
+              id="planned_quantity"
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              name="planned_quantity"
+              value={form.planned_quantity}
+              onChange={handleChange}
+              required
+              minLength="1"
+              placeholder="e.g. 100"
+              className="mt-1 w-full rounded-lg border px-3 py-2 text-sm"
+            />
+          </div>
+
+          <div>
+            <label
+              htmlFor="machine_id"
+              className="block text-xs font-semibold text-slate-500 uppercase"
+            >
+              3. {t("quickCreateWorkOrder.machine", { defaultValue: "Machine" })} (optional)
+            </label>
+            <select
+              id="machine_id"
+              name="machine_id"
+              value={form.machine_id}
+              onChange={handleChange}
+              className="mt-1 w-full rounded-lg border px-3 py-2 text-sm bg-white font-medium text-slate-700"
+            >
+              <option value="">{t("quickCreateWorkOrder.selectMachine", { defaultValue: "None" })}</option>
+              {machines.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.name} ({m.code})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {error && (
+            <div className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">
+              {error}
+            </div>
+          )}
+
+          <div className="flex justify-end gap-2 border-t pt-4">
+            <Link
+              to="/production/work-orders"
+              className="rounded-lg border px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+            >
+              {t("common.cancel", { defaultValue: "Cancel" })}
+            </Link>
+            <button
+              type="submit"
+              disabled={saving || products.length === 0}
+              className="rounded-lg bg-[#2563EB] px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
+            >
+              {saving
+                ? t("quickCreateWorkOrder.creating", { defaultValue: "Creating..." })
+                : t("quickCreateWorkOrder.save", { defaultValue: "Save & Done" })}
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 }

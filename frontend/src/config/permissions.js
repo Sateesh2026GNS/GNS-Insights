@@ -53,12 +53,16 @@ export const ROUTE_MODULE_OVERRIDES = {
   "/finance/accounts-receivable": "accounts",
   "/finance/payment-tracking": "accounts",
   "/finance/general-ledger": "accounts",
+  "/inventory/suppliers": "dashboard",
+  "/inventory/suppliers/create": "dashboard",
   "/quality/incoming": "quality",
   "/quality/in-process": "quality",
   "/quality/final": "quality",
   "/maintenance/machine-history": "maintenance",
   "/analytics/sales": "analytics",
   "/analytics/finance": "analytics",
+  "/vendors": "dashboard",
+  "/vendors/create": "dashboard",
 };
 
 export const ROUTE_MODULES = {

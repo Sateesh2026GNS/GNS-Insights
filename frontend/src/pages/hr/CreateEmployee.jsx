@@ -28,93 +28,94 @@ export default function CreateEmployee() {
     try {
       await createEmployee({
         ...form,
+        tenant_id: tenantId,
         hire_date: form.hire_date || null,
         hourly_rate: form.hourly_rate ? Number(form.hourly_rate) : null,
       });
       navigate("/hr/employees");
     } catch (err) {
-      setError("Failed to create employee.");
+      setError(err.response?.data?.detail || "Failed to create employee.");
     } finally {
       setSaving(false);
     }
   };
 
   return (
-    <div style={{ maxWidth: "640px" }}>
-      <h2>Create Employee</h2>
-      <form onSubmit={handleSubmit} style={{ display: "grid", gap: "12px", marginTop: "16px" }}>
-        <label>
-          Employee Code
-          <input
-            type="text"
-            value={form.employee_code}
-            onChange={(e) => setForm((f) => ({ ...f, employee_code: e.target.value }))}
-            required
-            style={{ width: "100%", padding: "8px", marginTop: "6px" }}
-          />
-        </label>
-        <label>
-          Full Name
-          <input
-            type="text"
-            value={form.full_name}
-            onChange={(e) => setForm((f) => ({ ...f, full_name: e.target.value }))}
-            required
-            style={{ width: "100%", padding: "8px", marginTop: "6px" }}
-          />
-        </label>
-        <label>
-          Email
-          <input
-            type="email"
-            value={form.email}
-            onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
-            style={{ width: "100%", padding: "8px", marginTop: "6px" }}
-          />
-        </label>
-        <label>
-          Department
-          <input
-            type="text"
-            value={form.department}
-            onChange={(e) => setForm((f) => ({ ...f, department: e.target.value }))}
-            style={{ width: "100%", padding: "8px", marginTop: "6px" }}
-          />
-        </label>
-        <label>
-          Hire Date
-          <input
-            type="date"
-            value={form.hire_date}
-            onChange={(e) => setForm((f) => ({ ...f, hire_date: e.target.value }))}
-            style={{ width: "100%", padding: "8px", marginTop: "6px" }}
-          />
-        </label>
-        <label>
-          Hourly Rate ($)
-          <input
-            type="number"
-            step="0.01"
-            value={form.hourly_rate}
-            onChange={(e) => setForm((f) => ({ ...f, hourly_rate: e.target.value }))}
-            style={{ width: "100%", padding: "8px", marginTop: "6px" }}
-          />
-        </label>
-        {error && <div style={{ color: "#b91c1c" }}>{error}</div>}
-        <button
-          type="submit"
-          disabled={saving}
-          style={{
-            padding: "10px 16px",
-            background: "#111827",
-            color: "#fff",
-            border: "none",
-            borderRadius: "6px",
-            cursor: "pointer",
-          }}
-        >
-          {saving ? "Saving..." : "Create"}
-        </button>
+    <div className="mx-auto max-w-3xl rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <div className="mb-6">
+        <h2 className="text-2xl font-bold text-slate-900">Create Employee</h2>
+        <p className="mt-1 text-sm text-slate-500">Add a new employee entry with contact, department, and pay details.</p>
+      </div>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="grid gap-4 md:grid-cols-2">
+          <label className="block text-sm font-medium text-slate-700">
+            <span className="mb-1 block">Employee Code</span>
+            <input
+              type="text"
+              value={form.employee_code}
+              onChange={(e) => setForm((f) => ({ ...f, employee_code: e.target.value }))}
+              required
+              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-[#2563EB] focus:outline-none"
+              placeholder="e.g. EMP001"
+            />
+          </label>
+          <label className="block text-sm font-medium text-slate-700">
+            <span className="mb-1 block">Full Name</span>
+            <input
+              type="text"
+              value={form.full_name}
+              onChange={(e) => setForm((f) => ({ ...f, full_name: e.target.value }))}
+              required
+              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-[#2563EB] focus:outline-none"
+              placeholder="e.g. John Doe"
+            />
+          </label>
+          <label className="block text-sm font-medium text-slate-700">
+            <span className="mb-1 block">Email</span>
+            <input
+              type="email"
+              value={form.email}
+              onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-[#2563EB] focus:outline-none"
+              placeholder="john@example.com"
+            />
+          </label>
+          <label className="block text-sm font-medium text-slate-700">
+            <span className="mb-1 block">Department</span>
+            <input
+              type="text"
+              value={form.department}
+              onChange={(e) => setForm((f) => ({ ...f, department: e.target.value }))}
+              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-[#2563EB] focus:outline-none"
+              placeholder="e.g. HR"
+            />
+          </label>
+          <label className="block text-sm font-medium text-slate-700">
+            <span className="mb-1 block">Hire Date</span>
+            <input
+              type="date"
+              value={form.hire_date}
+              onChange={(e) => setForm((f) => ({ ...f, hire_date: e.target.value }))}
+              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-[#2563EB] focus:outline-none"
+            />
+          </label>
+          <label className="block text-sm font-medium text-slate-700">
+            <span className="mb-1 block">Hourly Rate ($)</span>
+            <input
+              type="number"
+              step="0.01"
+              value={form.hourly_rate}
+              onChange={(e) => setForm((f) => ({ ...f, hourly_rate: e.target.value }))}
+              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-[#2563EB] focus:outline-none"
+              placeholder="e.g. 15"
+            />
+          </label>
+        </div>
+        {error && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
+        <div className="flex justify-end gap-2 border-t pt-4">
+          <button type="button" onClick={() => navigate("/hr/employees")} className="rounded-lg border px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Cancel</button>
+          <button type="submit" disabled={saving} className="rounded-lg bg-[#2563EB] px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60">{saving ? "Saving..." : "Create Employee"}</button>
+        </div>
       </form>
     </div>
   );

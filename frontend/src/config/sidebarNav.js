@@ -1,6 +1,7 @@
 import {
   BarChart3,
   Boxes,
+  Building2,
   CheckCircle2,
   Factory,
   Landmark,
@@ -34,10 +35,18 @@ export const SIDEBAR_NAV = [
       { labelKey: "erpNav.products", to: "/masters/products", module: "production" },
       { labelKey: "erpNav.bom", to: "/masters/bom", module: "production" },
       { labelKey: "erpNav.customers", to: "/sales/customers", module: "sales" },
-      { labelKey: "erpNav.vendors", to: "/procurement/vendors", module: "procurement" },
       { labelKey: "erpNav.warehouses", to: "/inventory/warehouses", module: "inventory" },
       { labelKey: "erpNav.machines", to: "/production/machines", module: "production" },
       { labelKey: "erpNav.departments", to: "/masters/departments", module: "hr" },
+    ],
+  },
+  {
+    key: "vendors",
+    labelKey: "erpNav.vendors",
+    icon: Building2,
+    children: [
+      { labelKey: "erpNav.vendors", to: "/vendors", module: "dashboard" },
+      { labelKey: "erpNav.suppliers", to: "/inventory/suppliers", module: "dashboard" },
     ],
   },
   {
@@ -60,6 +69,7 @@ export const SIDEBAR_NAV = [
     children: [
       { labelKey: "erpNav.rawMaterials", to: "/inventory/raw-materials", module: "inventory" },
       { labelKey: "erpNav.finishedGoods", to: "/inventory/finished-goods", module: "inventory" },
+      { labelKey: "erpNav.suppliers", to: "/inventory/suppliers", module: "inventory" },
       { labelKey: "erpNav.stockTransfer", to: "/inventory/stock-transfer", module: "inventory" },
       { labelKey: "erpNav.stockAdjustment", to: "/inventory/stock-adjustment", module: "inventory" },
       { labelKey: "erpNav.stockLedger", to: "/inventory/stock-ledger", module: "inventory" },
@@ -88,6 +98,7 @@ export const SIDEBAR_NAV = [
       { labelKey: "erpNav.salesOrders", to: "/sales/orders", module: "sales" },
       { labelKey: "erpNav.dispatch", to: "/sales/dispatch", module: "sales" },
       { labelKey: "erpNav.invoices", to: "/sales/invoices", module: "sales" },
+      { labelKey: "erpNav.bills", to: "/sales/bills", module: "sales" },
     ],
   },
   {
@@ -98,8 +109,12 @@ export const SIDEBAR_NAV = [
       { labelKey: "erpNav.hrDashboard", to: "/hr", module: "hr" },
       { labelKey: "erpNav.employees", to: "/hr/employees", module: "hr" },
       { labelKey: "erpNav.attendance", to: "/hr/attendance", module: "hr" },
+      { labelKey: "erpNav.shifts", to: "/hr/shifts", module: "hr" },
       { labelKey: "erpNav.leave", to: "/hr/leave", module: "hr" },
       { labelKey: "erpNav.payroll", to: "/hr/payroll", module: "hr" },
+      { labelKey: "erpNav.performance", to: "/hr/performance", module: "hr" },
+      { labelKey: "erpNav.incidents", to: "/hr/incidents", module: "hr" },
+      { labelKey: "erpNav.hrAssets", to: "/hr/assets", module: "hr" },
     ],
   },
   {
@@ -114,6 +129,16 @@ export const SIDEBAR_NAV = [
       { labelKey: "erpNav.generalLedger", to: "/finance/general-ledger", module: "accounts" },
       { labelKey: "erpNav.gstReports", to: "/accounts/tax-reports", module: "accounts" },
       { labelKey: "erpNav.profitLoss", to: "/accounts/profit-loss", module: "accounts" },
+      { labelKey: "erpNav.balanceSheet", to: "/accounts/balance-sheet", module: "accounts" },
+      { labelKey: "erpNav.journalEntries", to: "/accounts/journal-entries", module: "accounts" },
+      { labelKey: "erpNav.multiBranchLedger", to: "/accounts/multi-branch-ledger", module: "accounts" },
+      { labelKey: "erpNav.trialBalance", to: "/accounts/trial-balance", module: "accounts" },
+      { labelKey: "erpNav.chartOfAccounts", to: "/accounts/chart-of-accounts", module: "accounts" },
+      { labelKey: "erpNav.fixedAssets", to: "/accounts/fixed-assets", module: "accounts" },
+      { labelKey: "erpNav.financialYearClosing", to: "/accounts/year-closing", module: "accounts" },
+      { labelKey: "erpNav.costCenterAllocation", to: "/accounts/cost-allocation", module: "accounts" },
+      { labelKey: "erpNav.bankReconciliation", to: "/accounts/bank-reconciliation", module: "accounts" },
+      { labelKey: "erpNav.budgetVsActual", to: "/accounts/budget-actual", module: "accounts" },
     ],
   },
   {

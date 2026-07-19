@@ -28,6 +28,7 @@ from app.services.sales_service import (
     create_payment,
     create_quotation,
     create_sales_order,
+    delete_customer,
     get_invoice_with_items,
     list_customers,
     list_invoices,
@@ -86,6 +87,18 @@ def list_customers_endpoint(
     tenant_id: int = Depends(tenant_scope(MODULE)), db: Session = Depends(get_db)
 ):
     return list_customers(db, tenant_id)
+
+
+@router.delete("/customers/{customer_id}")
+def delete_customer_endpoint(
+    customer_id: int,
+    tenant_id: int = Depends(tenant_scope(MODULE)),
+    db: Session = Depends(get_db),
+):
+    if not delete_customer(db, tenant_id, customer_id):
+        raise HTTPException(404, "Customer not found")
+    return {"deleted": True, "id": customer_id}
+
 
 
 @router.post("/leads", response_model=LeadRead)

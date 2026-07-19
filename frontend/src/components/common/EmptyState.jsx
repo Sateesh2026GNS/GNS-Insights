@@ -28,7 +28,7 @@ const icons = {
   ),
 };
 
-export default function EmptyState({ icon = "clipboard", title, description, actionLabel, actionHref }) {
+export default function EmptyState({ icon = "clipboard", title, description, actionLabel, actionHref, onActionClick }) {
   const Icon = icons[icon] || icons.clipboard;
 
   return (
@@ -43,6 +43,12 @@ export default function EmptyState({ icon = "clipboard", title, description, act
           <span aria-hidden>+</span>
           {actionLabel}
         </Link>
+      )}
+      {actionLabel && onActionClick && !actionHref && (
+        <button type="button" onClick={onActionClick} className="mt-6 ui-btn-primary">
+          <span aria-hidden>+</span>
+          {actionLabel}
+        </button>
       )}
     </div>
   );

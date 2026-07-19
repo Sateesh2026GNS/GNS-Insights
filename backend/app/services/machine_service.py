@@ -87,8 +87,16 @@ def get_machine_summary(
         else:
             counts["idle"] += 1
 
-    active_count = len([m for m in machines if m.is_active])
-    util = round(counts["running"] / active_count * 100, 1) if active_count else 0
+    active_machines = [m for m in machines if m.is_active]
+    oee_vals = [float(m.oee_pct) for m in active_machines if m.oee_pct is not None]
+    eff_vals = [float(m.efficiency_pct) for m in active_machines if m.efficiency_pct is not None]
+
+    if oee_vals:
+        util = round(sum(oee_vals) / len(oee_vals), 1)
+    elif eff_vals:
+        util = round(sum(eff_vals) / len(eff_vals), 1)
+    else:
+        util = round(counts["running"] / len(active_machines) * 100, 1) if active_machines else 0
 
     today = date.today()
     todays_prod = db.scalar(

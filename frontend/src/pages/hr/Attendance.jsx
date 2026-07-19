@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Calendar, Clock, Filter, Moon, RefreshCw, UserCheck, UserMinus, UserX } from "lucide-react";
 
 import DataTable from "../../components/common/DataTable";
@@ -68,6 +68,22 @@ export default function Attendance() {
     }
   };
 
+  const shiftSummary = useMemo(() => {
+    const map = {};
+    rows.forEach((r) => {
+      const sName = r.shift || "General";
+      if (!map[sName]) {
+        map[sName] = { label: `Shift: ${sName}`, present: 0, absent: 0 };
+      }
+      if (r.status === "present" || r.status === "late" || r.status === "half_day") {
+        map[sName].present += 1;
+      } else if (r.status === "absent") {
+        map[sName].absent += 1;
+      }
+    });
+    return Object.values(map);
+  }, [rows]);
+
   const columns = [
     { key: "employee_name", label: "Employee" },
     { key: "shift", label: "Shift" },
@@ -133,19 +149,22 @@ export default function Attendance() {
           <DataTable columns={columns} data={rows} searchPlaceholder="Search employee..." searchKeys={["employee_name", "shift", "status"]} />
         </div>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {[
-            { label: "Shift: Morning", present: 62, absent: 8 },
-            { label: "Shift: General", present: 78, absent: 12 },
-            { label: "Shift: Evening", present: 42, absent: 6 },
-            { label: "Shift: Night", present: 28, absent: 4 },
-          ].map((s) => (
-            <div key={s.label} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-              <p className="text-sm font-semibold text-slate-800">{s.label}</p>
-              <p className="mt-2 text-2xl font-bold text-green-600">{s.present}</p>
-              <p className="text-xs text-slate-500">Present · {s.absent} absent</p>
+        <div>
+          {shiftSummary.length > 0 ? (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {shiftSummary.map((s) => (
+                <div key={s.label} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                  <p className="text-sm font-semibold text-slate-800">{s.label}</p>
+                  <p className="mt-2 text-2xl font-bold text-green-600">{s.present}</p>
+                  <p className="text-xs text-slate-500 font-medium">Present · {s.absent} absent</p>
+                </div>
+              ))}
             </div>
-          ))}
+          ) : (
+            <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center text-slate-500 font-medium">
+              No shift attendance records logged for {recordDate}
+            </div>
+          )}
         </div>
       )}
 

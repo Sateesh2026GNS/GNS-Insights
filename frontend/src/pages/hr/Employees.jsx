@@ -1,14 +1,18 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { Briefcase, Eye, Filter, Plus, RefreshCw, UserCheck, UserMinus, UserPlus, Users } from "lucide-react";
+import { Briefcase, Eye, Filter, Plus, RefreshCw, UserCheck, UserMinus, UserPlus, Users, X, Save } from "lucide-react";
 
 import DataTable from "../../components/common/DataTable";
 import RowActionMenu from "../../components/common/RowActionMenu";
 import Loader from "../../components/common/Loader";
 import EmployeeDetailModal from "../../components/hr/EmployeeDetailModal";
 import { useToast } from "../../context/ToastContext";
-import { getEmployeeSummary, getEmployeesEnriched } from "../../api/hrApi";
+import { getEmployeeSummary, getEmployeesEnriched, createEmployee } from "../../api/hrApi";
 import { DEMO_EMP_LIST, DEMO_EMP_SUMMARY, deptColor, formatInr, statusColor } from "../../data/hrMasterData";
+import useTenantId from "../../hooks/useTenantId";
+
+const inputClass =
+  "mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-800 placeholder:text-slate-400 focus:border-[#2563EB] focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all";
 
 function KpiCard({ label, value, icon: Icon, color, suffix }) {
   return (
@@ -24,6 +28,7 @@ function KpiCard({ label, value, icon: Icon, color, suffix }) {
 const defaultFilters = { department: "", employment_type: "", shift: "", status: "" };
 
 export default function Employees() {
+  const tenantId = useTenantId();
   const { addToast } = useToast();
   const [loading, setLoading] = useState(true);
   const [summary, setSummary] = useState(DEMO_EMP_SUMMARY);
@@ -32,6 +37,26 @@ export default function Employees() {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [selected, setSelected] = useState(null);
   const [openMenu, setOpenMenu] = useState(null);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+
+  // Form state
+  const [form, setForm] = useState({
+    tenant_id: tenantId,
+    employee_code: "",
+    full_name: "",
+    email: "",
+    department: "Production",
+    designation: "Technician",
+    shift_name: "General",
+    reporting_manager: "",
+    employment_type: "permanent",
+    phone: "",
+    salary: "",
+    hire_date: new Date().toISOString().slice(0, 10),
+    hourly_rate: "150",
+  });
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -56,6 +81,53 @@ export default function Employees() {
     if (filters.shift) list = list.filter((r) => r.shift === filters.shift);
     return list;
   }, [rows, filters]);
+
+  const handleChange = (field, val) => {
+    setForm((f) => ({ ...f, [field]: val }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!form.employee_code || !form.full_name) {
+      setError("Employee code and full name are required.");
+      return;
+    }
+    setSaving(true);
+    setError("");
+    try {
+      await createEmployee({
+        ...form,
+        tenant_id: tenantId,
+        hire_date: form.hire_date || null,
+        hourly_rate: form.hourly_rate ? Number(form.hourly_rate) : null,
+        salary: form.salary ? Number(form.salary) : null,
+      });
+      addToast("Employee created successfully", "success");
+      setShowCreateModal(false);
+      // Reset form
+      setForm({
+        tenant_id: tenantId,
+        employee_code: "",
+        full_name: "",
+        email: "",
+        department: "Production",
+        designation: "Technician",
+        shift_name: "General",
+        reporting_manager: "",
+        employment_type: "permanent",
+        phone: "",
+        salary: "",
+        hire_date: new Date().toISOString().slice(0, 10),
+        hourly_rate: "150",
+      });
+      load();
+    } catch (err) {
+      setError(err.response?.data?.detail || "Failed to create employee.");
+      addToast("Failed to create employee", "error");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const columns = [
     { key: "photo", label: "Photo", render: (r) => (
@@ -95,7 +167,13 @@ export default function Employees() {
           <p className="mt-1 text-sm text-slate-500">Enterprise employee management with 360° profile, shift, and payroll integration.</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Link to="/hr/employees/create" className="ui-btn-primary"><Plus className="h-4 w-4" /> Create Employee</Link>
+          <button
+            type="button"
+            onClick={() => setShowCreateModal(true)}
+            className="ui-btn-primary inline-flex items-center gap-1.5 animate-none"
+          >
+            <Plus className="h-4 w-4" /> Create Employee
+          </button>
           <button type="button" onClick={load} className="inline-flex items-center gap-2 rounded-lg border bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50"><RefreshCw className="h-4 w-4" /> Refresh</button>
         </div>
       </header>
@@ -114,7 +192,7 @@ export default function Employees() {
       <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
         <button type="button" onClick={() => setShowAdvanced(!showAdvanced)} className="mb-3 inline-flex items-center gap-2 text-sm font-semibold text-slate-700"><Filter className="h-4 w-4" /> Filters</button>
         {showAdvanced && (
-          <div className="mb-4 grid gap-3 sm:grid-cols-3">
+          <div className="mb-4 grid gap-3 sm:grid-cols-3 animate-in slide-in-from-top duration-150">
             <select value={filters.department} onChange={(e) => setFilters({ ...filters, department: e.target.value })} className="rounded-lg border px-3 py-2 text-sm">
               <option value="">All Departments</option>
               {["Production", "Quality", "Maintenance", "Stores", "HR"].map((d) => <option key={d} value={d}>{d}</option>)}
@@ -133,6 +211,190 @@ export default function Employees() {
       </div>
 
       {selected && <EmployeeDetailModal employee={selected} onClose={() => setSelected(null)} />}
+
+      {showCreateModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl border border-slate-200 max-w-2xl w-full p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-start justify-between">
+              <div>
+                <h3 className="text-lg font-bold text-slate-900">Create Employee</h3>
+                <p className="text-xs text-slate-500 mt-0.5">Add a new employee entry with contact, designation, and pay details.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowCreateModal(false)}
+                className="rounded-lg p-2 text-slate-400 hover:bg-slate-100"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {error && (
+                <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-xs font-semibold text-rose-700">
+                  {error}
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">Employee Code *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. EMP001"
+                    value={form.employee_code}
+                    onChange={(e) => handleChange("employee_code", e.target.value)}
+                    className={inputClass}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">Full Name *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Sowmya"
+                    value={form.full_name}
+                    onChange={(e) => handleChange("full_name", e.target.value)}
+                    className={inputClass}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">Email</label>
+                  <input
+                    type="email"
+                    placeholder="sowmya@example.com"
+                    value={form.email}
+                    onChange={(e) => handleChange("email", e.target.value)}
+                    className={inputClass}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">Phone</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. 9876543210"
+                    value={form.phone}
+                    onChange={(e) => handleChange("phone", e.target.value)}
+                    className={inputClass}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">Department</label>
+                  <select
+                    value={form.department}
+                    onChange={(e) => handleChange("department", e.target.value)}
+                    className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-700 focus:border-[#2563EB] focus:outline-none focus:ring-2 focus:ring-blue-100"
+                  >
+                    {["Production", "Quality", "Maintenance", "Stores", "HR"].map((d) => (
+                      <option key={d} value={d}>{d}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">Designation</label>
+                  <input
+                    type="text"
+                    value={form.designation}
+                    onChange={(e) => handleChange("designation", e.target.value)}
+                    className={inputClass}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">Shift Name</label>
+                  <select
+                    value={form.shift_name}
+                    onChange={(e) => handleChange("shift_name", e.target.value)}
+                    className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-700 focus:border-[#2563EB] focus:outline-none focus:ring-2 focus:ring-blue-100"
+                  >
+                    {["Morning", "General", "Evening", "Night"].map((s) => (
+                      <option key={s} value={s}>{s} Shift</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">Employment Type</label>
+                  <select
+                    value={form.employment_type}
+                    onChange={(e) => handleChange("employment_type", e.target.value)}
+                    className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-700 focus:border-[#2563EB] focus:outline-none focus:ring-2 focus:ring-blue-100"
+                  >
+                    {["permanent", "contract", "temporary"].map((t) => (
+                      <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">Reporting Manager</label>
+                  <input
+                    type="text"
+                    value={form.reporting_manager}
+                    onChange={(e) => handleChange("reporting_manager", e.target.value)}
+                    className={inputClass}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">Hire Date</label>
+                  <input
+                    type="date"
+                    value={form.hire_date}
+                    onChange={(e) => handleChange("hire_date", e.target.value)}
+                    className={inputClass}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">Hourly Rate (₹)</label>
+                  <input
+                    type="number"
+                    value={form.hourly_rate}
+                    onChange={(e) => handleChange("hourly_rate", e.target.value)}
+                    className={inputClass}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">Salary (₹ / month)</label>
+                  <input
+                    type="number"
+                    value={form.salary}
+                    onChange={(e) => handleChange("salary", e.target.value)}
+                    className={inputClass}
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 border-t pt-4">
+                <button
+                  type="button"
+                  onClick={() => setShowCreateModal(false)}
+                  className="rounded-xl border px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-[#2563EB] px-5 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50 transition-all"
+                >
+                  <Save className="h-4 w-4" />
+                  {saving ? "Saving..." : "Create Employee"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

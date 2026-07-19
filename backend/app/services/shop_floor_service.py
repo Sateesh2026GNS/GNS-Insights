@@ -55,14 +55,16 @@ def get_shop_floor_summary(db: Session, tenant_id: int) -> ShopFloorSummaryRead:
             )
         ).all()
     )
-    todays_production = int(
-        db.scalar(
-            select(func.count(ProductionOrder.id)).where(
-                ProductionOrder.tenant_id == tenant_id,
-                func.date(ProductionOrder.start_date) == today,
+    report_production = int(sum(float(r.produced_quantity or 0) for r in reports))
+    wo_production = db.scalar(
+        select(func.sum(WorkOrder.actual_quantity)).where(
+            WorkOrder.tenant_id == tenant_id,
+            (func.date(WorkOrder.planned_start) == today) | (
+                (WorkOrder.planned_start.is_(None)) & (func.date(WorkOrder.updated_at) == today)
             )
-        ) or 0
-    )
+        )
+    ) or 0.0
+    todays_production = int(max(report_production, wo_production))
 
     report_target = int(sum(float(r.planned_quantity or 0) for r in reports))
     prod_planned = db.scalar(

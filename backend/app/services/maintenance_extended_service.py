@@ -38,7 +38,7 @@ def get_preventive_summary(db: Session, tenant_id: int) -> PreventiveSummaryRead
         if t.status == "completed" and t.schedule_date.month == today.month and t.schedule_date.year == today.year
     )
     upcoming = sum(1 for t in tasks if t.schedule_date > today and t.status == "scheduled")
-    running = sum(1 for m in machines if m.status == "running")
+    running = sum(1 for m in machines if m.status in ("running", "active"))
     avail = (running / len(machines) * 100) if machines else 0.0
     return PreventiveSummaryRead(
         total_machines=len(machines),
@@ -92,7 +92,7 @@ def get_breakdown_summary(db: Session, tenant_id: int) -> BreakdownSummaryRead:
     resolved_count = sum(1 for b in breakdowns if b.status == "resolved")
     mttr = (resolved_downtime / max(1, resolved_count)) / 60 if resolved_count > 0 else 0.0
     machines = list(db.scalars(select(Machine).where(Machine.tenant_id == tenant_id)).all())
-    breakdown_count = sum(1 for m in machines if m.status == "breakdown")
+    breakdown_count = sum(1 for m in machines if m.status in ("breakdown", "down"))
     avail = ((len(machines) - breakdown_count) / len(machines) * 100) if machines else 0.0
     return BreakdownSummaryRead(
         active_breakdowns=active,
@@ -189,9 +189,9 @@ def get_maintenance_hub(db: Session, tenant_id: int) -> MaintenanceHubRead:
     machines = list(db.scalars(select(Machine).where(Machine.tenant_id == tenant_id, Machine.is_active)).all())
     prev_sum = get_preventive_summary(db, tenant_id)
     bd_sum = get_breakdown_summary(db, tenant_id)
-    running = sum(1 for m in machines if m.status == "running")
+    running = sum(1 for m in machines if m.status in ("running", "active"))
     maintenance = sum(1 for m in machines if m.status in ("maintenance", "under_maintenance"))
-    breakdown = sum(1 for m in machines if m.status == "breakdown")
+    breakdown = sum(1 for m in machines if m.status in ("breakdown", "down"))
     idle = sum(1 for m in machines if m.status == "idle")
     health_scores = [float(m.health_score or 85) for m in machines]
     health_pct = sum(health_scores) / len(health_scores) if health_scores else 0.0
@@ -327,44 +327,45 @@ def get_maintenance_hub(db: Session, tenant_id: int) -> MaintenanceHubRead:
     months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
     
     downtime_by_month = {m: 0.0 for m in months}
-    has_downtime = False
     for b in active_breakdowns:
         if b.reported_at and b.downtime_minutes:
             m_name = months[b.reported_at.month - 1]
             downtime_by_month[m_name] += b.downtime_minutes / 60
-            has_downtime = True
-    downtime_trend = [{"month": m, "hours": round(downtime_by_month[m], 1)} for m in months] if has_downtime else []
+    downtime_trend = [{"month": m, "hours": round(downtime_by_month[m], 1)} for m in months]
 
     cost_by_month = {m: 0.0 for m in months}
-    has_cost = False
     for r in records:
         if r.maintenance_date and r.cost:
             m_name = months[r.maintenance_date.month - 1]
             cost_by_month[m_name] += float(r.cost)
-            has_cost = True
-    cost_trend = [{"month": m, "cost": round(cost_by_month[m], 2)} for m in months] if has_cost else []
+    cost_trend = [{"month": m, "cost": round(cost_by_month[m], 2)} for m in months]
 
     breakdown_freq = {m: 0 for m in months}
-    has_bf = False
     all_breakdowns = list(db.scalars(select(BreakdownReport).where(BreakdownReport.tenant_id == tenant_id)).all())
     for b in all_breakdowns:
         if b.reported_at:
             m_name = months[b.reported_at.month - 1]
             breakdown_freq[m_name] += 1
-            has_bf = True
-    breakdown_frequency_trend = [{"month": m, "count": breakdown_freq[m]} for m in months] if has_bf else []
+    breakdown_frequency_trend = [{"month": m, "count": breakdown_freq[m]} for m in months]
 
     mttr_by_month = {m: [] for m in months}
-    has_mttr = False
     for b in all_breakdowns:
         if b.reported_at and b.status == "resolved" and b.downtime_minutes:
             m_name = months[b.reported_at.month - 1]
             mttr_by_month[m_name].append(b.downtime_minutes / 60)
-            has_mttr = True
     mttr_trend = [
         {"month": m, "hours": round(sum(mttr_by_month[m]) / len(mttr_by_month[m]), 1) if mttr_by_month[m] else 0.0}
         for m in months
-    ] if has_mttr else []
+    ]
+
+    availability_trend = [
+        {"month": m, "pct": round(((len(machines) - breakdown_freq[m]) / max(1, len(machines)) * 100), 1)}
+        for m in months
+    ]
+    mtbf_trend = [
+        {"month": m, "hours": round(720 / max(1, breakdown_freq[m]), 1)}
+        for m in months
+    ]
 
     return MaintenanceHubRead(
         total_machines=len(machines),
@@ -385,11 +386,11 @@ def get_maintenance_hub(db: Session, tenant_id: int) -> MaintenanceHubRead:
             for m in machines[:6]
         ],
         downtime_trend=downtime_trend,
-        availability_trend=[],
+        availability_trend=availability_trend,
         cost_trend=cost_trend,
         breakdown_frequency=breakdown_frequency_trend,
         mttr_trend=mttr_trend,
-        mtbf_trend=[],
+        mtbf_trend=mtbf_trend,
         preventive_vs_breakdown=[
             {"name": "Preventive", "count": prev_sum.completed_this_month},
             {"name": "Breakdown", "count": bd_sum.active_breakdowns},

@@ -1,27 +1,16 @@
 from fastapi import APIRouter, Depends
-<<<<<<< HEAD
 from sqlalchemy import func, select
-=======
->>>>>>> 42502626 (first commit)
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db
 from app.core.permissions import tenant_scope
-<<<<<<< HEAD
 from app.models.sales import Customer, SalesOrder
 
 router = APIRouter(prefix="/dispatch", tags=["Dispatch & Logistics"])
-=======
-from app.schemas.sales_extended import DispatchListRead, DispatchSummaryRead
-from app.services.sales_extended_service import get_dispatch_summary, list_dispatch_enriched
-
-router = APIRouter(prefix="/dispatch", tags=["dispatch"])
->>>>>>> 42502626 (first commit)
 
 MODULE = "sales"
 
 
-<<<<<<< HEAD
 def _order_rows(db: Session, tenant_id: int, only_shipped: bool = False):
     stmt = (
         select(SalesOrder, Customer.name)
@@ -113,19 +102,3 @@ def get_transport_details(
         entry["shipments"] += 1
         entry["total_value"] += float(so.total_amount or 0)
     return list(by_customer.values())
-=======
-@router.get("/summary", response_model=DispatchSummaryRead)
-def dispatch_summary(
-    tenant_id: int = Depends(tenant_scope(MODULE)),
-    db: Session = Depends(get_db)
-):
-    return get_dispatch_summary(db, tenant_id)
-
-
-@router.get("/enriched", response_model=list[DispatchListRead])
-def dispatch_enriched(
-    tenant_id: int = Depends(tenant_scope(MODULE)),
-    db: Session = Depends(get_db)
-):
-    return list_dispatch_enriched(db, tenant_id)
->>>>>>> 42502626 (first commit)

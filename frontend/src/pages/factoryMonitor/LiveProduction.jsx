@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   AlertTriangle,
@@ -14,12 +14,7 @@ import {
 import DataTable from "../../components/common/DataTable";
 import Loader from "../../components/common/Loader";
 import { useToast } from "../../context/ToastContext";
-import {
-  getShopFloorAlerts,
-  getShopFloorGrid,
-  getShopFloorSummary,
-  getShopFloorTimeline,
-} from "../../api/factoryMonitorApi";
+import { getShopFloorLive } from "../../api/factoryMonitorApi";
 import {
   DEMO_MACHINE_LAYOUT,
   DEMO_SHOP_ALERTS,
@@ -52,48 +47,60 @@ function KpiCard({ label, value, icon: Icon, color }) {
 export default function LiveProduction() {
   const { addToast } = useToast();
   const [loading, setLoading] = useState(true);
+  const hasLoadedRef = useRef(false);
   const [summary, setSummary] = useState(DEMO_SHOP_SUMMARY);
   const [grid, setGrid] = useState(DEMO_SHOP_GRID);
   const [alerts, setAlerts] = useState(DEMO_SHOP_ALERTS);
   const [timeline, setTimeline] = useState(DEMO_SHOP_TIMELINE);
   const [layout, setLayout] = useState(DEMO_MACHINE_LAYOUT);
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const load = useCallback(async (showLoader = false) => {
+    if (showLoader) {
+      setLoading(true);
+    }
     try {
-      const [sumRes, gridRes, alertRes, timeRes] = await Promise.allSettled([
-        getShopFloorSummary(),
-        getShopFloorGrid(),
-        getShopFloorAlerts(),
-        getShopFloorTimeline(),
-      ]);
-      if (sumRes.status === "fulfilled" && sumRes.value?.data) {
-        setSummary({ ...DEMO_SHOP_SUMMARY, ...sumRes.value.data });
+      const response = await getShopFloorLive();
+      const payload = response?.data?.data ?? response?.data ?? null;
+      const liveData = payload && typeof payload === "object" && !Array.isArray(payload) ? payload : null;
+
+      if (liveData?.summary && typeof liveData.summary === "object") {
+        setSummary((prev) => ({ ...prev, ...liveData.summary }));
       }
-      if (gridRes.status === "fulfilled" && gridRes.value?.data?.length) {
-        setGrid(gridRes.value.data);
+      if (Array.isArray(liveData?.grid)) {
+        setGrid(liveData.grid);
         setLayout(
-          gridRes.value.data.map((r) => ({
-            id: r.machine_id,
-            name: r.machine_name,
-            status: r.status,
+          liveData.grid.map((row) => ({
+            id: row.machine_id,
+            name: row.machine_name,
+            status: row.status,
           }))
         );
       }
-      if (alertRes.status === "fulfilled" && alertRes.value?.data?.length) {
-        setAlerts(alertRes.value.data);
+      if (Array.isArray(liveData?.alerts)) {
+        setAlerts(liveData.alerts);
       }
-      if (timeRes.status === "fulfilled" && timeRes.value?.data?.length) {
-        setTimeline(timeRes.value.data);
+      if (Array.isArray(liveData?.timeline)) {
+        setTimeline(liveData.timeline);
       }
     } catch {
-      addToast("Using demo shop floor data", "info");
+      if (!hasLoadedRef.current) {
+        addToast("Showing cached shop floor data while the live feed is unavailable", "info");
+      }
     } finally {
-      setLoading(false);
+      if (showLoader || !hasLoadedRef.current) {
+        setLoading(false);
+        hasLoadedRef.current = true;
+      }
     }
   }, [addToast]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load(true);
+    const intervalId = window.setInterval(() => {
+      load(false);
+    }, 30000);
+    return () => window.clearInterval(intervalId);
+  }, [load]);
 
   const columns = [
     { key: "machine_name", label: "Machine" },
@@ -153,7 +160,7 @@ export default function LiveProduction() {
           <Link to="/production" className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">
             <Factory className="h-4 w-4" /> Production Hub
           </Link>
-          <button type="button" onClick={load} className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+          <button type="button" onClick={() => load(true)} className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">
             <RefreshCw className="h-4 w-4" /> Refresh
           </button>
         </div>

@@ -28,6 +28,14 @@ def list_customers(db: Session, tenant_id: int) -> list[Customer]:
 
 def create_sales_order(db: Session, payload: SalesOrderCreate) -> SalesOrder:
     so = SalesOrder(**payload.model_dump())
+    if so.status == "packed":
+        so.packed = True
+    elif so.status == "shipped":
+        so.packed = True
+        so.shipped = True
+    elif so.status in ("delivered", "closed"):
+        so.packed = True
+        so.shipped = True
     db.add(so)
     db.commit()
     db.refresh(so)
@@ -57,6 +65,14 @@ def update_sales_order_status(
     if not order:
         return None
     order.status = status
+    if status == "packed":
+        order.packed = True
+    elif status == "shipped":
+        order.packed = True
+        order.shipped = True
+    elif status in ("delivered", "closed"):
+        order.packed = True
+        order.shipped = True
     db.commit()
     db.refresh(order)
     return order
@@ -87,7 +103,7 @@ def create_invoice(db: Session, payload: InvoiceCreate) -> Invoice:
     db.flush()
     subtotal = 0.0
     for item_data in payload.items:
-        item = InvoiceItem(invoice_id=inv.id, **item_data)
+        item = InvoiceItem(invoice_id=inv.id, **item_data.model_dump())
         db.add(item)
         subtotal += item.amount
     inv.subtotal = subtotal
@@ -240,3 +256,17 @@ def update_sales_order_dispatch(
     db.commit()
     db.refresh(order)
     return order
+
+
+def delete_customer(db: Session, tenant_id: int, customer_id: int) -> bool:
+    c = db.scalars(
+        select(Customer).where(
+            Customer.id == customer_id, Customer.tenant_id == tenant_id
+        )
+    ).first()
+    if not c:
+        return False
+    db.delete(c)
+    db.commit()
+    return True
+

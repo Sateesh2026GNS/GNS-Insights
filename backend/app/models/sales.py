@@ -69,6 +69,11 @@ class Customer(Base, TimestampMixin):
     gstin: Mapped[str | None] = mapped_column(String(64))
     email: Mapped[str | None] = mapped_column(String(255))
     phone: Mapped[str | None] = mapped_column(String(64))
+    city: Mapped[str | None] = mapped_column(String(128))
+    credit_limit: Mapped[float | None] = mapped_column(Numeric(12, 2))
+    outstanding: Mapped[float | None] = mapped_column(Numeric(12, 2))
+    customer_type: Mapped[str | None] = mapped_column(String(64))
+    status: Mapped[str | None] = mapped_column(String(32))
 
     sales_orders = relationship("SalesOrder", back_populates="customer")
     invoices = relationship("Invoice", back_populates="customer")

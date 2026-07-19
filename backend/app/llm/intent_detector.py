@@ -1,5 +1,3 @@
-"""Rule-based intent detection for operator commands."""
-
 from __future__ import annotations
 
 import re

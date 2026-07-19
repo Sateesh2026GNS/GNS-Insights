@@ -167,16 +167,26 @@ export function enrichApiOrder(row, index = 0) {
 export function computePlanningSummary(orders) {
   const counts = { planned: 0, in_progress: 0, completed: 0, delayed: 0, cancelled: 0 };
   let todaysProduction = 0;
+  let todaysTarget = 0;
   orders.forEach((o) => {
     const s = o.status;
-    if (s === "cancelled") counts.cancelled += 1;
-    else if (["completed", "closed", "done"].includes(s)) counts.completed += 1;
-    else if (["in_progress", "running", "quality_check"].includes(s)) counts.in_progress += 1;
-    else if (["draft", "planned", "pending", "material_ready", "machine_assigned"].includes(s)) counts.planned += 1;
+    const isCancelled = s === "cancelled";
+    const isCompleted = ["completed", "closed", "done"].includes(s);
+    const isInProgress = ["in_progress", "running", "quality_check"].includes(s);
+    const isPlanned = ["draft", "planned", "pending", "material_ready", "machine_assigned"].includes(s);
+
+    if (isCancelled) counts.cancelled += 1;
+    else if (isCompleted) counts.completed += 1;
+    else if (isInProgress) counts.in_progress += 1;
+    else if (isPlanned) counts.planned += 1;
+
     if (o.is_delayed || s === "delayed") counts.delayed += 1;
+
+    if (isPlanned || isInProgress) {
+      todaysTarget += Number(o.planned_quantity || 0);
+    }
     todaysProduction += Number(o.produced_quantity || 0);
   });
-  const todaysTarget = orders.reduce((s, o) => s + Number(o.planned_quantity || 0), 0);
   return {
     total_orders: orders.length,
     planned_orders: counts.planned,

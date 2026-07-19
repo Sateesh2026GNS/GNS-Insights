@@ -2,10 +2,11 @@ import axios from "axios";
 
 /** Resolve API base URL. Empty string = same-origin (Docker/nginx proxy). */
 export function getApiBaseURL() {
-  if (import.meta.env.VITE_API_BASE_URL !== undefined) {
-    return import.meta.env.VITE_API_BASE_URL;
+  const configured = import.meta.env.VITE_API_BASE_URL;
+  if (configured && configured.trim()) {
+    return configured.trim();
   }
-  return "http://localhost:8000";
+  return "http://127.0.0.1:8000";
 }
 
 const api = axios.create({

@@ -6,9 +6,21 @@ import RouteFallback from "./components/common/RouteFallback";
 import Navbar from "./components/layout/Navbar";
 import Sidebar from "./components/layout/Sidebar";
 import Breadcrumbs from "./components/common/Breadcrumbs";
+import AiChatWidget from "./components/ai/AiChatWidget";
+import useAuth from "./hooks/useAuth";
+
+export function shouldShowChatbot(user, pathname) {
+  const userRoles = Array.isArray(user?.roles) ? user.roles : [user?.role].filter(Boolean);
+  const normalizedRoles = userRoles.map((role) => String(role).toLowerCase());
+  const isOperatorRole = normalizedRoles.includes("operator");
+  const isOperatorPath = Boolean(pathname && /^\/operator(?:\/|$)/.test(pathname));
+
+  return isOperatorRole && isOperatorPath;
+}
 
 export default function App() {
   const location = useLocation();
+  const { user } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const isAuthRoute =
     location.pathname === "/login" ||
@@ -35,6 +47,8 @@ export default function App() {
       </div>
     );
   }
+
+  const showChatbot = shouldShowChatbot(user, location.pathname);
 
   return (
     <div className="relative flex h-screen overflow-hidden bg-[#F4F7FE]">
@@ -67,6 +81,7 @@ export default function App() {
           </div>
         </main>
       </div>
+      {showChatbot && <AiChatWidget />}
     </div>
   );
 }

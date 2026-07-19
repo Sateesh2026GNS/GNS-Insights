@@ -19,6 +19,12 @@ class ProductionOrderBase(BaseModel):
     start_date: datetime | None = None
     due_date: datetime | None = None
     status: str = "planned"
+    customer_name: str | None = None
+    priority: str = "medium"
+    bom_version: str | None = None
+    sales_order_number: str | None = None
+    department: str | None = None
+    shift: str | None = None
 
 
 class ProductionOrderCreate(ProductionOrderBase):
@@ -37,6 +43,12 @@ class ProductionOrderUpdate(BaseModel):
     start_date: datetime | None = None
     due_date: datetime | None = None
     status: str | None = None
+    customer_name: str | None = None
+    priority: str | None = None
+    bom_version: str | None = None
+    sales_order_number: str | None = None
+    department: str | None = None
+    shift: str | None = None
 
     @field_validator("planned_quantity")
     @classmethod
@@ -87,6 +99,7 @@ class WorkOrderQuickCreate(BaseModel):
     product_id: int
     planned_quantity: float
     machine_id: int | None = None
+    plant_code: str | None = None
 
 
 class BatchBase(BaseModel):
