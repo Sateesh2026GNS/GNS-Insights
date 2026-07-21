@@ -12,7 +12,11 @@ export const DEMO_CUSTOMERS = [];
 
 export function enrichApiCustomer(row, index = 0) {
   const code = `CUS${String(row.id).padStart(3, "0")}`;
+<<<<<<< HEAD
   const city = ["Hyderabad", "Pune", "Chennai", "Mumbai", "Bengaluru"][index % 5];
+=======
+  const defaultCity = ["Hyderabad", "Pune", "Chennai", "Mumbai", "Bengaluru"][index % 5];
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
   return {
     id: row.id,
     customer_code: code,
@@ -22,6 +26,7 @@ export function enrichApiCustomer(row, index = 0) {
     phone: row.phone || "—",
     email: row.email || "—",
     gstin: row.gstin || "—",
+<<<<<<< HEAD
     city,
     state: row.state || INDIAN_STATES[index % INDIAN_STATES.length],
     district: city,
@@ -29,6 +34,15 @@ export function enrichApiCustomer(row, index = 0) {
     country: "India",
     status: "active",
     customer_type: CUSTOMER_TYPES[index % CUSTOMER_TYPES.length],
+=======
+    city: row.city || defaultCity,
+    state: row.state || INDIAN_STATES[index % INDIAN_STATES.length],
+    district: row.city || defaultCity,
+    pincode: "500001",
+    country: "India",
+    status: row.status || "active",
+    customer_type: row.customer_type || CUSTOMER_TYPES[index % CUSTOMER_TYPES.length],
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
     industry: "Manufacturing",
     pan: row.gstin ? row.gstin.slice(2, 12) : "—",
     website: null,
@@ -36,9 +50,15 @@ export function enrichApiCustomer(row, index = 0) {
     designation: "Contact",
     billing_address: row.address_line1 || "—",
     shipping_address: row.address_line1 || "—",
+<<<<<<< HEAD
     credit_limit: 1000000 + index * 200000,
     payment_terms: "Net 30",
     outstanding: 50000 + index * 35000,
+=======
+    credit_limit: row.credit_limit !== undefined && row.credit_limit !== null ? row.credit_limit : (1000000 + index * 200000),
+    payment_terms: "Net 30",
+    outstanding: row.outstanding !== undefined && row.outstanding !== null ? row.outstanding : (50000 + index * 35000),
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
     opening_balance: 0,
     currency: "INR",
     tan: null,

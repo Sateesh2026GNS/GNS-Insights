@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 import { useCallback, useEffect, useState } from "react";
+=======
+import { useCallback, useEffect, useMemo, useState } from "react";
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
 import { Link } from "react-router-dom";
 import { AlertTriangle, Box, Download, Package, Plus, QrCode, RefreshCw, Truck } from "lucide-react";
 
@@ -23,17 +27,38 @@ function KpiCard({ label, value, icon: Icon, color }) {
 export default function FinishedGoods() {
   const { addToast } = useToast();
   const [loading, setLoading] = useState(true);
+<<<<<<< HEAD
   const [summary, setSummary] = useState(DEMO_FG_SUMMARY);
   const [products, setProducts] = useState([]);
+=======
+  const [products, setProducts] = useState(DEMO_FINISHED_GOODS);
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
   const [search, setSearch] = useState("");
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
       const [sumRes, listRes] = await Promise.allSettled([getFinishedGoodsSummary(), getFinishedGoods()]);
+<<<<<<< HEAD
       if (sumRes.status === "fulfilled" && sumRes.value?.data) setSummary({ ...DEMO_FG_SUMMARY, ...sumRes.value.data });
       if (listRes.status === "fulfilled" && listRes.value?.data?.length) setProducts(listRes.value.data);
     } catch { }
+=======
+      if (listRes.status === "fulfilled" && listRes.value?.data) {
+        const apiRows = listRes.value.data;
+        if (apiRows.length > 0) {
+          setProducts([
+            ...apiRows,
+            ...DEMO_FINISHED_GOODS.filter((d) => !apiRows.some((r) => r.sku === d.sku)),
+          ]);
+        } else {
+          setProducts(DEMO_FINISHED_GOODS);
+        }
+      } else {
+        setProducts(DEMO_FINISHED_GOODS);
+      }
+    } catch { addToast("Using demo finished goods data", "info"); }
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
     finally { setLoading(false); }
   }, [addToast]);
 
@@ -43,6 +68,42 @@ export default function FinishedGoods() {
     ? products.filter((p) => [p.sku, p.name, p.batch_number, p.customer_name].some((v) => v && String(v).toLowerCase().includes(search.toLowerCase())))
     : products;
 
+<<<<<<< HEAD
+=======
+  const summary = useMemo(() => {
+    const totalProducts = filtered.length;
+    let availableQty = 0;
+    let reservedQty = 0;
+    let dispatchQty = 0;
+    let damagedQty = 0;
+    let stockValue = 0;
+
+    filtered.forEach((p) => {
+      const qty = Number(p.quantity || 0);
+      const res = Number(p.reserved || 0);
+      const avail = Number(p.available || (qty - res));
+      availableQty += qty;
+      reservedQty += res;
+      if (p.status === "damaged") {
+        damagedQty += qty;
+      } else {
+        dispatchQty += avail;
+      }
+      stockValue += qty * Number(p.unit_cost || 0);
+    });
+
+    return {
+      total_products: totalProducts,
+      available: availableQty,
+      reserved: reservedQty,
+      ready_to_dispatch: dispatchQty,
+      damaged: damagedQty,
+      stock_value: stockValue,
+    };
+  }, [filtered]);
+
+
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
   const columns = [
     { key: "sku", label: "SKU" },
     { key: "name", label: "Product" },

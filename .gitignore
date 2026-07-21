@@ -47,6 +47,7 @@ coverage/
 htmlcov/
 .coverage
 *.cover
+<<<<<<< HEAD
 
 backend/venv/
 venv/
@@ -56,3 +57,5 @@ frontend/dist/
 backend/smrt.db
 smrt.db
 .env
+=======
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8

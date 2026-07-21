@@ -1,5 +1,10 @@
+<<<<<<< HEAD
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+=======
+import { useEffect, useMemo, useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
 import { Cpu, Play, Square, Plus, ArrowRight } from "lucide-react";
 
 import { useToast } from "../../context/ToastContext";
@@ -17,8 +22,20 @@ const statusDot = (status) => {
 export default function MachineStatus() {
   const tenantId = useTenantId();
   const { addToast } = useToast();
+<<<<<<< HEAD
   const [loading, setLoading] = useState(true);
   const [machines, setMachines] = useState([]);
+=======
+  const [searchParams] = useSearchParams();
+  const statusFilter = searchParams.get("status");
+  const [loading, setLoading] = useState(true);
+  const [machines, setMachines] = useState([]);
+
+  const filteredMachines = useMemo(() => {
+    if (!statusFilter) return machines;
+    return machines.filter((m) => m.status === statusFilter);
+  }, [machines, statusFilter]);
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
   const [actionLoading, setActionLoading] = useState(null);
 
   useEffect(() => {
@@ -142,11 +159,19 @@ export default function MachineStatus() {
           </span>
         </div>
         <div className="p-4">
+<<<<<<< HEAD
           {machines.length === 0 ? (
             <div className="rounded-xl border-2 border-dashed border-slate-200 dark:border-slate-700 py-16 text-center">
               <Cpu className="mx-auto h-12 w-12 text-slate-300 dark:text-slate-600" />
               <p className="mt-2 text-slate-600 dark:text-slate-400">
                 No machines configured
+=======
+          {filteredMachines.length === 0 ? (
+            <div className="rounded-xl border-2 border-dashed border-slate-200 dark:border-slate-700 py-16 text-center">
+              <Cpu className="mx-auto h-12 w-12 text-slate-300 dark:text-slate-600" />
+              <p className="mt-2 text-slate-600 dark:text-slate-400">
+                No machines found matching this status
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
               </p>
               <Link
                 to="/production/machines/create"
@@ -158,7 +183,11 @@ export default function MachineStatus() {
             </div>
           ) : (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+<<<<<<< HEAD
               {machines.map((m) => {
+=======
+              {filteredMachines.map((m) => {
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
                 const loading = actionLoading === m.id;
                 return (
                   <div

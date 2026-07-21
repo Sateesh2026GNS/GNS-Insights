@@ -24,9 +24,14 @@ def serialize_user(u: User) -> dict:
         "email": u.email,
         "full_name": u.full_name,
         "phone": getattr(u, "phone", None),
+<<<<<<< HEAD
         "employee_id": getattr(u, "employee_id", None),
         "designation": getattr(u, "designation", None),
         "is_active": u.is_active,
+=======
+        "is_active": u.is_active,
+        "email_verified": getattr(u, "email_verified", False),
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
         "tenant_id": u.tenant_id,
         "roles": [{"id": r.id, "name": r.name} for r in u.roles],
         "role": role_names[0] if role_names else None,
@@ -43,6 +48,10 @@ def serialize_role(r: Role) -> dict:
     users = r.users if r.users is not None else []
     return {
         "id": r.id,
+<<<<<<< HEAD
+=======
+        "tenant_id": r.tenant_id,
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
         "name": r.name,
         "description": r.description or "",
         "permissions": r.permissions or [],
@@ -135,6 +144,7 @@ def get_user(db: Session, tenant_id: int, user_id: int) -> dict:
 
 
 def create_user(db: Session, tenant_id: int, payload: UserCreate) -> dict:
+<<<<<<< HEAD
     from app.core.company_email import (
         MSG_EMAIL_NOT_WITH_COMPANY,
         MSG_PUBLIC_EMAIL,
@@ -144,12 +154,15 @@ def create_user(db: Session, tenant_id: int, payload: UserCreate) -> dict:
     )
     from app.models.tenant import Tenant
 
+=======
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
     existing = db.scalars(select(User).where(User.email == payload.email)).first()
     if existing:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="An account with this email already exists",
         )
+<<<<<<< HEAD
     if is_public_email_domain(email_domain(payload.email)):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=MSG_PUBLIC_EMAIL)
 
@@ -160,17 +173,24 @@ def create_user(db: Session, tenant_id: int, payload: UserCreate) -> dict:
             detail=MSG_EMAIL_NOT_WITH_COMPANY,
         )
 
+=======
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
     roles = _resolve_roles(db, tenant_id, payload.role_ids)
     user = User(
         tenant_id=tenant_id,
         email=payload.email,
         full_name=payload.full_name,
         phone=payload.phone,
+<<<<<<< HEAD
         employee_id=payload.employee_id,
         designation=payload.designation,
         is_active=payload.is_active,
         hashed_password=hash_password(payload.password),
         email_verified=True,
+=======
+        is_active=payload.is_active,
+        hashed_password=hash_password(payload.password),
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
         plant_code=payload.plant_code,
         department=payload.department,
         assigned_machine_id=payload.assigned_machine_id,
@@ -201,10 +221,13 @@ def update_user(
         user.full_name = data["full_name"]
     if "phone" in data:
         user.phone = data["phone"]
+<<<<<<< HEAD
     if "employee_id" in data:
         user.employee_id = data["employee_id"]
     if "designation" in data:
         user.designation = data["designation"]
+=======
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
     if data.get("password"):
         user.hashed_password = hash_password(data["password"])
 
@@ -397,6 +420,7 @@ def log_activity(
     resource: str | None = None,
     resource_id: int | None = None,
     request=None,
+<<<<<<< HEAD
     details: str | None = None,
     module_name: str | None = None,
 ) -> None:
@@ -421,6 +445,26 @@ def log_activity(
         resource=resource,
         resource_id=resource_id,
     )
+=======
+) -> None:
+    ip = None
+    ua = None
+    if request is not None:
+        ip = request.client.host if request.client else None
+        ua = request.headers.get("user-agent")
+    entry = AccessLog(
+        tenant_id=tenant_id,
+        user_id=user_id,
+        action=action,
+        resource=resource,
+        resource_id=resource_id,
+        ip_address=ip,
+        user_agent=ua,
+        logged_at=datetime.now(timezone.utc),
+    )
+    db.add(entry)
+    db.commit()
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
 
 
 def list_activities(
@@ -449,12 +493,20 @@ def list_activities(
     items = [
         {
             "id": r.id,
+<<<<<<< HEAD
+=======
+            "tenant_id": r.tenant_id,
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
             "user_id": r.user_id,
             "user_name": names.get(r.user_id, "System") if r.user_id else "System",
             "action": r.action,
             "resource": r.resource,
             "resource_id": r.resource_id,
             "ip_address": r.ip_address,
+<<<<<<< HEAD
+=======
+            "user_agent": r.user_agent,
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
             "logged_at": r.logged_at.isoformat() if r.logged_at else None,
         }
         for r in rows

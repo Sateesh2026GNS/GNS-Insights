@@ -43,7 +43,37 @@ export const IMPORT_TEMPLATE_HEADERS = [
 
 export const DEMO_WAREHOUSES = [];
 
+<<<<<<< HEAD
 export const DEMO_BIN_TREE = [];
+=======
+export const DEMO_BIN_TREE = [
+  {
+    name: "Rack A",
+    type: "rack",
+    children: [
+      {
+        name: "Shelf 01",
+        type: "shelf",
+        children: [
+          { name: "Bin A01", type: "bin" },
+          { name: "Bin A02", type: "bin" },
+        ],
+      },
+    ],
+  },
+  {
+    name: "Rack B",
+    type: "rack",
+    children: [
+      {
+        name: "Shelf 01",
+        type: "shelf",
+        children: [{ name: "Bin B01", type: "bin" }],
+      },
+    ],
+  },
+];
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
 
 export function enrichApiWarehouse(row, index = 0) {
   const used = row.used_capacity ?? 0;
@@ -82,7 +112,11 @@ export function computeWarehouseSummary(warehouses) {
     utilizationPct: totalCap ? Math.round((totalUsed / totalCap) * 1000) / 10 : 0,
     inventoryValue: warehouses.reduce((s, w) => s + Number(w.inventory_value || 0), 0),
     lowStockWarehouses: warehouses.filter((w) => (w.low_stock_items || 0) > 0).length,
+<<<<<<< HEAD
     pendingTransfers: 3,
+=======
+    pendingTransfers: 0,
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
     newThisMonth: warehouses.filter((w) => new Date(w.created_at) >= monthStart).length,
   };
 }

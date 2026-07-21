@@ -16,6 +16,12 @@ class LeadListRead(BaseModel):
     customer_name: str
     company: str | None = None
     contact: str | None = None
+<<<<<<< HEAD
+=======
+    email: str | None = None
+    phone: str | None = None
+    notes: str | None = None
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
     source: str | None = None
     sales_executive: str | None = None
     priority: str = "medium"

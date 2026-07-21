@@ -28,7 +28,11 @@ const icons = {
   ),
 };
 
+<<<<<<< HEAD
 export default function EmptyState({ icon = "clipboard", title, description, actionLabel, actionHref }) {
+=======
+export default function EmptyState({ icon = "clipboard", title, description, actionLabel, actionHref, onActionClick }) {
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
   const Icon = icons[icon] || icons.clipboard;
 
   return (
@@ -44,6 +48,15 @@ export default function EmptyState({ icon = "clipboard", title, description, act
           {actionLabel}
         </Link>
       )}
+<<<<<<< HEAD
+=======
+      {actionLabel && onActionClick && !actionHref && (
+        <button type="button" onClick={onActionClick} className="mt-6 ui-btn-primary">
+          <span aria-hidden>+</span>
+          {actionLabel}
+        </button>
+      )}
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
     </div>
   );
 }

@@ -8,6 +8,7 @@ function unwrap(res) {
   return res;
 }
 
+<<<<<<< HEAD
 export const getAllBom = async () => unwrap(await api.get("/api/masters/bom"));
 
 /** Alias used by BomMaster page */
@@ -21,3 +22,6 @@ export const addBomItem = async (productId, payload) =>
 
 export const deleteBomItem = async (bomId) =>
   unwrap(await api.delete(`/api/masters/bom/${bomId}`));
+=======
+export const getBillOfMaterials = async () => unwrap(await api.get("/api/masters/bom"));
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8

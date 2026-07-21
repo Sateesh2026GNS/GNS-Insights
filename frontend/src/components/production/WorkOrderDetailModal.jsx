@@ -287,7 +287,11 @@ export default function WorkOrderDetailModal({ workOrder, detail, onClose, onSta
           {onStop && <button type="button" onClick={() => onStop(w)} className="rounded-lg border px-3 py-1.5 text-xs font-semibold">⏹ Stop</button>}
           {onComplete && <button type="button" onClick={() => onComplete(w)} className="rounded-lg bg-[#2563EB] px-3 py-1.5 text-xs font-semibold text-white">✅ Complete</button>}
           <button type="button" onClick={() => window.print()} className="inline-flex items-center gap-1 rounded-lg border px-3 py-1.5 text-xs font-semibold"><Printer className="h-3 w-3" /> Job Card</button>
+<<<<<<< HEAD
           <Link to="/production/batch-tracking" className="rounded-lg border px-3 py-1.5 text-xs font-semibold text-slate-700">Batch Tracking</Link>
+=======
+          <Link to="/production/batches" className="rounded-lg border px-3 py-1.5 text-xs font-semibold text-slate-700">Batch Tracking</Link>
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
         </div>
       </div>
     </div>

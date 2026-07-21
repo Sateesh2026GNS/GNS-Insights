@@ -7,7 +7,11 @@ from sqlalchemy.orm import Session
 
 from app.models.machine import Machine
 from app.models.product import Product
+<<<<<<< HEAD
 from app.models.production import DailyProductionReport, ProductionOrder, WorkOrder
+=======
+from app.models.production import Batch, DailyProductionReport, ProductionOrder, WorkOrder
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
 from app.models.user import User
 from app.schemas.shop_floor import (
     ShopFloorAlertRead,
@@ -55,6 +59,7 @@ def get_shop_floor_summary(db: Session, tenant_id: int) -> ShopFloorSummaryRead:
             )
         ).all()
     )
+<<<<<<< HEAD
     todays_production = int(sum(float(r.produced_quantity or 0) for r in reports))
     todays_target = int(
         sum(float(r.planned_quantity or 0) for r in reports)
@@ -65,6 +70,35 @@ def get_shop_floor_summary(db: Session, tenant_id: int) -> ShopFloorSummaryRead:
             ).all()
         )
     )
+=======
+    report_production = int(sum(float(r.produced_quantity or 0) for r in reports))
+    wo_production = db.scalar(
+        select(func.sum(WorkOrder.actual_quantity)).where(
+            WorkOrder.tenant_id == tenant_id,
+            (func.date(WorkOrder.planned_start) == today) | (
+                (WorkOrder.planned_start.is_(None)) & (func.date(WorkOrder.updated_at) == today)
+            )
+        )
+    ) or 0.0
+    todays_production = int(max(report_production, wo_production))
+
+    report_target = int(sum(float(r.planned_quantity or 0) for r in reports))
+    prod_planned = db.scalar(
+        select(func.sum(ProductionOrder.planned_quantity)).where(
+            ProductionOrder.tenant_id == tenant_id,
+            func.date(ProductionOrder.start_date) == today
+        )
+    ) or 0.0
+    wo_planned = db.scalar(
+        select(func.sum(WorkOrder.planned_quantity)).where(
+            WorkOrder.tenant_id == tenant_id,
+            (func.date(WorkOrder.planned_start) == today) | (
+                (WorkOrder.planned_start.is_(None)) & (func.date(WorkOrder.updated_at) == today)
+            )
+        )
+    ) or 0.0
+    todays_target = int(max(report_target, prod_planned, wo_planned))
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
     scrap_qty = int(sum(float(r.scrap_quantity or 0) for r in reports))
     downtime = int(sum(r.downtime_minutes or 0 for r in reports))
     machines = list(db.scalars(select(Machine).where(Machine.tenant_id == tenant_id)).all())
@@ -168,9 +202,12 @@ def get_shop_floor_alerts(db: Session, tenant_id: int) -> list[ShopFloorAlertRea
                 severity="warning",
             )
         )
+<<<<<<< HEAD
     alerts.append(
         ShopFloorAlertRead(alert_type="material_shortage", message="Material check pending", severity="warning")
     )
+=======
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
     return alerts[:6]
 
 
@@ -195,10 +232,13 @@ def get_shop_floor_timeline(db: Session, tenant_id: int) -> list[ShopFloorTimeli
                 span_slots=3 - i,
             )
         )
+<<<<<<< HEAD
     if not blocks:
         return [
             ShopFloorTimelineBlockRead(slot="08 AM", label="Chair", product_name="Chair", span_slots=3),
             ShopFloorTimelineBlockRead(slot="10 AM", label="Table", product_name="Table", span_slots=2),
             ShopFloorTimelineBlockRead(slot="12 PM", label="Frame", product_name="Steel Frame", span_slots=3),
         ]
+=======
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
     return blocks

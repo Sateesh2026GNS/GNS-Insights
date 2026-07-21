@@ -16,6 +16,7 @@ export const BATCH_TRACE_STEPS = [
 ];
 
 export const DEMO_BATCH_DETAIL = {
+<<<<<<< HEAD
   id: "demo-b1",
   batch_code: "BATCH-2026-001",
   product_name: "Chair",
@@ -26,13 +27,29 @@ export const DEMO_BATCH_DETAIL = {
   operator_name: "Ravi Kumar",
   shift: "Morning",
   material_lot: "RM-LOT-2026-441",
+=======
+  id: null,
+  batch_code: null,
+  product_name: "—",
+  customer_name: "—",
+  production_order_number: "—",
+  work_order_number: "—",
+  machine_name: "—",
+  operator_name: "—",
+  shift: "—",
+  material_lot: "—",
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
   qc_status: "pending",
   dispatch_status: "pending",
   invoice_number: null,
   quantity: 0,
   good_qty: 0,
   scrap_qty: 0,
+<<<<<<< HEAD
   status: "running",
+=======
+  status: "pending",
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
   traceability: [],
 };
 

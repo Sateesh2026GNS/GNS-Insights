@@ -12,7 +12,11 @@ from app.schemas.production import MachineCreate, MachineStatusEventCreate, Mach
 from app.services.machine_service import get_machine_summary
 from app.services.masters_service import MastersService
 from app.services.production_service import (
+<<<<<<< HEAD
     create_machine,
+=======
+    create_machine as service_create_machine,
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
     create_machine_status_event,
     list_machine_status_events,
     update_machine_status,
@@ -93,6 +97,20 @@ def delete_product(
     return success_response("Product deleted", {"id": product_id})
 
 
+<<<<<<< HEAD
+=======
+@router.post("/products/seed")
+def seed_products_endpoint(
+    user_tenant: tuple[User, int] = Depends(require_tenant("products")),
+    db: Session = Depends(get_db),
+):
+    _, tenant_id = user_tenant
+    from app.core.seed_products import seed_products
+    seed_products(db, tenant_id=tenant_id)
+    return success_response("Products seeded successfully", {"status": "ok"})
+
+
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
 # ── BOM ────────────────────────────────────────────────────────────────────
 
 
@@ -139,8 +157,13 @@ def delete_bom_line(
 
 @router.get("/machines")
 def list_machines(user_tenant: tuple[User, int] = Depends(require_tenant("machines")), db: Session = Depends(get_db)):
+<<<<<<< HEAD
     _, tenant_id = user_tenant
     return success_response("Machines retrieved", _svc(db, tenant_id).list_machines())
+=======
+    user, tenant_id = user_tenant
+    return success_response("Machines retrieved", _svc(db, tenant_id).list_machines(user=user))
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
 
 
 @router.get("/machines/summary")
@@ -194,8 +217,15 @@ def create_machine_simple(
 ):
     _, tenant_id = user_tenant
     payload.tenant_id = tenant_id
+<<<<<<< HEAD
     machine = create_machine(db, payload)
     return success_response("Machine created", _dump(machine))
+=======
+    machine = service_create_machine(db, payload)
+    from app.schemas.production import MachineRead
+    dumped = MachineRead.model_validate(machine).model_dump(mode="json")
+    return success_response("Machine created", dumped)
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
 
 
 @router.patch("/machines/{machine_id}/status")
@@ -209,7 +239,13 @@ def update_machine_status_endpoint(
     machine = update_machine_status(db, machine_id, tenant_id, payload.status, user=user)
     if not machine:
         raise HTTPException(404, "Machine not found")
+<<<<<<< HEAD
     return success_response("Machine status updated", _dump(machine))
+=======
+    from app.schemas.production import MachineRead
+    dumped = MachineRead.model_validate(machine).model_dump(mode="json")
+    return success_response("Machine status updated", dumped)
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
 
 
 # ── Machine Status Events ──────────────────────────────────────────────────
@@ -224,7 +260,13 @@ def create_machine_status_event_endpoint(
     _, tenant_id = user_tenant
     payload.tenant_id = tenant_id
     event = create_machine_status_event(db, payload)
+<<<<<<< HEAD
     return success_response("Machine status event created", _dump(event))
+=======
+    from app.schemas.production import MachineStatusEventRead
+    dumped = MachineStatusEventRead.model_validate(event).model_dump(mode="json")
+    return success_response("Machine status event created", dumped)
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
 
 
 @router.get("/machine-status")
@@ -234,7 +276,16 @@ def list_machine_status_events_endpoint(
     db: Session = Depends(get_db),
 ):
     _, tenant_id = user_tenant
+<<<<<<< HEAD
     return success_response(
         "Machine status events retrieved",
         _dump(list_machine_status_events(db, tenant_id, machine_id)),
+=======
+    events = list_machine_status_events(db, tenant_id, machine_id)
+    from app.schemas.production import MachineStatusEventRead
+    dumped = [MachineStatusEventRead.model_validate(e).model_dump(mode="json") for e in events]
+    return success_response(
+        "Machine status events retrieved",
+        dumped,
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
     )

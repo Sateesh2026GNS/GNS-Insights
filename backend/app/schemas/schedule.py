@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 from pydantic import BaseModel
+=======
+from pydantic import BaseModel, Field
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
 
 
 class ScheduleDashboardRead(BaseModel):
@@ -23,3 +27,54 @@ class ScheduleTimelineRowRead(BaseModel):
     work_order_number: str | None = None
     start_slot: int = 0
     span_slots: int = 1
+<<<<<<< HEAD
+=======
+
+
+class ShiftScheduleItemRead(BaseModel):
+    shift_name: str
+    machine_name: str
+    operator_name: str
+    product_name: str
+    quantity: float
+    status: str = "planned"
+
+
+class ProductionQueueItemRead(BaseModel):
+    position: int
+    work_order_id: int | None = None
+    work_order_number: str | None = None
+    product_name: str
+    quantity: float
+    priority: str = "medium"
+    machine_id: int | None = None
+
+
+class MaterialAvailabilityRead(BaseModel):
+    product_name: str
+    material_status: str
+    available: bool
+
+
+class ScheduleConflictRead(BaseModel):
+    conflict_type: str
+    message: str
+    severity: str = "warning"
+
+
+class RescheduleRequest(BaseModel):
+    work_order_id: int
+    machine_id: int
+    start_slot: int | None = None
+
+
+class BottomKpiRead(BaseModel):
+    todays_production: int = 0
+    pending_orders: int = 0
+    machine_efficiency_pct: float = 0
+    shift_efficiency_pct: float = 0
+    downtime_minutes: int = 0
+    power_kwh: float = 0
+    oee_pct: float = 0
+    quality_rate_pct: float = 0
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8

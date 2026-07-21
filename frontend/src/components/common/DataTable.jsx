@@ -14,9 +14,24 @@ export default function DataTable({
   showPagination = true,
   emptyState,
   sortable = true,
+<<<<<<< HEAD
 }) {
   const { t } = useTranslation();
   const [search, setSearch] = useState("");
+=======
+  // Optional controlled search — when provided the parent owns the value
+  searchValue,
+  onSearchChange,
+}) {
+  const { t } = useTranslation();
+  const [internalSearch, setInternalSearch] = useState("");
+  // Use controlled value when provided, otherwise fall back to internal state
+  const search = searchValue !== undefined ? searchValue : internalSearch;
+  const setSearch = (v) => {
+    if (onSearchChange) onSearchChange(v);
+    else setInternalSearch(v);
+  };
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
   const [filterValues, setFilterValues] = useState({});
   const [page, setPage] = useState(1);
 

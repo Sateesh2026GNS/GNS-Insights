@@ -16,19 +16,55 @@ import AnalyticsKpiCard from "../../components/analytics/AnalyticsKpiCard";
 import DrillDownBreadcrumb from "../../components/analytics/DrillDownBreadcrumb";
 import { useToast } from "../../context/ToastContext";
 import { getSalesAnalytics } from "../../api/analyticsApi";
+<<<<<<< HEAD
 import { CHART_COLORS, DEMO_SALES, SOURCE_LINKS, formatInr } from "../../data/analyticsMasterData";
+=======
+import { CHART_COLORS, SOURCE_LINKS, formatInr } from "../../data/analyticsMasterData";
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
 
 const KPI_ICONS = {
   revenue: IndianRupee, orders: ShoppingCart, customers: Users, conversion: Percent,
   aov: Target, growth: TrendingUp, pending: BarChart3, dispatch: Truck,
 };
 
+<<<<<<< HEAD
 export default function SalesAnalytics() {
   const { addToast } = useToast();
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState([]);
   const [autoRefresh, setAutoRefresh] = useState(false);
   const [drillTrail, setDrillTrail] = useState(DEMO_SALES.drill_revenue || []);
+=======
+const INITIAL_SALES = {
+  kpis: [
+    { key: "revenue", label: "Revenue", value: 0, change_pct: null, format: "currency", drill_target: "month" },
+    { key: "orders", label: "Orders", value: 0, change_pct: null, format: "number", drill_target: "orders" },
+    { key: "customers", label: "Customers", value: 0, change_pct: null, format: "number", drill_target: "customer" },
+    { key: "conversion", label: "Conversion Rate", value: 0, change_pct: null, unit: "%", format: "percent", drill_target: "funnel" },
+    { key: "aov", label: "Average Order Value", value: 0, change_pct: null, format: "currency", drill_target: "orders" },
+    { key: "growth", label: "Sales Growth", value: 0, change_pct: null, unit: "%", format: "percent", drill_target: "month" },
+    { key: "pending", label: "Pending Orders", value: 0, change_pct: null, format: "number", drill_target: "orders" },
+    { key: "dispatch", label: "Dispatch Performance", value: 0, change_pct: null, unit: "%", format: "percent", drill_target: "dispatch" },
+  ],
+  alerts: [],
+  monthly_revenue: [],
+  top_customers: [],
+  top_products: [],
+  regional_sales: [],
+  sales_funnel: [],
+  quotation_conversion: [],
+  order_status: [],
+  drill_revenue: [],
+  last_updated: new Date().toISOString(),
+};
+
+export default function SalesAnalytics() {
+  const { addToast } = useToast();
+  const [loading, setLoading] = useState(true);
+  const [data, setData] = useState(INITIAL_SALES);
+  const [autoRefresh, setAutoRefresh] = useState(false);
+  const [drillTrail, setDrillTrail] = useState([]);
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
   const [filters, setFilters] = useState({
     fiscalYear: "2025-26", month: "All Months", quarter: "All Quarters",
     plant: "All Plants", customer: "All Customers", dateFrom: "", dateTo: "",
@@ -39,11 +75,21 @@ export default function SalesAnalytics() {
     try {
       const res = await getSalesAnalytics();
       if (res.data) {
+<<<<<<< HEAD
         setData({ ...DEMO_SALES, ...res.data });
         setDrillTrail(res.data.drill_revenue .drill_revenue);
       }
     } catch {
       setData(DEMO_SALES);
+=======
+        setData(res.data);
+        setDrillTrail(res.data.drill_revenue || []);
+      }
+    } catch {
+      setData(INITIAL_SALES);
+      setDrillTrail([]);
+      addToast("Failed to load sales analytics data", "error");
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
     } finally {
       setLoading(false);
     }

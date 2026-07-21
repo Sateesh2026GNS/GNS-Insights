@@ -6,7 +6,11 @@ import QualityFilters from "../../components/quality/QualityFilters";
 import Loader from "../../components/common/Loader";
 import { useToast } from "../../context/ToastContext";
 import { getProcessEnriched, getProcessSummary } from "../../api/qualityApi";
+<<<<<<< HEAD
 import { DEMO_PROCESS_LIST, DEMO_PROCESS_SUMMARY, qcStatusColor } from "../../data/qualityMasterData";
+=======
+import { qcStatusColor } from "../../data/qualityMasterData";
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
 
 function KpiCard({ label, value, icon: Icon, color }) {
   return (
@@ -19,10 +23,26 @@ function KpiCard({ label, value, icon: Icon, color }) {
   );
 }
 
+<<<<<<< HEAD
 export default function InProcessQC() {
   const { addToast } = useToast();
   const [loading, setLoading] = useState(true);
   const [summary, setSummary] = useState(DEMO_PROCESS_SUMMARY);
+=======
+const INITIAL_PROCESS_SUMMARY = {
+  production_running: 0,
+  qc_pending: 0,
+  passed: 0,
+  failed: 0,
+  rework: 0,
+  scrap: 0,
+};
+
+export default function InProcessQC() {
+  const { addToast } = useToast();
+  const [loading, setLoading] = useState(true);
+  const [summary, setSummary] = useState(INITIAL_PROCESS_SUMMARY);
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
   const [rows, setRows] = useState([]);
   const [search, setSearch] = useState("");
   const [resultFilter, setResultFilter] = useState("");
@@ -31,10 +51,19 @@ export default function InProcessQC() {
     setLoading(true);
     try {
       const [sumRes, listRes] = await Promise.allSettled([getProcessSummary(), getProcessEnriched()]);
+<<<<<<< HEAD
       if (sumRes.status === "fulfilled" && sumRes.value?.data) setSummary({ ...DEMO_PROCESS_SUMMARY, ...sumRes.value.data });
       if (listRes.status === "fulfilled" && listRes.value?.data?.length) setRows(listRes.value.data);
       else setRows([]);
     } catch {
+=======
+      if (sumRes.status === "fulfilled" && sumRes.value?.data) setSummary(sumRes.value.data);
+      if (listRes.status === "fulfilled" && listRes.value?.data) setRows(listRes.value.data);
+    } catch {
+      setSummary(INITIAL_PROCESS_SUMMARY);
+      setRows([]);
+      addToast("Failed to load in-process QC data", "error");
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
     } finally {
       setLoading(false);
     }

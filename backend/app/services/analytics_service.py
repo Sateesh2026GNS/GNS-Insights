@@ -145,9 +145,15 @@ def get_worker_performance_score(db: Session, tenant_id: int) -> dict:
             rating_norm = (rating_avg / 5) * 100
         else:
             rating_norm = rating_avg
+<<<<<<< HEAD
         score = round((prod_avg + rating_norm) / 2, 1) if (prod_avg or rating_norm) else 75
     else:
         score = 75.0  # default when no reviews
+=======
+        score = round((prod_avg + rating_norm) / 2, 1) if (prod_avg or rating_norm) else 0.0
+    else:
+        score = 0.0  # default when no reviews
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
 
     # Top performers from recent reviews
     top_stmt = (

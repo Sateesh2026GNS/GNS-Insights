@@ -1,5 +1,9 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
+<<<<<<< HEAD
+=======
+import useAuth from "../../hooks/useAuth";
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
 import {
   Barcode,
   Copy,
@@ -46,7 +50,17 @@ export default function ProductDetailModal({
   onDuplicate,
   onDelete,
 }) {
+<<<<<<< HEAD
   const [tab, setTab] = useState("general");
+=======
+  const { user } = useAuth();
+  const [tab, setTab] = useState("general");
+
+  const userRoles = Array.isArray(user?.roles) ? user.roles : [user?.role].filter(Boolean);
+  const hasEditPermission = !userRoles.some(r =>
+    ["operator", "store manager", "hr manager", "accountant"].includes(r.toLowerCase())
+  );
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
   if (!product) return null;
 
   const formatPrice = (n) => (n != null ? `₹${Number(n).toLocaleString("en-IN")}` : "—");
@@ -184,12 +198,25 @@ export default function ProductDetailModal({
         </div>
 
         <div className="flex flex-wrap gap-2 border-t border-slate-100 bg-slate-50 px-5 py-3">
+<<<<<<< HEAD
           <button type="button" onClick={() => onEdit(product)} className="ui-btn-primary text-xs">
             Edit
           </button>
           <button type="button" onClick={() => onDuplicate(product)} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50">
             <Copy className="h-3.5 w-3.5" /> Duplicate
           </button>
+=======
+          {hasEditPermission && (
+            <button type="button" onClick={() => onEdit(product)} className="ui-btn-primary text-xs">
+              Edit
+            </button>
+          )}
+          {hasEditPermission && (
+            <button type="button" onClick={() => onDuplicate(product)} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50">
+              <Copy className="h-3.5 w-3.5" /> Duplicate
+            </button>
+          )}
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
           <button type="button" className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50">
             <Barcode className="h-3.5 w-3.5" /> Print Barcode
           </button>

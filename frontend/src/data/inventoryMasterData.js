@@ -81,6 +81,7 @@ export function stockStatusLabel(status) {
 }
 
 export const DEMO_MATERIAL_DETAIL = {
+<<<<<<< HEAD
   id: "dm1",
   sku: "RM-001",
   name: "Steel Sheet 2mm",
@@ -93,6 +94,20 @@ export const DEMO_MATERIAL_DETAIL = {
   vendor_name: "Tata Steel",
   vendor_contact: "Ramesh Kumar",
   vendor_email: "supply@tatasteel.com",
+=======
+  id: null,
+  sku: "—",
+  name: "—",
+  barcode: "—",
+  category: "—",
+  unit: "—",
+  unit_cost: 0,
+  reorder_level: 0,
+  description: "",
+  vendor_name: "—",
+  vendor_contact: "—",
+  vendor_email: "—",
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
   stock_history: [],
   purchase_history: [],
   consumption_history: [],

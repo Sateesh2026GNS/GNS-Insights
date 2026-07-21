@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+<<<<<<< HEAD
 import { Filter, LayoutGrid, List, Plus, RefreshCw, Target, TrendingUp, UserPlus, Users, XCircle } from "lucide-react";
 
 import DataTable from "../../components/common/DataTable";
@@ -6,6 +7,16 @@ import Loader from "../../components/common/Loader";
 import LeadDetailModal from "../../components/sales/LeadDetailModal";
 import { useToast } from "../../context/ToastContext";
 import { getLeadSummary, getLeadsEnriched, updateLeadStatus } from "../../api/salesApi";
+=======
+import { Eye, Filter, LayoutGrid, List, Plus, RefreshCw, Target, TrendingUp, UserPlus, Users, XCircle } from "lucide-react";
+
+import DataTable from "../../components/common/DataTable";
+import RowActionMenu from "../../components/common/RowActionMenu";
+import Loader from "../../components/common/Loader";
+import LeadDetailModal from "../../components/sales/LeadDetailModal";
+import { useToast } from "../../context/ToastContext";
+import { getLeadSummary, getLeadsEnriched, updateLeadStatus, createLead } from "../../api/salesApi";
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
 import {
   DEMO_LEAD_LIST,
   DEMO_LEAD_SUMMARY,
@@ -38,27 +49,98 @@ export default function Leads() {
   const { addToast } = useToast();
   const [loading, setLoading] = useState(true);
   const [summary, setSummary] = useState(DEMO_LEAD_SUMMARY);
+<<<<<<< HEAD
   const [rows, setRows] = useState([]);
+=======
+  const [rows, setRows] = useState(DEMO_LEAD_LIST);
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
   const [filters, setFilters] = useState(defaultFilters);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [view, setView] = useState("table");
   const [selected, setSelected] = useState(null);
+<<<<<<< HEAD
+=======
+  const [openMenu, setOpenMenu] = useState(null);
+  const [showCreate, setShowCreate] = useState(false);
+  const [newLead, setNewLead] = useState({
+    name: "",
+    company: "",
+    email: "",
+    phone: "",
+    source: "Web Search",
+    status: "new",
+    priority: "medium",
+    opportunity_value: "",
+    notes: "",
+  });
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
       const [sumRes, listRes] = await Promise.allSettled([getLeadSummary(), getLeadsEnriched()]);
       if (sumRes.status === "fulfilled" && sumRes.value?.data) setSummary({ ...DEMO_LEAD_SUMMARY, ...sumRes.value.data });
+<<<<<<< HEAD
       if (listRes.status === "fulfilled" && listRes.value?.data?.length) setRows(listRes.value.data);
       else setRows([]);
     } catch {
+=======
+      if (listRes.status === "fulfilled" && listRes.value?.data) {
+        const apiLeads = listRes.value.data;
+        if (apiLeads.length > 0) {
+          setRows([
+            ...apiLeads,
+            ...DEMO_LEAD_LIST.filter((d) => !apiLeads.some((r) => r.company === d.company)),
+          ]);
+        } else {
+          setRows(DEMO_LEAD_LIST);
+        }
+      } else {
+        setRows(DEMO_LEAD_LIST);
+      }
+    } catch {
+      addToast("Using demo lead data", "info");
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
     } finally {
       setLoading(false);
     }
   }, [addToast]);
 
+<<<<<<< HEAD
   useEffect(() => { load(); }, [load]);
 
+=======
+
+  useEffect(() => { load(); }, [load]);
+
+  const handleCreate = async (e) => {
+    e.preventDefault();
+    try {
+      await createLead({
+        tenant_id: 1,
+        ...newLead,
+        opportunity_value: newLead.opportunity_value ? Number(newLead.opportunity_value) : 0,
+      });
+      addToast("Lead created successfully", "success");
+      setShowCreate(false);
+      setNewLead({
+        name: "",
+        company: "",
+        email: "",
+        phone: "",
+        source: "Web Search",
+        status: "new",
+        priority: "medium",
+        opportunity_value: "",
+        notes: "",
+      });
+      load();
+    } catch (err) {
+      addToast(err.response?.data?.detail || "Creation failed", "error");
+    }
+  };
+
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
   const filtered = useMemo(() => {
     let list = rows;
     Object.entries(filters).forEach(([k, v]) => {
@@ -89,13 +171,29 @@ export default function Leads() {
     { key: "customer_name", label: "Customer" },
     { key: "company", label: "Company" },
     { key: "contact", label: "Contact" },
+<<<<<<< HEAD
+=======
+    { key: "email", label: "Email" },
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
     { key: "source", label: "Source" },
     { key: "sales_executive", label: "Sales Executive" },
     { key: "priority", label: "Priority", render: (r) => <span className={`rounded-full px-2 py-0.5 text-xs font-semibold capitalize ${priorityColor(r.priority)}`}>{r.priority}</span> },
     { key: "next_followup", label: "Next Follow-up", render: (r) => String(r.next_followup || "").slice(0, 10) || "—" },
     { key: "status", label: "Status", render: (r) => <span className={`rounded-full px-2 py-0.5 text-xs font-semibold capitalize ${statusColor(r.status)}`}>{r.status}</span> },
+<<<<<<< HEAD
     { key: "actions", label: "Actions", render: (r) => (
       <button type="button" onClick={() => setSelected(r)} className="text-xs font-semibold text-[#2563EB] hover:underline">View</button>
+=======
+    { key: "actions", label: "Actions", sortable: false, render: (r) => (
+      <RowActionMenu
+        rowId={r.id}
+        openMenu={openMenu}
+        setOpenMenu={setOpenMenu}
+        items={[
+          { label: "View", icon: <Eye className="h-4 w-4" />, onClick: () => setSelected(r) },
+        ]}
+      />
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
     )},
   ];
 
@@ -109,7 +207,11 @@ export default function Leads() {
           <p className="mt-1 text-sm text-slate-500">Enterprise CRM pipeline with Kanban view, 360° lead profile, and opportunity tracking.</p>
         </div>
         <div className="flex flex-wrap gap-2">
+<<<<<<< HEAD
           <button type="button" className="ui-btn-primary"><Plus className="h-4 w-4" /> New Lead</button>
+=======
+          <button type="button" onClick={() => setShowCreate(true)} className="ui-btn-primary"><Plus className="h-4 w-4" /> New Lead</button>
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
           <button type="button" onClick={load} className="inline-flex items-center gap-2 rounded-lg border bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50"><RefreshCw className="h-4 w-4" /> Refresh</button>
         </div>
       </header>
@@ -168,7 +270,11 @@ export default function Leads() {
         )}
 
         {view === "table" ? (
+<<<<<<< HEAD
           <DataTable columns={columns} data={filtered} searchPlaceholder="Search leads..." searchKeys={["customer_name", "company", "sales_executive"]} />
+=======
+          <DataTable columns={columns} data={filtered} searchPlaceholder="Search leads..." searchKeys={["customer_name", "company", "sales_executive", "email"]} />
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
         ) : (
           <div className="grid gap-4 overflow-x-auto lg:grid-cols-5">
             {KANBAN_COLUMNS.map((col) => (
@@ -190,6 +296,74 @@ export default function Leads() {
       </div>
 
       {selected && <LeadDetailModal lead={selected} onClose={() => setSelected(null)} onStatusChange={handleStatus} />}
+<<<<<<< HEAD
+=======
+
+      {showCreate && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 sm:items-center">
+          <div className="flex max-h-[94vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
+            <div className="flex items-start justify-between border-b px-5 py-4">
+              <h2 className="text-xl font-bold text-slate-900">Create New Lead</h2>
+              <button type="button" onClick={() => setShowCreate(false)} className="rounded-lg p-2 text-slate-400 hover:bg-slate-100"><XCircle className="h-5 w-5" /></button>
+            </div>
+            <form onSubmit={handleCreate} className="overflow-y-auto p-5 space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-500 uppercase">Customer Name</label>
+                <input required value={newLead.name} onChange={(e) => setNewLead({ ...newLead, name: e.target.value })} className="mt-1 w-full rounded-lg border px-3 py-2 text-sm" placeholder="e.g. John Doe" />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-500 uppercase">Company</label>
+                  <input value={newLead.company} onChange={(e) => setNewLead({ ...newLead, company: e.target.value })} className="mt-1 w-full rounded-lg border px-3 py-2 text-sm" placeholder="e.g. Acme Corp" />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-500 uppercase">Opportunity Value</label>
+                  <input type="number" value={newLead.opportunity_value} onChange={(e) => setNewLead({ ...newLead, opportunity_value: e.target.value })} className="mt-1 w-full rounded-lg border px-3 py-2 text-sm" placeholder="e.g. 50000" />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-500 uppercase">Email</label>
+                  <input type="email" value={newLead.email} onChange={(e) => setNewLead({ ...newLead, email: e.target.value })} className="mt-1 w-full rounded-lg border px-3 py-2 text-sm" placeholder="john@example.com" />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-500 uppercase">Phone</label>
+                  <input value={newLead.phone} onChange={(e) => setNewLead({ ...newLead, phone: e.target.value })} className="mt-1 w-full rounded-lg border px-3 py-2 text-sm" placeholder="1234567890" />
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-500 uppercase">Source</label>
+                  <select value={newLead.source} onChange={(e) => setNewLead({ ...newLead, source: e.target.value })} className="mt-1 w-full rounded-lg border px-2 py-2 text-sm bg-white font-medium text-slate-700">
+                    {LEAD_SOURCES.map((s) => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-500 uppercase">Status</label>
+                  <select value={newLead.status} onChange={(e) => setNewLead({ ...newLead, status: e.target.value })} className="mt-1 w-full rounded-lg border px-2 py-2 text-sm bg-white font-medium text-slate-700">
+                    {["new", "contacted", "qualified", "converted", "lost"].map((s) => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-500 uppercase">Priority</label>
+                  <select value={newLead.priority} onChange={(e) => setNewLead({ ...newLead, priority: e.target.value })} className="mt-1 w-full rounded-lg border px-2 py-2 text-sm bg-white font-medium text-slate-700">
+                    {["urgent", "high", "medium", "low"].map((s) => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-500 uppercase">Notes</label>
+                <textarea value={newLead.notes} onChange={(e) => setNewLead({ ...newLead, notes: e.target.value })} className="mt-1 w-full rounded-lg border px-3 py-2 text-sm" rows={2} placeholder="Add any details..." />
+              </div>
+              <div className="flex justify-end gap-2 border-t pt-4">
+                <button type="button" onClick={() => setShowCreate(false)} className="rounded-lg border px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Cancel</button>
+                <button type="submit" className="rounded-lg bg-[#2563EB] px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700">Save Lead</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
     </div>
   );
 }

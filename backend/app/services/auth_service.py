@@ -3,18 +3,31 @@ from datetime import datetime, timedelta, timezone
 
 from fastapi import HTTPException, status
 from jose import JWTError, jwt
+<<<<<<< HEAD
 import bcrypt
 from sqlalchemy import func, select
+=======
+from passlib.context import CryptContext
+from sqlalchemy import select
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
 from app.core.config import get_settings
+<<<<<<< HEAD
 from app.core.rbac_constants import REGISTERABLE_ROLES
+=======
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
 from app.core.seed_roles import seed_roles_for_tenant
 from app.models.role import Role
 from app.models.tenant import Tenant
 from app.models.user import User, user_roles
 
+<<<<<<< HEAD
+=======
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
 _settings = get_settings()
 SECRET_KEY = _settings.jwt_secret_key
 ALGORITHM = _settings.jwt_algorithm
@@ -27,6 +40,7 @@ def _slugify(name: str) -> str:
 
 
 def verify_password(plain: str, hashed: str) -> bool:
+<<<<<<< HEAD
     try:
         return bcrypt.checkpw(
             plain.encode("utf-8"),
@@ -38,6 +52,13 @@ def verify_password(plain: str, hashed: str) -> bool:
 
 def hash_password(password: str) -> str:
     return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+=======
+    return pwd_context.verify(plain, hashed)
+
+
+def hash_password(password: str) -> str:
+    return pwd_context.hash(password)
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
 
 
 def create_access_token(data: dict) -> str:
@@ -54,6 +75,7 @@ def decode_access_token(token: str) -> dict | None:
         return None
 
 
+<<<<<<< HEAD
 ROLE_MISMATCH_MESSAGE = (
     "The selected role does not match your account. Please choose the correct role."
 )
@@ -106,6 +128,13 @@ def authenticate_user(db: Session, email: str, password: str) -> User | None:
         select(User)
         .where(User.email == email)
         .options(selectinload(User.roles), selectinload(User.tenant))
+=======
+def authenticate_user(db: Session, email: str, password: str) -> User | None:
+    stmt = (
+        select(User)
+        .where(User.email == email)
+        .options(selectinload(User.roles))
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
     )
     user = db.scalars(stmt).first()
     if not user:
@@ -116,6 +145,7 @@ def authenticate_user(db: Session, email: str, password: str) -> User | None:
 
 
 def find_user_by_email(db: Session, email: str) -> User | None:
+<<<<<<< HEAD
     return db.scalars(
         select(User)
         .where(User.email == email)
@@ -192,6 +222,9 @@ def login_user(db: Session, email: str, password: str) -> User:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=detail)
 
     return user
+=======
+    return db.scalars(select(User).where(User.email == email)).first()
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
 
 
 def issue_auth_response_data(
@@ -200,17 +233,26 @@ def issue_auth_response_data(
     *,
     ip_address: str | None = None,
     user_agent: str | None = None,
+<<<<<<< HEAD
     role_name: str | None = None,
+=======
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
 ) -> dict:
     from app.services.security_service import clear_login_failures, create_refresh_token
 
     clear_login_failures(db, user)
+<<<<<<< HEAD
     user.last_login_at = datetime.now(timezone.utc)
     db.commit()
     db.refresh(user, ["roles", "tenant"])
     access = build_access_token_for_user(user, role_name=role_name)
     refresh = create_refresh_token(db, user, ip_address=ip_address, user_agent=user_agent)
     user_data = get_user_with_role(db, user, preferred_role=role_name)
+=======
+    access = create_access_token({"sub": str(user.id), "email": user.email})
+    refresh = create_refresh_token(db, user, ip_address=ip_address, user_agent=user_agent)
+    user_data = get_user_with_role(db, user)
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
     return {
         "access_token": access,
         "refresh_token": refresh,
@@ -219,6 +261,7 @@ def issue_auth_response_data(
     }
 
 
+<<<<<<< HEAD
 def get_user_with_role(db: Session, user: User, *, preferred_role: str | None = None) -> dict:
     from app.models.platform import CompanyLicense
 
@@ -244,10 +287,19 @@ def get_user_with_role(db: Session, user: User, *, preferred_role: str | None = 
     if tenant:
         company_code = getattr(tenant, "company_code", None) or f"GNS-{tenant.id:05d}"
 
+=======
+def get_user_with_role(db: Session, user: User) -> dict:
+    db.refresh(user, ["roles", "tenant"])
+    role_names = [r.name for r in user.roles]
+    permissions = sorted({p for r in user.roles for p in (r.permissions or [])})
+    role_name = role_names[0] if role_names else "Operator"
+    tenant_name = user.tenant.name if user.tenant else None
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
     return {
         "id": user.id,
         "email": user.email,
         "full_name": user.full_name,
+<<<<<<< HEAD
         "phone": getattr(user, "phone", None),
         "employee_id": getattr(user, "employee_id", None),
         "designation": getattr(user, "designation", None),
@@ -288,12 +340,26 @@ def find_user_by_name_and_email(db: Session, full_name: str, email: str) -> User
     ).first()
 
 
+=======
+        "tenant_id": user.tenant_id,
+        "tenant_name": tenant_name,
+        "role": role_name,
+        "roles": role_names,
+        "permissions": permissions,
+        "plant_code": getattr(user, "plant_code", None),
+        "department": getattr(user, "department", None),
+        "assigned_machine_id": getattr(user, "assigned_machine_id", None),
+    }
+
+
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
 def register_user(
     db: Session,
     company_name: str,
     full_name: str,
     email: str,
     password: str,
+<<<<<<< HEAD
     role_name: str = "Admin",
 ) -> User:
     if role_name not in REGISTERABLE_ROLES:
@@ -324,6 +390,15 @@ def register_user(
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail=MSG_DUPLICATE_REGISTRATION,
+=======
+    role: str = "Admin",
+) -> User:
+    existing = db.scalars(select(User).where(User.email == email)).first()
+    if existing:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="An account with this email already exists",
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
         )
 
     base_name = company_name.strip()[:255]
@@ -341,6 +416,7 @@ def register_user(
         display_name = f"{base_name} ({n})"[:255]
 
     try:
+<<<<<<< HEAD
         tenant = Tenant(
             name=display_name,
             slug=slug,
@@ -348,10 +424,14 @@ def register_user(
             subscription="trial",
             trial_status=True,
         )
+=======
+        tenant = Tenant(name=display_name, slug=slug)
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
         db.add(tenant)
         db.flush()
 
         seed_roles_for_tenant(db, tenant.id)
+<<<<<<< HEAD
         assigned_role = db.scalars(
             select(Role).where(Role.tenant_id == tenant.id, Role.name == role_name)
         ).first()
@@ -362,15 +442,35 @@ def register_user(
             tenant_id=tenant.id,
             email=normalized_email,
             full_name=normalized_name,
+=======
+        target_role = db.scalars(
+            select(Role).where(Role.tenant_id == tenant.id, Role.name == role)
+        ).first()
+        if not target_role:
+            target_role = db.scalars(
+                select(Role).where(Role.tenant_id == tenant.id, Role.name == "Admin")
+            ).first()
+        if not target_role:
+            raise HTTPException(status_code=500, detail="Failed to provision administrator role")
+
+        user = User(
+            tenant_id=tenant.id,
+            email=email,
+            full_name=full_name,
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
             hashed_password=hash_password(password),
             is_active=not _settings.email_verification_required,
             email_verified=not _settings.email_verification_required,
         )
         db.add(user)
+<<<<<<< HEAD
         db.flush()
         db.execute(
             user_roles.insert().values(user_id=user.id, role_id=assigned_role.id)
         )
+=======
+        user.roles.append(target_role)
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
         db.commit()
         db.refresh(user)
         return user
@@ -378,5 +478,9 @@ def register_user(
         db.rollback()
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
+<<<<<<< HEAD
             detail="Could not create company account. Please try again.",
+=======
+            detail="Could not create company account. Try a different company or email.",
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
         )

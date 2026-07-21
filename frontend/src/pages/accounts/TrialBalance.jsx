@@ -1,0 +1,154 @@
+import { useEffect, useState, useCallback } from "react";
+import { RefreshCw, CheckCircle, AlertTriangle, Landmark, TrendingUp, ShieldCheck } from "lucide-react";
+import FinanceFilters from "../../components/finance/FinanceFilters";
+import Loader from "../../components/common/Loader";
+import { useToast } from "../../context/ToastContext";
+import { getExtendedReports } from "../../api/accountsApi";
+import { formatInr } from "../../data/financeMasterData";
+
+export default function TrialBalance() {
+  const { addToast } = useToast();
+  const [loading, setLoading] = useState(true);
+  const [financialYear, setFinancialYear] = useState("2026-27");
+  const [month, setMonth] = useState("All Months");
+  const [branch, setBranch] = useState("");
+  const [search, setSearch] = useState("");
+  const [accounts, setAccounts] = useState([]);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await getExtendedReports(financialYear, month, branch);
+      if (res.data && res.data.trial_balance_accounts) {
+        setAccounts(res.data.trial_balance_accounts);
+      }
+    } catch {
+      addToast("Failed to load Trial Balance data", "error");
+    } finally {
+      setLoading(false);
+    }
+  }, [financialYear, month, branch, addToast]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const filtered = accounts.filter((a) =>
+    a.name.toLowerCase().includes(search.toLowerCase()) ||
+    a.code.includes(search)
+  );
+
+  const totalDebit = filtered.reduce((s, a) => s + a.debit, 0);
+  const totalCredit = filtered.reduce((s, a) => s + a.credit, 0);
+  const difference = Math.abs(totalDebit - totalCredit);
+
+  if (loading) return <Loader label="Loading Trial Balance..." />;
+
+  return (
+    <div className="space-y-6 p-4 sm:p-6">
+      <header className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900 border-b-0 pb-0">Trial Balance</h1>
+          <p className="mt-1 text-sm text-slate-500">Unadjusted closing balances consolidated across assets, liabilities, equity, and operations.</p>
+        </div>
+        <button type="button" onClick={load} className="inline-flex items-center gap-2 rounded-lg border bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+          <RefreshCw className="h-4 w-4" /> Refresh
+        </button>
+      </header>
+
+      <div className="grid gap-4 sm:grid-cols-3">
+        <KpiCard label="Total Debits" value={formatInr(totalDebit)} icon={TrendingUp} color="bg-blue-600" />
+        <KpiCard label="Total Credits" value={formatInr(totalCredit)} icon={ShieldCheck} color="bg-indigo-600" />
+        <div className={`rounded-2xl border p-4 shadow-sm ${difference < 1.0 ? "bg-green-50 border-green-200" : "bg-red-50 border-red-200"}`}>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className={`text-xs font-semibold uppercase tracking-wider ${difference < 1.0 ? "text-green-600" : "text-red-600"}`}>Difference</p>
+              <p className={`mt-1 text-2xl font-bold ${difference < 1.0 ? "text-green-900" : "text-red-900"}`}>{formatInr(difference)}</p>
+            </div>
+            {difference < 1.0 ? (
+              <CheckCircle className="h-10 w-10 text-green-500" />
+            ) : (
+              <AlertTriangle className="h-10 w-10 text-red-500 animate-pulse" />
+            )}
+          </div>
+        </div>
+      </div>
+
+      <FinanceFilters
+        search={search}
+        onSearchChange={setSearch}
+        financialYear={financialYear}
+        onFinancialYearChange={setFinancialYear}
+        month={month}
+        onMonthChange={setMonth}
+        branch={branch}
+        onBranchChange={setBranch}
+        searchPlaceholder="Search ledger account codes or titles..."
+      />
+
+      <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="bg-slate-50 border-b text-slate-500 text-left font-semibold">
+                <th className="p-3">Account Code</th>
+                <th className="p-3">Account Title</th>
+                <th className="p-3">Category</th>
+                <th className="p-3 text-right">Debit Balance (₹)</th>
+                <th className="p-3 text-right">Credit Balance (₹)</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y">
+              {filtered.map((a) => (
+                <tr key={a.code} className="hover:bg-slate-50/50">
+                  <td className="p-3 font-semibold text-slate-700">{a.code}</td>
+                  <td className="p-3 text-slate-900 font-medium">{a.name}</td>
+                  <td className="p-3">
+                    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
+                      a.category === "Asset" ? "bg-blue-50 text-blue-700" :
+                      a.category === "Liability" ? "bg-red-50 text-red-700" :
+                      a.category === "Equity" ? "bg-green-50 text-green-700" :
+                      a.category === "Revenue" ? "bg-purple-50 text-purple-700" : "bg-amber-50 text-amber-700"
+                    }`}>
+                      {a.category}
+                    </span>
+                  </td>
+                  <td className="p-3 text-right text-slate-800 font-bold tabular-nums">{a.debit > 0 ? formatInr(a.debit) : "—"}</td>
+                  <td className="p-3 text-right text-slate-800 font-bold tabular-nums">{a.credit > 0 ? formatInr(a.credit) : "—"}</td>
+                </tr>
+              ))}
+              {filtered.length === 0 && (
+                <tr>
+                  <td colSpan={5} className="text-center p-6 text-slate-400">
+                    No ledger balances recorded for the selected period
+                  </td>
+                </tr>
+              )}
+              <tr className="bg-blue-50/50 font-bold text-slate-800">
+                <td colSpan={3} className="p-3 text-right uppercase tracking-wider">Total Consolidated:</td>
+                <td className="p-3 text-right text-blue-700 tabular-nums">{formatInr(totalDebit)}</td>
+                <td className="p-3 text-right text-indigo-700 tabular-nums">{formatInr(totalCredit)}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function KpiCard({ label, value, icon: Icon, color }) {
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">{label}</p>
+          <p className="mt-1 text-2xl font-bold tabular-nums text-slate-900">{value}</p>
+        </div>
+        {Icon && (
+          <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${color}`}>
+            <Icon className="h-5 w-5 text-white" />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

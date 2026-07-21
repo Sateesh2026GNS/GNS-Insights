@@ -1,6 +1,10 @@
 """Operator REST API — all /api/* endpoints."""
 
+<<<<<<< HEAD
 from fastapi import APIRouter, Depends, Query, Request
+=======
+from fastapi import APIRouter, Depends, Query
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
 from sqlalchemy.orm import Session
 
 from app.api.auth_deps import get_current_user
@@ -28,6 +32,7 @@ def _svc(db: Session, tenant_id: int) -> OperatorService:
 # ── Authentication ─────────────────────────────────────────────────────────
 
 
+<<<<<<< HEAD
 @router.post("/auth/register")
 def api_register(payload: dict, db: Session = Depends(get_db)):
     """Public registration disabled — companies provisioned by GNS Super Admin."""
@@ -139,10 +144,27 @@ def api_login(
         db, request=request, user=authenticated, role=role
     )
     data = issue_auth_response_data(db, authenticated, role_name=role)
+=======
+@router.post("/auth/login")
+def api_login(payload: OperatorLoginRequest, db: Session = Depends(get_db)):
+    from fastapi.responses import JSONResponse
+
+    from app.services.auth_service import authenticate_user, issue_auth_response_data
+    from app.utils.api_response import error_response
+
+    user = authenticate_user(db, payload.email, payload.password)
+    if not user:
+        return JSONResponse(
+            status_code=401,
+            content=error_response("Invalid email or password", errors=["authentication_failed"]),
+        )
+    data = issue_auth_response_data(db, user)
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
     return success_response("Login successful", data)
 
 
 @router.post("/auth/logout")
+<<<<<<< HEAD
 def api_logout(
     request: Request,
     current_user: User = Depends(get_current_user),
@@ -151,6 +173,9 @@ def api_logout(
     from app.services.audit_log_service import AuditLogService
 
     AuditLogService.log_logout(db, request=request, user=current_user)
+=======
+def api_logout(current_user: User = Depends(get_current_user)):
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
     return success_response("Logged out successfully. Discard your access token on the client.")
 
 
@@ -159,11 +184,17 @@ def api_profile(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+<<<<<<< HEAD
     from app.services.auth_service import get_user_with_role
 
     profile = get_user_with_role(db, current_user)
     profile["email_verified"] = bool(getattr(current_user, "email_verified", True))
     return success_response("Profile retrieved", profile)
+=======
+    tenant_id = current_user.tenant_id
+    svc = _svc(db, tenant_id)
+    return success_response("Profile retrieved", svc.get_profile(current_user).model_dump())
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
 
 
 # ── Dashboard ──────────────────────────────────────────────────────────────

@@ -31,6 +31,10 @@ export default function SupplyChainDashboard() {
       const res = await getProcurementHub();
       if (res.data) setHub({ ...DEMO_PROCUREMENT_HUB, ...res.data });
     } catch {
+<<<<<<< HEAD
+=======
+      addToast("Using demo procurement hub data", "info");
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
     } finally {
       setLoading(false);
     }
@@ -79,7 +83,11 @@ export default function SupplyChainDashboard() {
               </li>
             ))}
           </ul>
+<<<<<<< HEAD
           <Link to="/procurement/vendors" className="mt-3 inline-block text-sm font-semibold text-[#2563EB] hover:underline">View all vendors →</Link>
+=======
+          <Link to="/vendors" className="mt-3 inline-block text-sm font-semibold text-[#2563EB] hover:underline">View all vendors →</Link>
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
         </div>
 
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -117,7 +125,11 @@ export default function SupplyChainDashboard() {
         <QuickLink to="/procurement/purchase-orders" label="Purchase Orders" />
         <QuickLink to="/procurement/goods-receipt" label="GRN" />
         <QuickLink to="/procurement/supplier-payments" label="Vendor Bills" />
+<<<<<<< HEAD
         <QuickLink to="/procurement/vendors" label="Vendors" />
+=======
+        <QuickLink to="/vendors" label="Vendors" />
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
         <QuickLink to="/inventory/raw-materials" label="Raw Materials" />
         <QuickLink to="/inventory/stock-ledger" label="Stock Ledger" />
       </div>

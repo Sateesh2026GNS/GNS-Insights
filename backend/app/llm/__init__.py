@@ -1,5 +1,8 @@
+<<<<<<< HEAD
 """LLM integration for GNS Insights Operator Assistant."""
 
+=======
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
 from app.llm.function_registry import TOOL_DEFINITIONS, execute_tool, format_tool_result
 from app.llm.intent_detector import detect_intent
 from app.llm.llm_service import LlmClient

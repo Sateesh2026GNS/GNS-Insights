@@ -16,7 +16,11 @@ import AnalyticsDashboardHeader from "../../components/analytics/AnalyticsDashbo
 import AnalyticsKpiCard from "../../components/analytics/AnalyticsKpiCard";
 import { useToast } from "../../context/ToastContext";
 import { getExecutiveHub } from "../../api/analyticsApi";
+<<<<<<< HEAD
 import { CHART_COLORS, DEMO_EXECUTIVE, formatInr } from "../../data/analyticsMasterData";
+=======
+import { CHART_COLORS, formatInr } from "../../data/analyticsMasterData";
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
 
 const KPI_ICONS = {
   revenue: IndianRupee, profit: TrendingUp, production: Factory, inventory: Box,
@@ -24,19 +28,56 @@ const KPI_ICONS = {
   quality: CheckCircle,
 };
 
+<<<<<<< HEAD
 export default function ExecutiveDashboard() {
   const { addToast } = useToast();
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState(DEMO_EXECUTIVE);
+=======
+const INITIAL_EXECUTIVE = {
+  kpis: [
+    { key: "revenue", label: "Revenue", value: 0, change_pct: null, format: "currency" },
+    { key: "profit", label: "Profit", value: 0, change_pct: null, format: "currency" },
+    { key: "production", label: "Production", value: 0, change_pct: null, unit: "units", format: "number" },
+    { key: "inventory", label: "Inventory", value: 0, change_pct: null, format: "currency" },
+    { key: "machine_health", label: "Machine Health", value: 0, change_pct: null, unit: "%", format: "percent" },
+    { key: "worker_eff", label: "Worker Efficiency", value: 0, change_pct: null, unit: "%", format: "percent" },
+    { key: "satisfaction", label: "Customer Satisfaction", value: 0, change_pct: null, unit: "/5", format: "number" },
+    { key: "pending_orders", label: "Pending Orders", value: 0, change_pct: null, format: "number" },
+    { key: "quality", label: "Quality Pass Rate", value: 0, change_pct: null, unit: "%", format: "percent" },
+  ],
+  alerts: [],
+  benchmarks: [],
+  revenue_trend: [],
+  production_trend: [],
+  inventory_value_trend: [],
+  machine_health: [],
+  quality_pass_rate: 0.0,
+  ai_insights: [],
+  last_updated: new Date().toISOString(),
+};
+
+export default function ExecutiveDashboard() {
+  const { addToast } = useToast();
+  const [loading, setLoading] = useState(true);
+  const [data, setData] = useState(INITIAL_EXECUTIVE);
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
   const [autoRefresh, setAutoRefresh] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
       const res = await getExecutiveHub();
+<<<<<<< HEAD
       if (res.data) setData({ ...DEMO_EXECUTIVE, ...res.data });
     } catch {
       setData(DEMO_EXECUTIVE);
+=======
+      if (res.data) setData(res.data);
+    } catch {
+      setData(INITIAL_EXECUTIVE);
+      addToast("Failed to load executive dashboard data", "error");
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
     } finally {
       setLoading(false);
     }

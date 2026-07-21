@@ -15,6 +15,10 @@ import {
 
 import DataTable from "../../components/common/DataTable";
 import Loader from "../../components/common/Loader";
+<<<<<<< HEAD
+=======
+import { ImportExportActionBar } from "../../components/common/PageActionBar";
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
 import DepartmentDetailModal, { DepartmentFormModal } from "../../components/hr/DepartmentDetailModal";
 import { useToast } from "../../context/ToastContext";
 import useTenantId from "../../hooks/useTenantId";
@@ -28,7 +32,10 @@ import {
 } from "../../api/hrApi";
 import {
   BRANCHES,
+<<<<<<< HEAD
   DEMO_DEPARTMENTS,
+=======
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
   DEPARTMENT_STATUSES,
   DEPARTMENT_TYPES,
   IMPORT_TEMPLATE_HEADERS,
@@ -40,6 +47,10 @@ import {
   enrichApiDepartment,
 } from "../../data/departmentsMasterData";
 import { exportToExcel, exportToPdf } from "../../utils/exportUtils";
+<<<<<<< HEAD
+=======
+import { parseImportFile } from "../../utils/importUtils";
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
 
 function SummaryCard({ label, value, icon: Icon, color }) {
   return (
@@ -98,7 +109,12 @@ export default function DepartmentManagement() {
         getDepartmentSummary().catch(() => ({ data: null })),
       ]);
       const apiRows = dRes.data || [];
+<<<<<<< HEAD
       setDepartments(apiRows.map((row, i) => enrichApiDepartment(row, i)));
+=======
+      const enriched = apiRows.map((row, i) => enrichApiDepartment(row, i));
+      setDepartments(enriched);
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
       setApiSummary(sRes.data);
     } catch {
       setDepartments([]);
@@ -138,19 +154,28 @@ export default function DepartmentManagement() {
   }, [departments, filters]);
 
   const summary = useMemo(() => {
+<<<<<<< HEAD
     if (apiSummary && !Object.values(filters).some(Boolean)) {
       return apiSummary;
     }
     return computeDepartmentSummary(filteredDepartments);
   }, [apiSummary, filteredDepartments, filters]);
+=======
+    return computeDepartmentSummary(filteredDepartments);
+  }, [filteredDepartments]);
+
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
 
   const exportColumns = [
     { key: "code", label: "Code" },
     { key: "name", label: "Department" },
     { key: "manager_name", label: "Manager" },
     { key: "employee_count", label: "Employees" },
+<<<<<<< HEAD
     { key: "machine_count", label: "Machines" },
     { key: "work_center_count", label: "Work Centers" },
+=======
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
     { key: "status", label: "Status" },
   ];
 
@@ -164,7 +189,57 @@ export default function DepartmentManagement() {
     addToast("Exported to PDF");
   };
 
+<<<<<<< HEAD
   const handlePrint = () => handleExportPdf();
+=======
+  const handlePrint = () => {
+    const printWindow = window.open("", "_blank", "width=900,height=700");
+    if (!printWindow) return;
+
+    const rowsHtml = filteredDepartments.map((dept) => {
+      const row = [
+        dept.code || "—",
+        dept.name || "—",
+        dept.manager_name || "—",
+        dept.employee_count ?? 0,
+        dept.status || "—",
+      ];
+      return `<tr>${row.map((value) => `<td>${String(value)}</td>`).join("")}</tr>`;
+    }).join("");
+
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Department Master Report</title>
+          <style>
+            body { font-family: Arial, sans-serif; padding: 24px; color: #0f172a; }
+            h1 { margin: 0 0 8px; font-size: 22px; }
+            p { margin: 0 0 16px; color: #64748b; }
+            table { width: 100%; border-collapse: collapse; font-size: 12px; }
+            th, td { border: 1px solid #e2e8f0; padding: 8px; text-align: left; }
+            th { background: #f8fafc; }
+            @media print { @page { margin: 15mm; } body { padding: 0; } }
+          </style>
+        </head>
+        <body>
+          <h1>Department Master Report</h1>
+          <p>Generated on ${new Date().toLocaleString()}</p>
+          <table>
+            <thead><tr><th>Code</th><th>Department</th><th>Manager</th><th>Employees</th><th>Status</th></tr></thead>
+            <tbody>${rowsHtml}</tbody>
+          </table>
+          <script>
+            window.onload = function() {
+              window.print();
+              window.onafterprint = function() { window.close(); };
+            };
+          </script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+  };
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
 
   const handleDownloadTemplate = () => {
     const header = IMPORT_TEMPLATE_HEADERS.join(",");
@@ -176,6 +251,47 @@ export default function DepartmentManagement() {
     addToast("Template downloaded");
   };
 
+<<<<<<< HEAD
+=======
+  const handleImport = () => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".csv,.xlsx";
+    input.onchange = async (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      try {
+        const rows = await parseImportFile(file);
+        if (!rows.length) {
+          addToast("No data rows found in file", "error");
+          return;
+        }
+        const newDepts = rows.map((row, i) =>
+          enrichApiDepartment(
+            {
+              ...row,
+              id: `import-${Date.now()}-${i}`,
+              code: row.code || `DEP-IMPORT-${Date.now()}-${i}`,
+              name: row.name || "—",
+              status: row.status || "active",
+            },
+            departments.length + i
+          )
+        );
+        setDepartments((prev) => {
+          const existingCodes = new Set(prev.map((d) => d.code));
+          const fresh = newDepts.filter((d) => !existingCodes.has(d.code));
+          return [...prev, ...fresh];
+        });
+        addToast(`✅ Imported ${newDepts.length} department(s) from ${file.name}`, "success");
+      } catch {
+        addToast("Failed to parse file. Please use the template format.", "error");
+      }
+    };
+    input.click();
+  };
+
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
   const handleSave = async (form) => {
     const payload = {
       tenant_id: tenantId,
@@ -194,6 +310,7 @@ export default function DepartmentManagement() {
     };
     try {
       if (formDept?.id && typeof formDept.id === "number") {
+<<<<<<< HEAD
         await updateDepartment(formDept.id, form);
         addToast("Department updated");
         loadDepartments();
@@ -224,10 +341,25 @@ export default function DepartmentManagement() {
       addToast("Department added");
     }
     setFormDept(null);
+=======
+        await updateDepartment(formDept.id, payload);
+        addToast("Department updated successfully", "success");
+      } else {
+        await createDepartment(payload);
+        addToast("Department created successfully", "success");
+      }
+      loadDepartments();
+      setFormDept(null);
+    } catch (err) {
+      const errorMsg = err.response?.data?.detail || err.message || "Failed to save department";
+      addToast(errorMsg, "error");
+    }
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
   };
 
   const handleDeactivate = async (dept) => {
     if (!window.confirm(`Deactivate ${dept.name}?`)) return;
+<<<<<<< HEAD
     if (typeof dept.id === "number") {
       try {
         await deactivateDepartment(dept.id);
@@ -243,6 +375,17 @@ export default function DepartmentManagement() {
     setDepartments((prev) => prev.map((d) => (d.id === dept.id ? { ...d, status: "inactive" } : d)));
     setSelected(null);
     addToast("Department deactivated");
+=======
+    try {
+      await deactivateDepartment(dept.id);
+      addToast("Department deactivated successfully", "success");
+      loadDepartments();
+      setSelected(null);
+    } catch (err) {
+      const errorMsg = err.response?.data?.detail || err.message || "Could not deactivate department";
+      addToast(errorMsg, "error");
+    }
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
   };
 
   const columns = [
@@ -255,6 +398,7 @@ export default function DepartmentManagement() {
       render: (r) => r.employee_count ?? 0,
     },
     {
+<<<<<<< HEAD
       key: "machine_count",
       label: "Machines",
       render: (r) => r.machine_count ?? 0,
@@ -265,6 +409,8 @@ export default function DepartmentManagement() {
       render: (r) => r.work_center_count ?? 0,
     },
     {
+=======
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
       key: "status",
       label: "Status",
       render: (r) => <StatusPill status={r.status} />,
@@ -297,6 +443,7 @@ export default function DepartmentManagement() {
             Manage all company departments and assign employees, machines, and work centers.
           </p>
         </div>
+<<<<<<< HEAD
         <div className="flex flex-wrap gap-2">
           <button type="button" onClick={() => setFormDept({})} className="ui-btn-primary">
             <Plus className="h-4 w-4" /> Add Department
@@ -317,6 +464,29 @@ export default function DepartmentManagement() {
             <RefreshCw className="h-4 w-4" /> Refresh
           </button>
         </div>
+=======
+        <ImportExportActionBar
+          onImport={handleImport}
+          onExportExcel={handleExportExcel}
+          onExportPdf={handleExportPdf}
+          onPrint={handlePrint}
+          onRefresh={loadDepartments}
+          importLabel="Import"
+          exportExcelLabel="Export Excel"
+          exportPdfLabel="Export PDF"
+          printLabel="Print"
+          refreshLabel="Refresh"
+          importIcon={Upload}
+          exportExcelIcon={Download}
+          exportPdfIcon={FileText}
+          printIcon={Printer}
+          refreshIcon={RefreshCw}
+        >
+          <button type="button" onClick={() => setFormDept({})} className="ui-btn-primary">
+            <Plus className="h-4 w-4" /> Add Department
+          </button>
+        </ImportExportActionBar>
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
       </header>
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-6">

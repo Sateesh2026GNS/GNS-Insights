@@ -1,8 +1,24 @@
 import { Link } from "react-router-dom";
 
+<<<<<<< HEAD
 import { quickActions } from "../../../data/dashboardDummyData";
 import DashboardIcon from "./DashboardIcons";
 
+=======
+import DashboardIcon from "./DashboardIcons";
+
+const quickActions = [
+  { label: "Create Work Order", icon: "Assignment", to: "/production/work-orders/create-quick", color: "#2563EB" },
+  { label: "Material Issue", icon: "Inventory", to: "/inventory/stock-movement", color: "#22C55E" },
+  { label: "Production Entry", icon: "Factory", to: "/production/create", color: "#8B5CF6" },
+  { label: "QC Entry", icon: "FactCheck", to: "/quality/inspection", color: "#0EA5E9" },
+  { label: "Purchase Order", icon: "ShoppingCart", to: "/procurement/purchase-orders/create", color: "#F59E0B" },
+  { label: "Sales Order", icon: "Receipt", to: "/sales/orders/create", color: "#EC4899" },
+  { label: "Reports", icon: "Assessment", to: "/analytics/production", color: "#6366F1" },
+  { label: "Settings", icon: "Settings", to: "/settings", color: "#64748B" },
+];
+
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
 export default function QuickActionsPanel() {
   return (
     <section className="rounded-2xl border border-slate-100/80 bg-white/90 p-5 shadow-[0_4px_24px_rgba(15,23,42,0.05)] backdrop-blur-sm sm:p-6">

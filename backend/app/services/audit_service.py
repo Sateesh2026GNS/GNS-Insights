@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 """Backward-compatible audit helpers — delegates to AuditLogService. """
 
 from __future__ import annotations
@@ -149,12 +150,18 @@ def mark_logout_audit(
     request: Request | None = None,
 ) -> AccessLog | None:
     return AuditLogService.log_logout(db, request=request, user=user)
+=======
+from sqlalchemy.orm import Session
+
+from app.models.security import AuditLog
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
 
 
 def log_audit(
     db: Session,
     *,
     tenant_id: int,
+<<<<<<< HEAD
     user_id: int | None = None,
     action: str,
     resource: str,
@@ -177,3 +184,24 @@ def log_audit(
     if row is not None and ip_address and not row.ip_address:
         row.ip_address = ip_address
         db.commit()
+=======
+    user_id: int | None,
+    action: str,
+    resource: str,
+    resource_id: int | None = None,
+    details: str | None = None,
+    ip_address: str | None = None,
+) -> None:
+    db.add(
+        AuditLog(
+            tenant_id=tenant_id,
+            user_id=user_id,
+            action=action,
+            resource=resource,
+            resource_id=resource_id,
+            details=details,
+            ip_address=ip_address,
+        )
+    )
+    db.commit()
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8

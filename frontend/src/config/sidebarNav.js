@@ -1,6 +1,10 @@
 import {
   BarChart3,
   Boxes,
+<<<<<<< HEAD
+=======
+  Building2,
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
   CheckCircle2,
   Factory,
   Landmark,
@@ -14,7 +18,11 @@ import {
 } from "lucide-react";
 
 /**
+<<<<<<< HEAD
  * GNS Insights sidebar structure. Children are filtered by RBAC per-item `module`.
+=======
+ * SMRT AI ERP sidebar structure. Children are filtered by RBAC per-item `module`.
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
  * Routes map to existing pages where available; others use /erp/* placeholders.
  */
 export const SIDEBAR_NAV = [
@@ -31,16 +39,34 @@ export const SIDEBAR_NAV = [
     labelKey: "erpNav.masters",
     icon: Layers,
     children: [
+<<<<<<< HEAD
       { labelKey: "erpNav.products", to: "/masters/products", module: "masters" },
       { labelKey: "erpNav.bom", to: "/masters/bom", module: "masters" },
       { labelKey: "erpNav.customers", to: "/sales/customers", module: "sales" },
       { labelKey: "erpNav.vendors", to: "/procurement/vendors", module: "procurement" },
+=======
+      { labelKey: "erpNav.products", to: "/masters/products", module: "production" },
+      { labelKey: "erpNav.bom", to: "/masters/bom", module: "production" },
+      { labelKey: "erpNav.customers", to: "/sales/customers", module: "sales" },
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
       { labelKey: "erpNav.warehouses", to: "/inventory/warehouses", module: "inventory" },
       { labelKey: "erpNav.machines", to: "/production/machines", module: "production" },
       { labelKey: "erpNav.departments", to: "/masters/departments", module: "hr" },
     ],
   },
   {
+<<<<<<< HEAD
+=======
+    key: "vendors",
+    labelKey: "erpNav.vendors",
+    icon: Building2,
+    children: [
+      { labelKey: "erpNav.vendors", to: "/vendors", module: "dashboard" },
+      { labelKey: "erpNav.suppliers", to: "/inventory/suppliers", module: "dashboard" },
+    ],
+  },
+  {
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
     key: "production",
     labelKey: "erpNav.production",
     icon: Factory,
@@ -60,6 +86,10 @@ export const SIDEBAR_NAV = [
     children: [
       { labelKey: "erpNav.rawMaterials", to: "/inventory/raw-materials", module: "inventory" },
       { labelKey: "erpNav.finishedGoods", to: "/inventory/finished-goods", module: "inventory" },
+<<<<<<< HEAD
+=======
+      { labelKey: "erpNav.suppliers", to: "/inventory/suppliers", module: "inventory" },
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
       { labelKey: "erpNav.stockTransfer", to: "/inventory/stock-transfer", module: "inventory" },
       { labelKey: "erpNav.stockAdjustment", to: "/inventory/stock-adjustment", module: "inventory" },
       { labelKey: "erpNav.stockLedger", to: "/inventory/stock-ledger", module: "inventory" },
@@ -88,6 +118,10 @@ export const SIDEBAR_NAV = [
       { labelKey: "erpNav.salesOrders", to: "/sales/orders", module: "sales" },
       { labelKey: "erpNav.dispatch", to: "/sales/dispatch", module: "sales" },
       { labelKey: "erpNav.invoices", to: "/sales/invoices", module: "sales" },
+<<<<<<< HEAD
+=======
+      { labelKey: "erpNav.bills", to: "/sales/bills", module: "sales" },
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
     ],
   },
   {
@@ -97,9 +131,19 @@ export const SIDEBAR_NAV = [
     children: [
       { labelKey: "erpNav.hrDashboard", to: "/hr", module: "hr" },
       { labelKey: "erpNav.employees", to: "/hr/employees", module: "hr" },
+<<<<<<< HEAD
       { labelKey: "erpNav.attendance", to: "/hr/attendance", module: "attendance" },
       { labelKey: "erpNav.leave", to: "/hr/leave", module: "hr" },
       { labelKey: "erpNav.payroll", to: "/hr/payroll", module: "hr" },
+=======
+      { labelKey: "erpNav.attendance", to: "/hr/attendance", module: "hr" },
+      { labelKey: "erpNav.shifts", to: "/hr/shifts", module: "hr" },
+      { labelKey: "erpNav.leave", to: "/hr/leave", module: "hr" },
+      { labelKey: "erpNav.payroll", to: "/hr/payroll", module: "hr" },
+      { labelKey: "erpNav.performance", to: "/hr/performance", module: "hr" },
+      { labelKey: "erpNav.incidents", to: "/hr/incidents", module: "hr" },
+      { labelKey: "erpNav.hrAssets", to: "/hr/assets", module: "hr" },
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
     ],
   },
   {
@@ -114,6 +158,19 @@ export const SIDEBAR_NAV = [
       { labelKey: "erpNav.generalLedger", to: "/finance/general-ledger", module: "accounts" },
       { labelKey: "erpNav.gstReports", to: "/accounts/tax-reports", module: "accounts" },
       { labelKey: "erpNav.profitLoss", to: "/accounts/profit-loss", module: "accounts" },
+<<<<<<< HEAD
+=======
+      { labelKey: "erpNav.balanceSheet", to: "/accounts/balance-sheet", module: "accounts" },
+      { labelKey: "erpNav.journalEntries", to: "/accounts/journal-entries", module: "accounts" },
+      { labelKey: "erpNav.multiBranchLedger", to: "/accounts/multi-branch-ledger", module: "accounts" },
+      { labelKey: "erpNav.trialBalance", to: "/accounts/trial-balance", module: "accounts" },
+      { labelKey: "erpNav.chartOfAccounts", to: "/accounts/chart-of-accounts", module: "accounts" },
+      { labelKey: "erpNav.fixedAssets", to: "/accounts/fixed-assets", module: "accounts" },
+      { labelKey: "erpNav.financialYearClosing", to: "/accounts/year-closing", module: "accounts" },
+      { labelKey: "erpNav.costCenterAllocation", to: "/accounts/cost-allocation", module: "accounts" },
+      { labelKey: "erpNav.bankReconciliation", to: "/accounts/bank-reconciliation", module: "accounts" },
+      { labelKey: "erpNav.budgetVsActual", to: "/accounts/budget-actual", module: "accounts" },
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
     ],
   },
   {
@@ -159,10 +216,16 @@ export const SIDEBAR_NAV = [
     labelKey: "erpNav.settings",
     icon: Settings,
     children: [
+<<<<<<< HEAD
       { labelKey: "erpNav.settings", to: "/settings", module: "settings", end: true },
       { labelKey: "erpNav.users", to: "/admin/users", module: "settings" },
       { labelKey: "erpNav.roles", to: "/admin/roles", module: "settings" },
       { labelKey: "erpNav.permissions", to: "/admin/permissions", module: "settings" },
+=======
+      { labelKey: "erpNav.users", to: "/admin/users", module: "admin" },
+      { labelKey: "erpNav.roles", to: "/admin/roles", module: "admin" },
+      { labelKey: "erpNav.permissions", to: "/admin/permissions", module: "admin" },
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
       { labelKey: "erpNav.auditLogs", to: "/admin/audit-logs", module: "admin" },
     ],
   },

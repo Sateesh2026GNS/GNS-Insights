@@ -22,17 +22,42 @@ function KpiCard({ label, value, icon: Icon, color }) {
 export default function StockLedger() {
   const { addToast } = useToast();
   const [loading, setLoading] = useState(true);
+<<<<<<< HEAD
   const [summary, setSummary] = useState(DEMO_LEDGER_SUMMARY);
   const [entries, setEntries] = useState(DEMO_LEDGER);
+=======
+  const [entries, setEntries] = useState(DEMO_LEDGER);
+  const [apiSummary, setApiSummary] = useState(null);
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
   const [filters, setFilters] = useState({ date: "", warehouse: "", item: "", type: "", user: "", batch: "" });
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
       const [sumRes, listRes] = await Promise.allSettled([getLedgerSummary(), getStockLedger()]);
+<<<<<<< HEAD
       if (sumRes.status === "fulfilled" && sumRes.value?.data) setSummary({ ...DEMO_LEDGER_SUMMARY, ...sumRes.value.data });
       if (listRes.status === "fulfilled" && listRes.value?.data?.length) setEntries(listRes.value.data);
     } catch { }
+=======
+      if (sumRes.status === "fulfilled" && sumRes.value?.data) {
+        setApiSummary(sumRes.value.data);
+      }
+      if (listRes.status === "fulfilled" && listRes.value?.data) {
+        const apiRows = listRes.value.data;
+        if (apiRows.length > 0) {
+          setEntries([
+            ...apiRows,
+            ...DEMO_LEDGER.filter((d) => !apiRows.some((r) => r.reference === d.reference)),
+          ]);
+        } else {
+          setEntries(DEMO_LEDGER);
+        }
+      } else {
+        setEntries(DEMO_LEDGER);
+      }
+    } catch { addToast("Using demo ledger data", "info"); }
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
     finally { setLoading(false); }
   }, [addToast]);
 
@@ -45,6 +70,41 @@ export default function StockLedger() {
     return rows;
   }, [entries, filters]);
 
+<<<<<<< HEAD
+=======
+  const summary = useMemo(() => {
+    if (apiSummary && !filters.type && !filters.item) return apiSummary;
+    const totalTransactions = filtered.length;
+    let stockIn = 0;
+    let stockOut = 0;
+    let transfers = 0;
+    let adjustments = 0;
+
+    filtered.forEach((e) => {
+      const t = (e.transaction || "").toLowerCase();
+      if (t === "in" || t === "purchase" || t === "receipt") {
+        stockIn += Number(e.qty_in || 0);
+      } else if (t === "out" || t === "sales" || t === "issue") {
+        stockOut += Number(e.qty_out || 0);
+      } else if (t === "transfer") {
+        transfers += 1;
+      } else if (t === "adjustment") {
+        adjustments += 1;
+      }
+    });
+
+    return {
+      total_transactions: totalTransactions,
+      stock_in: stockIn,
+      stock_out: stockOut,
+      transfers: transfers,
+      adjustments: adjustments,
+      current_stock_value: apiSummary?.current_stock_value || 0,
+    };
+  }, [filtered, apiSummary, filters]);
+
+
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
   const columns = [
     { key: "date", label: "Date", render: (r) => r.date ? new Date(r.date).toLocaleString() : "—" },
     { key: "transaction", label: "Transaction", render: (r) => <span className="capitalize">{r.transaction}</span> },

@@ -35,7 +35,11 @@ export default function SettingsMySubscription() {
             Free Trial (5 days)
           </h2>
           <p className="mt-1 text-sm text-green-700 dark:text-green-500">
+<<<<<<< HEAD
             Unlock all the features on GNS Insights with just one click!
+=======
+            Unlock all the features on SMRT with just one click!
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
           </p>
         </div>
         <button

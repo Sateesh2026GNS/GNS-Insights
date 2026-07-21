@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 """Seed sample products for tenant 1."""
 
 
@@ -23,3 +24,11 @@ def seed_products(db, tenant_id: int = 1):
         )
         db.add(p)
     db.commit()
+=======
+"""Seed the Forma company product catalogue for a tenant."""
+
+
+def seed_products(db, tenant_id: int = 1):
+    """Do not seed dummy products."""
+    pass
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8

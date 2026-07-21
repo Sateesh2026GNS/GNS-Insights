@@ -53,6 +53,79 @@ export const IMPORT_TEMPLATE_HEADERS = [
   "department", "shift", "start_date", "due_date", "status",
 ];
 
+<<<<<<< HEAD
+=======
+const CUSTOMERS = ["Tata Motors", "Bosch India", "Mahindra", "Ashok Leyland", "Hyundai", "Maruti Suzuki"];
+const PRODUCTS = ["Gear Housing", "Shaft Assembly", "Brake Drum", "Engine Block", "Transmission Case", "Wheel Hub"];
+const MACHINES = ["CNC Unit 1", "Lathe Unit 3", "Press Unit 5", "Milling Unit 2", "Assembly Line A"];
+const OPERATORS = ["Ravi Kumar", "Priya Sharma", "Suresh Reddy", "Anita Desai", "Vikram Singh"];
+
+const STATUS_POOL = [
+  "planned", "planned", "material_ready", "machine_assigned",
+  "in_progress", "in_progress", "in_progress", "quality_check",
+  "completed", "completed", "completed", "completed",
+  "delayed", "cancelled", "draft", "planned", "in_progress", "completed",
+];
+
+function buildOrder(i) {
+  const n = i + 1;
+  const status = STATUS_POOL[i % STATUS_POOL.length];
+  const planned = 500 + (i * 120);
+  const produced = status === "completed" || status === "closed" ? planned :
+    status === "in_progress" || status === "quality_check" ? Math.round(planned * (0.55 + (i % 4) * 0.1)) :
+    status === "delayed" ? Math.round(planned * 0.35) : 0;
+  const balance = Math.max(planned - produced, 0);
+  const progress = planned ? Math.round((produced / planned) * 1000) / 10 : 0;
+  const priority = PRIORITIES[i % 3];
+  const start = `2026-07-${String((i % 20) + 1).padStart(2, "0")}`;
+  const due = `2026-07-${String((i % 20) + 10).padStart(2, "0")}`;
+
+  return {
+    id: `demo-${n}`,
+    order_number: `PO-2026-${String(1000 + n)}`,
+    product_id: (i % 6) + 1,
+    product_name: PRODUCTS[i % PRODUCTS.length],
+    customer_name: CUSTOMERS[i % CUSTOMERS.length],
+    sales_order_number: `SO-2026-${String(500 + n)}`,
+    bom_version: `BOM v${1 + (i % 3)}.${i % 5}`,
+    work_order_number: `WO-2026-${String(2000 + n)}`,
+    batch_number: status !== "draft" && status !== "planned" ? `BATCH-${String(n).padStart(4, "0")}` : null,
+    planned_quantity: planned,
+    produced_quantity: produced,
+    balance_quantity: balance,
+    scrap_quantity: produced > 0 ? Math.round(produced * 0.02) : 0,
+    priority,
+    machine_name: MACHINES[i % MACHINES.length],
+    machine_code: `MCH${String((i % 8) + 1).padStart(3, "0")}`,
+    machine_status: status === "in_progress" ? "running" : "idle",
+    department: DEPARTMENTS[i % DEPARTMENTS.length],
+    shift: SHIFTS[i % 3],
+    operator_name: OPERATORS[i % OPERATORS.length],
+    supervisor: "Ramesh Gupta",
+    start_date: start,
+    due_date: due,
+    status,
+    progress_pct: progress,
+    is_delayed: status === "delayed" || (status === "in_progress" && i % 5 === 0),
+    machine_utilization_pct: status === "in_progress" ? 75 + (i % 20) : 0,
+    operator_efficiency_pct: produced && planned ? Math.round((produced / planned) * 100) : 0,
+    scrap_pct: produced ? 2.1 : 0,
+    production_efficiency_pct: progress,
+    downtime_minutes: status === "delayed" ? 45 + i * 5 : i % 4 === 0 ? 15 : 0,
+    oee_pct: status === "in_progress" ? 68 + (i % 15) : null,
+    quality_status: status === "completed" ? "passed" : status === "quality_check" ? "in_progress" : "pending",
+    materials: [
+      { component_name: "Steel Plate", required_qty: planned * 0.5, available_qty: planned * 0.8, issued_qty: planned * 0.5, balance_qty: 0, unit: "kg" },
+      { component_name: "Bearing Set", required_qty: planned * 0.1, available_qty: planned * 0.15, issued_qty: planned * 0.1, balance_qty: 0, unit: "pcs" },
+    ],
+    work_orders: [
+      { id: n, work_order_number: `WO-2026-${2000 + n}`, status, planned_quantity: planned, actual_quantity: produced, machine_name: MACHINES[i % MACHINES.length] },
+    ],
+    documents: [{ name: "Job Card", type: "PDF" }, { name: "BOM Sheet", type: "PDF" }],
+    audit_logs: [{ action: "Order Created", user: "Planner", timestamp: "2026-07-01 09:00" }],
+  };
+}
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
 export const DEMO_PRODUCTION_ORDERS = [];
 
 export const DEMO_SUMMARY = {
@@ -97,6 +170,7 @@ export function enrichApiOrder(row, index = 0) {
 export function computePlanningSummary(orders) {
   const counts = { planned: 0, in_progress: 0, completed: 0, delayed: 0, cancelled: 0 };
   let todaysProduction = 0;
+<<<<<<< HEAD
   orders.forEach((o) => {
     const s = o.status;
     if (s === "cancelled") counts.cancelled += 1;
@@ -107,6 +181,28 @@ export function computePlanningSummary(orders) {
     todaysProduction += Number(o.produced_quantity || 0);
   });
   const todaysTarget = orders.reduce((s, o) => s + Number(o.planned_quantity || 0), 0);
+=======
+  let todaysTarget = 0;
+  orders.forEach((o) => {
+    const s = o.status;
+    const isCancelled = s === "cancelled";
+    const isCompleted = ["completed", "closed", "done"].includes(s);
+    const isInProgress = ["in_progress", "running", "quality_check"].includes(s);
+    const isPlanned = ["draft", "planned", "pending", "material_ready", "machine_assigned"].includes(s);
+
+    if (isCancelled) counts.cancelled += 1;
+    else if (isCompleted) counts.completed += 1;
+    else if (isInProgress) counts.in_progress += 1;
+    else if (isPlanned) counts.planned += 1;
+
+    if (o.is_delayed || s === "delayed") counts.delayed += 1;
+
+    if (isPlanned || isInProgress) {
+      todaysTarget += Number(o.planned_quantity || 0);
+    }
+    todaysProduction += Number(o.produced_quantity || 0);
+  });
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
   return {
     total_orders: orders.length,
     planned_orders: counts.planned,

@@ -2,12 +2,18 @@
 
 MODULE_CATALOG = [
     {"code": "dashboard", "label": "Dashboard"},
+<<<<<<< HEAD
     {"code": "masters", "label": "Masters"},
+=======
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
     {"code": "production", "label": "Production"},
     {"code": "inventory", "label": "Inventory & Raw Materials"},
     {"code": "procurement", "label": "Procurement"},
     {"code": "hr", "label": "HR & Employees"},
+<<<<<<< HEAD
     {"code": "attendance", "label": "Attendance"},
+=======
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
     {"code": "sales", "label": "Sales & Billing"},
     {"code": "accounts", "label": "Accounts & Reports"},
     {"code": "quality", "label": "Quality Control"},
@@ -17,7 +23,10 @@ MODULE_CATALOG = [
     {"code": "documents", "label": "Documents"},
     {"code": "factoryMonitor", "label": "Factory Monitor"},
     {"code": "iot", "label": "IoT & Smart Factory"},
+<<<<<<< HEAD
     {"code": "settings", "label": "Settings"},
+=======
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
     {"code": "admin", "label": "Security & Administration"},
 ]
 
@@ -36,6 +45,7 @@ VALID_ACTIONS = frozenset({
     "*",
 })
 
+<<<<<<< HEAD
 # Canonical registerable role names (must match Role.name in DB).
 REGISTERABLE_ROLES = [
     "Admin",
@@ -46,6 +56,8 @@ REGISTERABLE_ROLES = [
     "Operator",
 ]
 
+=======
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
 PERMISSION_MATRIX = {
     "Admin": {
         "modules": list(VALID_MODULES),
@@ -53,6 +65,7 @@ PERMISSION_MATRIX = {
     },
     "Production Manager": {
         "modules": [
+<<<<<<< HEAD
             "dashboard",
             "production",
             "quality",
@@ -105,12 +118,34 @@ PERMISSION_MATRIX = {
             "factoryMonitor",
             "attendance",
         ],
+=======
+            "dashboard", "production", "quality", "maintenance",
+            "analytics", "alerts", "factoryMonitor", "iot",
+        ],
+        "description": "Production-related modules for assigned plant only.",
+    },
+    "Store Manager": {
+        "modules": ["dashboard", "inventory", "procurement", "alerts"],
+        "description": "Inventory and store operations only.",
+    },
+    "HR Manager": {
+        "modules": ["dashboard", "hr"],
+        "description": "HR and payroll modules only.",
+    },
+    "Accountant": {
+        "modules": ["dashboard", "accounts", "sales", "procurement", "documents"],
+        "description": "Finance and accounts modules only.",
+    },
+    "Operator": {
+        "modules": ["dashboard", "production", "factoryMonitor", "iot"],
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
         "actions": [
             "production:read",
             "production:create_entry",
             "production:update_qty",
             "production:update_machine_status",
             "production:report_breakdown",
+<<<<<<< HEAD
             "attendance:read",
         ],
         "description": (
@@ -281,3 +316,9 @@ SIDEBAR_MENU_CATALOG = [
         ],
     },
 ]
+=======
+        ],
+        "description": "Shop-floor access to assigned work orders and machine only.",
+    },
+}
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8

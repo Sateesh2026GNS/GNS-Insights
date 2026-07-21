@@ -19,6 +19,10 @@
     "inventory": "Inventory",
     "rawMaterials": "Raw Materials",
     "finishedGoods": "Finished Goods",
+<<<<<<< HEAD
+=======
+    "suppliers": "Suppliers",
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
     "stockTransfer": "Stock Transfer",
     "stockAdjustment": "Stock Adjustment",
     "stockLedger": "Stock Ledger",
@@ -35,12 +39,24 @@
     "salesOrders": "Sales Orders",
     "dispatch": "Dispatch",
     "invoices": "Invoices",
+<<<<<<< HEAD
+=======
+    "bills": "Bills",
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
     "hr": "HR",
     "hrDashboard": "HR Dashboard",
     "employees": "Employees",
     "attendance": "Attendance",
     "leave": "Leave",
     "payroll": "Payroll",
+<<<<<<< HEAD
+=======
+    "shifts": "Shifts",
+    "performance": "Performance Tracking",
+    "incidents": "Safety & Incidents",
+    "hrDocuments": "HR Documents",
+    "hrAssets": "Asset Management",
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
     "finance": "Finance",
     "financeDashboard": "Finance Dashboard",
     "accountsPayable": "Accounts Payable",
@@ -49,6 +65,19 @@
     "generalLedger": "General Ledger",
     "gstReports": "GST Reports",
     "profitLoss": "P&L",
+<<<<<<< HEAD
+=======
+    "balanceSheet": "Balance Sheet",
+    "journalEntries": "Journal Entries",
+    "multiBranchLedger": "Multi-Branch Ledger",
+    "trialBalance": "Trial Balance",
+    "chartOfAccounts": "Chart of Accounts",
+    "fixedAssets": "Fixed Assets & Depreciation",
+    "financialYearClosing": "Financial Year Closing",
+    "costCenterAllocation": "Cost Center Allocation",
+    "bankReconciliation": "Bank Reconciliation",
+    "budgetVsActual": "Budget vs Actual",
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
     "quality": "Quality",
     "qualityDashboard": "Quality Dashboard",
     "incomingInspection": "Incoming Inspection",
@@ -179,10 +208,17 @@
     "financeAccounts": "Finance & Accounts",
     "reportsAnalytics": "Reports & Analytics",
     "crm": "CRM",
+<<<<<<< HEAD
     "tagline": "Business Intelligence • Analytics • AI",
     "userRole": "User Role",
     "superAdmin": "Super Admin",
     "footerTagline": "GNS Insights · Business Intelligence • Analytics • AI"
+=======
+    "tagline": "Systematic Manufacturing Real-time Tracking",
+    "userRole": "User Role",
+    "superAdmin": "Super Admin",
+    "footerTagline": "SMRT AI ERP · Powering Smart Manufacturing"
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
   },
   "common": {
     "cancel": "Cancel",
@@ -297,6 +333,10 @@
     "daily": "Daily",
     "weekly": "Weekly",
     "monthly": "Monthly",
+<<<<<<< HEAD
+=======
+    "yearly": "Yearly",
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
     "plannedQty": "Planned Qty",
     "actualQty": "Actual Qty",
     "shopFloorStatus": "Shop Floor Status",
@@ -342,7 +382,11 @@
     "powerConsumption": "Power Consumption",
     "productionEfficiency": "Production Efficiency",
     "targetAchievement": "Target Achievement",
+<<<<<<< HEAD
     "copyright": "© 2026 GNS Insights. All rights reserved.",
+=======
+    "copyright": "© 2026 SMRT AI ERP. All rights reserved.",
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
     "poweredBy": "Powered by GNS Software Pvt Ltd",
     "alertDelayed": "Work Order WO-1025 is delayed",
     "alertMaintenance": "Machine CNC-03 requires maintenance",

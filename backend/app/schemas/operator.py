@@ -47,7 +47,10 @@ class NotificationReadRequest(BaseModel):
 class OperatorLoginRequest(BaseModel):
     email: str
     password: str
+<<<<<<< HEAD
     role: str = Field(..., min_length=1, max_length=100)
+=======
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
 
 
 class OperatorProfileRead(BaseModel):

@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 """Pytest fixtures for the GNS Insights backend.
+=======
+"""Pytest fixtures for the SMRT backend.
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
 
 A throwaway SQLite database is configured *before* the application is imported
 so the app engine binds to it. Each test session gets a fresh file-based DB.
@@ -16,8 +20,11 @@ os.close(_TEST_DB_FD)
 os.environ["DATABASE_URL"] = f"sqlite:///{_TEST_DB_PATH}"
 os.environ["JWT_SECRET_KEY"] = "test-secret-key-not-for-production"
 os.environ["ENVIRONMENT"] = "development"
+<<<<<<< HEAD
 # Allow /auth/register in tests (disabled in SaaS production).
 os.environ["ALLOW_PUBLIC_REGISTRATION"] = "true"
+=======
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
 
 from fastapi.testclient import TestClient  # noqa: E402
 
@@ -52,7 +59,11 @@ def _unique_email(prefix="user"):
 
 @pytest.fixture()
 def register_admin(client):
+<<<<<<< HEAD
     """Register a brand new tenant + admin user, then log in (JWT only after login)."""
+=======
+    """Register a brand new tenant + admin user and return auth context."""
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
 
     def _register(company=None):
         company = company or f"Company {uuid.uuid4().hex[:6]}"
@@ -65,6 +76,7 @@ def register_admin(client):
                 "full_name": "Admin User",
                 "email": email,
                 "password": password,
+<<<<<<< HEAD
                 "role": "Admin",
             },
         )
@@ -79,6 +91,12 @@ def register_admin(client):
         )
         assert login.status_code == 200, login.text
         data = login.json()
+=======
+            },
+        )
+        assert resp.status_code == 200, resp.text
+        data = resp.json()
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
         return {
             "token": data["access_token"],
             "user": data["user"],
@@ -100,10 +118,16 @@ def make_restricted_user(client):
         password = "Passw0rd!123"
         db = SessionLocal()
         try:
+<<<<<<< HEAD
             # Use a selectable login role name; permissions are customized for the test.
             role = Role(
                 tenant_id=tenant_id,
                 name="Operator",
+=======
+            role = Role(
+                tenant_id=tenant_id,
+                name=f"Limited {uuid.uuid4().hex[:4]}",
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
                 description="Restricted role",
                 permissions=list(permissions),
             )
@@ -126,10 +150,14 @@ def make_restricted_user(client):
         finally:
             db.close()
 
+<<<<<<< HEAD
         resp = client.post(
             "/auth/login",
             json={"email": email, "password": password, "role": "Operator"},
         )
+=======
+        resp = client.post("/auth/login", json={"email": email, "password": password})
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
         assert resp.status_code == 200, resp.text
         token = resp.json()["access_token"]
         return {"headers": {"Authorization": f"Bearer {token}"}, "email": email}

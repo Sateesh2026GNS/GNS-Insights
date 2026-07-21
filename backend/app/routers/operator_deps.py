@@ -3,12 +3,16 @@
 from fastapi import Depends, HTTPException, status
 
 from app.api.auth_deps import get_current_user
+<<<<<<< HEAD
 from app.core.permissions import (
     MODULE_FORBIDDEN_MESSAGE,
     get_role_names,
     user_has_permission,
     user_is_admin,
 )
+=======
+from app.core.permissions import get_role_names, user_has_permission, user_is_admin
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
 from app.models.user import User
 
 FORBIDDEN_MODULES = frozenset()
@@ -35,7 +39,11 @@ def _check_operator_restrictions(user: User, module_key: str) -> None:
     if not user_has_permission(user, rbac_module):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
+<<<<<<< HEAD
             detail=MODULE_FORBIDDEN_MESSAGE,
+=======
+            detail=f"You do not have permission to access '{rbac_module}'.",
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
         )
 
 

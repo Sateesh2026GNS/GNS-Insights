@@ -1,12 +1,21 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+<<<<<<< HEAD
 import { AlertCircle, CheckCircle, Clock, FileSearch, RefreshCw, Timer, XCircle } from "lucide-react";
+=======
+import { AlertCircle, CheckCircle, ClipboardCheck, Clock, FileSearch, RefreshCw, Timer, XCircle } from "lucide-react";
+import RowActionMenu from "../../components/common/RowActionMenu";
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
 
 import DataTable from "../../components/common/DataTable";
 import QualityFilters from "../../components/quality/QualityFilters";
 import Loader from "../../components/common/Loader";
 import { useToast } from "../../context/ToastContext";
 import { getIncomingEnriched, getIncomingSummary } from "../../api/qualityApi";
+<<<<<<< HEAD
 import { DEMO_INCOMING_LIST, DEMO_INCOMING_SUMMARY, QUALITY_FLOW, qcStatusColor } from "../../data/qualityMasterData";
+=======
+import { QUALITY_FLOW, qcStatusColor } from "../../data/qualityMasterData";
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
 
 function KpiCard({ label, value, icon: Icon, color, suffix }) {
   return (
@@ -22,6 +31,7 @@ function KpiCard({ label, value, icon: Icon, color, suffix }) {
   );
 }
 
+<<<<<<< HEAD
 export default function IncomingInspection() {
   const { addToast } = useToast();
   const [loading, setLoading] = useState(true);
@@ -29,15 +39,43 @@ export default function IncomingInspection() {
   const [rows, setRows] = useState([]);
   const [search, setSearch] = useState("");
   const [resultFilter, setResultFilter] = useState("");
+=======
+const INITIAL_INCOMING_SUMMARY = {
+  todays_inspections: 0,
+  pending_inspection: 0,
+  passed: 0,
+  failed: 0,
+  rejected_lots: 0,
+  avg_inspection_time: 0,
+};
+
+export default function IncomingInspection() {
+  const { addToast } = useToast();
+  const [loading, setLoading] = useState(true);
+  const [summary, setSummary] = useState(INITIAL_INCOMING_SUMMARY);
+  const [rows, setRows] = useState([]);
+  const [search, setSearch] = useState("");
+  const [resultFilter, setResultFilter] = useState("");
+  const [openMenu, setOpenMenu] = useState(null);
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
       const [sumRes, listRes] = await Promise.allSettled([getIncomingSummary(), getIncomingEnriched()]);
+<<<<<<< HEAD
       if (sumRes.status === "fulfilled" && sumRes.value?.data) setSummary({ ...DEMO_INCOMING_SUMMARY, ...sumRes.value.data });
       if (listRes.status === "fulfilled" && listRes.value?.data?.length) setRows(listRes.value.data);
       else setRows([]);
     } catch {
+=======
+      if (sumRes.status === "fulfilled" && sumRes.value?.data) setSummary(sumRes.value.data);
+      if (listRes.status === "fulfilled" && listRes.value?.data) setRows(listRes.value.data);
+    } catch {
+      setSummary(INITIAL_INCOMING_SUMMARY);
+      setRows([]);
+      addToast("Failed to load incoming inspection data", "error");
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
     } finally {
       setLoading(false);
     }
@@ -64,7 +102,25 @@ export default function IncomingInspection() {
     { key: "inspector", label: "Inspector" },
     { key: "result", label: "Result", render: (r) => <span className={`rounded-full px-2 py-0.5 text-xs font-semibold capitalize ${qcStatusColor(r.result)}`}>{r.result}</span> },
     { key: "status", label: "Status", render: (r) => <span className={`rounded-full px-2 py-0.5 text-xs font-semibold capitalize ${qcStatusColor(r.status)}`}>{r.status}</span> },
+<<<<<<< HEAD
     { key: "actions", label: "Action", render: (r) => r.attachment ? <span className="text-xs text-[#2563EB]">{r.attachment}</span> : <button type="button" className="text-xs font-semibold text-[#2563EB] hover:underline">Inspect</button> },
+=======
+    {
+      key: "actions", label: "Action", sortable: false,
+      render: (r) => r.attachment
+        ? <span className="text-xs text-[#2563EB]">{r.attachment}</span>
+        : (
+          <RowActionMenu
+            rowId={r.id}
+            openMenu={openMenu}
+            setOpenMenu={setOpenMenu}
+            items={[
+              { label: "Inspect", icon: <ClipboardCheck className="h-4 w-4" />, onClick: () => {} },
+            ]}
+          />
+        ),
+    },
+>>>>>>> ee869e0309add751071723e75449cd32fdc937f8
   ];
 
   if (loading) return <Loader label="Loading incoming inspections..." />;
