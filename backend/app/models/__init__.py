@@ -2,17 +2,13 @@
 
 Importing this package registers every ORM model on ``Base.metadata`` so that
 ``create_all`` and Alembic both see the complete schema.
-<<<<<<< HEAD
 
 Use ``import app.models.<module>`` (not ``from app.models import <module>``)
 to avoid circular imports when a submodule is loaded via ``app.models.user``.
-=======
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
 """
 
 from app.models.base import Base  # noqa: F401
 
-<<<<<<< HEAD
 import app.models.accounts  # noqa: F401
 import app.models.ai_conversation  # noqa: F401
 import app.models.alert  # noqa: F401
@@ -38,30 +34,3 @@ import app.models.security  # noqa: F401
 import app.models.task  # noqa: F401
 import app.models.tenant  # noqa: F401
 import app.models.user  # noqa: F401
-=======
-from app.models import (  # noqa: F401
-    accounts,
-    ai_conversation,
-    alert,
-    bom,
-    company_settings,
-    department,
-    document,
-    hr,
-    inventory,
-    machine,
-    maintenance,
-    erp_notification,
-    notification,
-    procurement,
-    product,
-    production,
-    quality,
-    role,
-    sales,
-    security,
-    task,
-    tenant,
-    user,
-)
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8

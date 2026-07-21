@@ -20,14 +20,11 @@ from app.api.alerts import router as alerts_router
 from app.api.analytics import router as analytics_router
 from app.api.audit_logs import router as audit_logs_router
 from app.api.auth import router as auth_router
-<<<<<<< HEAD
 from app.api.audit_api import router as audit_api_router
 from app.api.login_history import router as login_history_router
 from app.api.platform_api import router as platform_router
 from app.api.rbac_api import router as rbac_api_router
 from app.middleware.audit_middleware import AuditMiddleware
-=======
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
 from app.api.dispatch import router as dispatch_router
 from app.api.documents import router as documents_router
 from app.api.factory_monitor import router as factory_monitor_router
@@ -71,11 +68,8 @@ from app.models import (  # noqa: F401
     machine,
     maintenance,
     notification,
-<<<<<<< HEAD
     permission,
     platform,
-=======
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
     procurement,
     production,
     product,
@@ -90,18 +84,11 @@ from app.models import (  # noqa: F401
 
 settings = get_settings()
 setup_logging("INFO")
-<<<<<<< HEAD
 logger = get_logger("gns_insights")
 
 app = FastAPI(title="GNS Insights API", version="1.0.0")
 
 app.add_middleware(AuditMiddleware)
-=======
-logger = get_logger("smrt")
-
-app = FastAPI(title="SMRT AI ERP API", version="1.0.0")
-
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origin_list,
@@ -260,7 +247,6 @@ def on_startup():
                 conn.execute(text(ddl))
         except Exception:
             pass
-<<<<<<< HEAD
     _access_log_columns = [
         "ALTER TABLE access_logs ADD COLUMN company_id INTEGER",
         "ALTER TABLE access_logs ADD COLUMN company_name VARCHAR(255)",
@@ -288,8 +274,6 @@ def on_startup():
             conn.execute(text("UPDATE access_logs SET company_id = tenant_id WHERE company_id IS NULL"))
     except Exception:
         pass
-=======
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
     _rbac_columns = [
         "ALTER TABLE users ADD COLUMN plant_code VARCHAR(64)",
         "ALTER TABLE users ADD COLUMN department VARCHAR(128)",
@@ -334,7 +318,6 @@ def on_startup():
         "ALTER TABLE work_orders ADD COLUMN shift VARCHAR(64)",
         "ALTER TABLE work_orders ADD COLUMN department VARCHAR(128)",
         "ALTER TABLE work_orders ADD COLUMN supervisor VARCHAR(255)",
-<<<<<<< HEAD
         "ALTER TABLE tenants ADD COLUMN email VARCHAR(255)",
         "ALTER TABLE tenants ADD COLUMN phone VARCHAR(50)",
         "ALTER TABLE tenants ADD COLUMN address TEXT",
@@ -356,8 +339,6 @@ def on_startup():
         "ALTER TABLE otp_challenges ADD COLUMN invalidated BOOLEAN DEFAULT 0",
         "ALTER TABLE otp_challenges ADD COLUMN purpose VARCHAR(32) DEFAULT 'super_admin_login'",
         "ALTER TABLE otp_challenges ADD COLUMN last_sent_at DATETIME",
-=======
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
     ]
     for ddl in _production_order_columns:
         try:
@@ -365,47 +346,6 @@ def on_startup():
                 conn.execute(text(ddl))
         except Exception:
             pass
-<<<<<<< HEAD
-=======
-    _customer_columns = [
-        "ALTER TABLE customers ADD COLUMN city VARCHAR(128)",
-        "ALTER TABLE customers ADD COLUMN credit_limit NUMERIC(12, 2)",
-        "ALTER TABLE customers ADD COLUMN outstanding NUMERIC(12, 2)",
-        "ALTER TABLE customers ADD COLUMN customer_type VARCHAR(64)",
-        "ALTER TABLE customers ADD COLUMN status VARCHAR(32)",
-    ]
-    for ddl in _customer_columns:
-        try:
-            with engine.begin() as conn:
-                conn.execute(text(ddl))
-        except Exception:
-            pass
-    _product_columns = [
-        "ALTER TABLE products ADD COLUMN category VARCHAR(128)",
-        "ALTER TABLE products ADD COLUMN product_type VARCHAR(64)",
-        "ALTER TABLE products ADD COLUMN unit VARCHAR(32)",
-        "ALTER TABLE products ADD COLUMN brand VARCHAR(128)",
-        "ALTER TABLE products ADD COLUMN warehouse VARCHAR(128)",
-        "ALTER TABLE products ADD COLUMN min_stock INTEGER",
-        "ALTER TABLE products ADD COLUMN max_stock INTEGER",
-        "ALTER TABLE products ADD COLUMN current_stock INTEGER",
-        "ALTER TABLE products ADD COLUMN status VARCHAR(32)",
-        "ALTER TABLE products ADD COLUMN barcode VARCHAR(128)",
-        "ALTER TABLE products ADD COLUMN bom VARCHAR(128)",
-        "ALTER TABLE products ADD COLUMN production_time VARCHAR(64)",
-        "ALTER TABLE products ADD COLUMN machine_required VARCHAR(64)",
-        "ALTER TABLE products ADD COLUMN quality_standard VARCHAR(128)",
-        "ALTER TABLE products ADD COLUMN batch_tracking BOOLEAN",
-        "ALTER TABLE products ADD COLUMN serial_number BOOLEAN",
-        "ALTER TABLE products ADD COLUMN expiry_date VARCHAR(64)",
-    ]
-    for ddl in _product_columns:
-        try:
-            with engine.begin() as conn:
-                conn.execute(text(ddl))
-        except Exception:
-            pass
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
     try:
         with engine.begin() as conn:
             conn.execute(text("UPDATE users SET email_verified = 1 WHERE email_verified = 0"))
@@ -415,25 +355,14 @@ def on_startup():
     from app.core.seed_notifications import seed_notifications
     from app.core.seed_products import seed_products
     from app.core.seed_roles import seed_roles
-<<<<<<< HEAD
     from app.core.seed_super_admin import seed_super_admin
     from app.core.seed_tenant import seed_tenant
-=======
-    from app.core.seed_tenant import seed_tenant
-    from app.core.seed_users import seed_admin_user
-    from app.core.seed_dashboard import seed_dashboard_data
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
 
     db = SessionLocal()
     try:
         seed_tenant(db)  # Ensure tenant 1 exists
-<<<<<<< HEAD
         seed_super_admin(db)  # GNS Super Admin from .env
         seed_roles(db)  # Seeds default roles for tenant 1
-=======
-        seed_roles(db)  # Seeds default roles for tenant 1
-        seed_admin_user(db)  # admin@smrt.local / admin123 if no users
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
         seed_products(db)  # Seeds sample products for tenant 1
         seed_notifications(db)  # Demo bell notifications per user
     except Exception:
@@ -448,7 +377,6 @@ app.include_router(operator_api_router)
 app.include_router(dashboard_api_router)
 app.include_router(masters_api_router)
 app.include_router(production_api_router)
-<<<<<<< HEAD
 app.include_router(ai_assistant_router)
 app.include_router(auth_router)
 app.include_router(auth_router, prefix="/api")
@@ -462,15 +390,6 @@ app.include_router(rbac_api_router, prefix="/api")
 
 # ERP domain modules (Sales, Finance, Procurement, Quality, Maintenance, Analytics, HR, Inventory)
 app.include_router(sales_router)
-=======
-app.include_router(production_scheduling_router)
-app.include_router(factory_monitor_router)
-app.include_router(ai_assistant_router)
-app.include_router(auth_router)
-# ERP domain modules
-app.include_router(sales_router)
-app.include_router(dispatch_router)
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
 app.include_router(accounts_router)
 app.include_router(procurement_router)
 app.include_router(quality_router)
@@ -482,7 +401,6 @@ app.include_router(alerts_router)
 app.include_router(admin_router)
 app.include_router(company_settings_router)
 app.include_router(documents_router)
-<<<<<<< HEAD
 app.include_router(dispatch_router)
 app.include_router(factory_monitor_router)
 app.include_router(forecasting_router)
@@ -493,12 +411,3 @@ app.include_router(supply_chain_router)
 app.include_router(task_management_router)
 app.include_router(audit_logs_router)
 app.include_router(warehouse_router)
-=======
-app.include_router(forecasting_router)
-app.include_router(integration_router)
-app.include_router(iot_router)
-app.include_router(supply_chain_router)
-app.include_router(task_management_router)
-app.include_router(audit_logs_router)
-app.include_router(warehouse_router)
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8

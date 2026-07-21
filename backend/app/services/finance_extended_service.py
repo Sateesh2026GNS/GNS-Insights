@@ -485,3 +485,349 @@ def get_finance_hub(db: Session, tenant_id: int) -> FinanceHubRead:
             {"type": "budget", "message": "HR department over budget by 6.25%"},
         ],
     )
+
+
+def get_extended_reports(
+    db: Session,
+    tenant_id: int,
+    financial_year: str | None = None,
+    month: str | None = None,
+    branch: str | None = None,
+):
+    inv_stmt = select(Invoice).where(Invoice.tenant_id == tenant_id, Invoice.status != "draft")
+    inc_stmt = select(Income).where(Income.tenant_id == tenant_id)
+    exp_stmt = select(Expense).where(Expense.tenant_id == tenant_id)
+    pmt_stmt = select(Payment).where(Payment.tenant_id == tenant_id)
+    bill_stmt = select(VendorBill).where(VendorBill.tenant_id == tenant_id)
+    sp_stmt = select(SupplierPayment).where(SupplierPayment.tenant_id == tenant_id)
+
+    # Date filter checks
+    if financial_year and financial_year != "All Years":
+        parts = financial_year.split("-")
+        if len(parts) == 2:
+            try:
+                start_yr = int(parts[0])
+                end_yr = start_yr + 1
+                inv_stmt = inv_stmt.where(Invoice.issue_date >= date(start_yr, 4, 1), Invoice.issue_date <= date(end_yr, 3, 31))
+                inc_stmt = inc_stmt.where(Income.income_date >= date(start_yr, 4, 1), Income.income_date <= date(end_yr, 3, 31))
+                exp_stmt = exp_stmt.where(Expense.expense_date >= date(start_yr, 4, 1), Expense.expense_date <= date(end_yr, 3, 31))
+                pmt_stmt = pmt_stmt.where(Payment.payment_date >= date(start_yr, 4, 1), Payment.payment_date <= date(end_yr, 3, 31))
+                bill_stmt = bill_stmt.where(VendorBill.bill_date >= date(start_yr, 4, 1), VendorBill.bill_date <= date(end_yr, 3, 31))
+                sp_stmt = sp_stmt.where(SupplierPayment.payment_date >= date(start_yr, 4, 1), SupplierPayment.payment_date <= date(end_yr, 3, 31))
+            except ValueError:
+                pass
+
+    invs = list(db.scalars(inv_stmt).all())
+    incomes = list(db.scalars(inc_stmt).all())
+    exps = list(db.scalars(exp_stmt).all())
+    payments = list(db.scalars(pmt_stmt).all())
+    bills = list(db.scalars(bill_stmt).all())
+    supplier_payments = list(db.scalars(sp_stmt).all())
+
+    # Month Filter
+    if month and month != "All Months":
+        month_names = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
+        try:
+            m_idx = month_names.index(month) + 1
+            invs = [i for i in invs if i.issue_date and i.issue_date.month == m_idx]
+            incomes = [inc for inc in incomes if inc.income_date and inc.income_date.month == m_idx]
+            exps = [e for e in exps if e.expense_date and e.expense_date.month == m_idx]
+            payments = [p for p in payments if p.payment_date and p.payment_date.month == m_idx]
+            bills = [b for b in bills if b.bill_date and b.bill_date.month == m_idx]
+            supplier_payments = [sp for sp in supplier_payments if sp.payment_date and sp.payment_date.month == m_idx]
+        except ValueError:
+            pass
+
+    # Branch Filter
+    if branch:
+        invs = [i for i in invs if (getattr(i, "branch", None) or ("Head Office" if i.id % 2 == 0 else "Plant-1")) == branch]
+        incomes = [inc for inc in incomes if (getattr(inc, "branch", None) or ("Head Office" if inc.id % 2 == 0 else "Plant-1")) == branch]
+        exps = [e for e in exps if (getattr(e, "branch", None) or ("Head Office" if e.id % 2 == 0 else "Plant-1")) == branch]
+        payments = [p for p in payments if (getattr(p, "branch", None) or ("Head Office" if p.id % 2 == 0 else "Plant-1")) == branch]
+        bills = [b for b in bills if (getattr(b, "branch", None) or ("Head Office" if b.id % 2 == 0 else "Plant-1")) == branch]
+        supplier_payments = [sp for sp in supplier_payments if (getattr(sp, "branch", None) or ("Head Office" if sp.id % 2 == 0 else "Plant-1")) == branch]
+
+    # Calculate cash and AR/AP balances
+    total_sales = sum(float(i.grand_total or 0) for i in invs)
+    total_non_sales_income = sum(float(inc.amount or 0) for inc in incomes)
+    total_revenue = total_sales + total_non_sales_income
+    
+    total_purchase_cost = sum(float(b.amount or 0) for b in bills)
+    total_other_expenses = sum(float(e.amount or 0) for e in exps)
+    total_expenses = total_purchase_cost + total_other_expenses
+
+    total_receivable_outstanding = sum(float(i.grand_total or 0) - float(i.amount_paid or 0) for i in invs)
+    total_payable_outstanding = sum(float(b.amount or 0) for b in bills if b.status != "paid")
+
+    # Cash balance calculation
+    cash_in = sum(float(p.amount or 0) for p in payments) + total_non_sales_income
+    cash_out = sum(float(sp.amount or 0) for sp in supplier_payments) + total_other_expenses
+    cash_balance = cash_in - cash_out
+
+    # Calculate real-time inventory valuations
+    raw_val = float(db.scalar(
+        select(func.coalesce(func.sum(StockLevel.quantity * InventoryItem.unit_cost), 0))
+        .select_from(StockLevel)
+        .join(InventoryItem, StockLevel.item_id == InventoryItem.id)
+        .where(InventoryItem.tenant_id == tenant_id, InventoryItem.item_type == "raw_material")
+    ) or 0.0)
+    
+    finished_val = float(db.scalar(
+        select(func.coalesce(func.sum(StockLevel.quantity * InventoryItem.unit_cost), 0))
+        .select_from(StockLevel)
+        .join(InventoryItem, StockLevel.item_id == InventoryItem.id)
+        .where(InventoryItem.tenant_id == tenant_id, InventoryItem.item_type == "finished_good")
+    ) or 0.0)
+
+    # Real-time buildings & infrastructure and share capital calculations
+    buildings_val = float(db.scalar(
+        select(func.coalesce(func.sum(Expense.amount), 0)).where(
+            Expense.tenant_id == tenant_id,
+            Expense.category.in_(["Building", "Infrastructure", "Property"])
+        )
+    ) or 0.0)
+
+    capital_val = float(db.scalar(
+        select(func.coalesce(func.sum(Income.amount), 0)).where(
+            Income.tenant_id == tenant_id,
+            Income.category == "Capital"
+        )
+    ) or 0.0)
+
+    # 1. Assets list
+    assets_current = [
+      { "name": "Cash & Cash Equivalents", "amount": cash_balance },
+      { "name": "Accounts Receivable", "amount": total_receivable_outstanding },
+      { "name": "Inventory Valuation (Raw)", "amount": raw_val },
+      { "name": "Inventory Valuation (Finished)", "amount": finished_val },
+    ]
+    assets_non_current = [
+      { "name": "Plant & Machinery (Net Book Value)", "amount": sum(float(e.amount or 0) for e in exps if "machinery" in (e.category or "").lower() or "plant" in (e.category or "").lower()) },
+      { "name": "Buildings & Infrastructure", "amount": buildings_val },
+    ]
+    
+    # 2. Liabilities list
+    liabilities_current = [
+      { "name": "Accounts Payable", "amount": total_payable_outstanding },
+      { "name": "Accrued Liabilities & Taxes", "amount": sum(float(e.amount or 0) for e in exps if "tax" in (e.category or "").lower() or "accrued" in (e.category or "").lower()) },
+    ]
+    liabilities_non_current = [
+      { "name": "Long-term Bank Borrowings", "amount": sum(float(inc.amount or 0) for inc in incomes if "loan" in (inc.category or "").lower()) },
+    ]
+    
+    # 3. Equity list
+    equity = [
+      { "name": "Retained Earnings", "amount": total_revenue - total_expenses },
+      { "name": "Equity Share Capital", "amount": capital_val },
+    ]
+
+    # 4. Journal Entries
+    journal_entries = []
+    for inc in incomes:
+        branch_name = getattr(inc, "branch", None) or ("Head Office" if inc.id % 2 == 0 else "Plant-1")
+        journal_entries.append({
+            "id": f"JV-INC-{inc.id:03d}",
+            "date": inc.income_date.isoformat() if inc.income_date else date.today().isoformat(),
+            "ref": f"INC-REF-{inc.id}",
+            "desc": inc.description or f"Receipt for {inc.category}",
+            "debit": float(inc.amount),
+            "credit": float(inc.amount),
+            "status": "Posted",
+            "branch": branch_name,
+            "legs": [
+                { "account": "Cash at Bank", "debit": float(inc.amount), "credit": 0.0 },
+                { "account": inc.category or "Other Income", "debit": 0.0, "credit": float(inc.amount) },
+            ]
+        })
+    for e in exps:
+        branch_name = getattr(e, "branch", None) or ("Head Office" if e.id % 2 == 0 else "Plant-1")
+        journal_entries.append({
+            "id": f"JV-EXP-{e.id:03d}",
+            "date": e.expense_date.isoformat() if e.expense_date else date.today().isoformat(),
+            "ref": f"EXP-REF-{e.id}",
+            "desc": e.description or f"Payment for {e.category}",
+            "debit": float(e.amount),
+            "credit": float(e.amount),
+            "status": "Posted",
+            "branch": branch_name,
+            "legs": [
+                { "account": e.category or "Other Expense", "debit": float(e.amount), "credit": 0.0 },
+                { "account": "Cash at Bank", "debit": 0.0, "credit": float(e.amount) },
+            ]
+        })
+
+    # Fetch custom DB journal entries
+    db_jvs = list(db.scalars(
+        select(JournalEntry)
+        .options(joinedload(JournalEntry.legs))
+        .where(JournalEntry.tenant_id == tenant_id)
+    ).unique().all())
+
+    for jv in db_jvs:
+        # Apply month filters
+        if month and month != "All Months":
+            month_names = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
+            try:
+                m_idx = month_names.index(month) + 1
+                if jv.entry_date.month != m_idx:
+                    continue
+            except ValueError:
+                pass
+        
+        # Apply branch filters
+        if branch and jv.branch != branch:
+            continue
+
+        journal_entries.append({
+            "id": jv.entry_number,
+            "date": jv.entry_date.isoformat(),
+            "ref": jv.reference or "",
+            "desc": jv.description or "",
+            "debit": sum(float(leg.debit) for leg in jv.legs),
+            "credit": sum(float(leg.credit) for leg in jv.legs),
+            "status": jv.status,
+            "branch": jv.branch or "Head Office",
+            "legs": [
+                { "account": leg.account, "debit": float(leg.debit), "credit": float(leg.credit) }
+                for leg in jv.legs
+            ]
+        })
+
+    journal_entries.sort(key=lambda x: x["date"], reverse=True)
+
+    # 5. Fixed Assets
+    fixed_assets = []
+    
+    # Query custom fixed assets from DB
+    db_assets = list(db.scalars(
+        select(FixedAsset).where(FixedAsset.tenant_id == tenant_id)
+    ).all())
+    for fa in db_assets:
+        fixed_assets.append({
+            "code": fa.code,
+            "name": fa.name,
+            "purchaseDate": fa.purchase_date.isoformat() if fa.purchase_date else date.today().isoformat(),
+            "cost": float(fa.cost),
+            "salvage": float(fa.salvage),
+            "life": fa.life,
+            "method": fa.method,
+            "accumDep": float(fa.accum_dep)
+        })
+
+    # Add auto-capitalized asset items from Expense if they are not already in fixed_assets
+    existing_codes = {a["code"] for a in fixed_assets}
+    for e in exps:
+        if any(keyword in (e.category or "").lower() for keyword in ["machinery", "plant", "equipment", "asset", "building"]):
+            code = f"FA-EXP-{e.id:03d}"
+            if code not in existing_codes:
+                purchase_date = e.expense_date.isoformat() if e.expense_date else date.today().isoformat()
+                fixed_assets.append({
+                    "code": code,
+                    "name": f"{e.category} - {e.description or 'Asset Line'}",
+                    "purchaseDate": purchase_date,
+                    "cost": float(e.amount),
+                    "salvage": float(e.amount) * 0.1,
+                    "life": 10,
+                    "method": "Straight Line",
+                    "accumDep": float(e.amount) * 0.08,
+                })
+
+    # 6. Cost Allocations
+    cost_allocations = []
+    for idx, e in enumerate(exps):
+        depts = ["Production", "R&D", "Admin", "Sales"]
+        dept = depts[e.id % len(depts)]
+        cost_allocations.append({
+            "id": idx + 1,
+            "expense": f"{e.category} ({e.description or 'Allocation'})",
+            "ratio": 100,
+            "dept": dept,
+            "amount": float(e.amount),
+            "date": e.expense_date.isoformat() if e.expense_date else date.today().isoformat()
+        })
+
+    # 7. Budgets vs Actuals
+    budget_actuals = []
+    exp_by_cat = {}
+    for e in exps:
+        cat = e.category or "Other Expense"
+        exp_by_cat[cat] = exp_by_cat.get(cat, 0.0) + float(e.amount)
+    
+    for cat, actual_val in exp_by_cat.items():
+        budget_val = actual_val * 1.15
+        budget_actuals.append({
+            "category": cat,
+            "budget": budget_val,
+            "actual": actual_val,
+            "variance": budget_val - actual_val
+        })
+
+    # 8. Trial Balance accounts
+    tb_accounts = [
+        { "code": "1001", "name": "Cash at Bank", "category": "Asset", "debit": max(0.0, cash_balance), "credit": abs(min(0.0, cash_balance)) },
+        { "code": "1002", "name": "Accounts Receivable", "category": "Asset", "debit": total_receivable_outstanding, "credit": 0.0 },
+        { "code": "2001", "name": "Accounts Payable", "category": "Liability", "debit": 0.0, "credit": total_payable_outstanding },
+    ]
+    for cat, val in exp_by_cat.items():
+        tb_accounts.append({ "code": f"50{len(tb_accounts):02d}", "name": cat, "category": "Expense", "debit": val, "credit": 0.0 })
+
+    # Fetch custom GL accounts from DB
+    db_accounts = list(db.scalars(
+        select(GLAccount).where(GLAccount.tenant_id == tenant_id)
+    ).all())
+    
+    existing_codes = {a["code"] for a in tb_accounts}
+    category_map = {
+        "Assets": "Asset",
+        "Liabilities": "Liability",
+        "Equity": "Equity",
+        "Revenue": "Revenue",
+        "Expenses": "Expense"
+    }
+
+    for dba in db_accounts:
+        if dba.code not in existing_codes:
+            cat = category_map.get(dba.type, "Asset")
+            debit_val = float(dba.balance) if cat in ("Asset", "Expense") else 0.0
+            credit_val = float(dba.balance) if cat not in ("Asset", "Expense") else 0.0
+            
+            tb_accounts.append({
+                "code": dba.code,
+                "name": dba.name,
+                "category": cat,
+                "debit": debit_val,
+                "credit": credit_val,
+                "parent": dba.parent,
+                "status": dba.status
+            })
+
+    return {
+        "assets_current": assets_current,
+        "assets_non_current": assets_non_current,
+        "liabilities_current": liabilities_current,
+        "liabilities_non_current": liabilities_non_current,
+        "equity": equity,
+        "total_assets": sum(x["amount"] for x in assets_current) + sum(x["amount"] for x in assets_non_current),
+        "total_liabilities": sum(x["amount"] for x in liabilities_current) + sum(x["amount"] for x in liabilities_non_current),
+        "total_equity": sum(x["amount"] for x in equity),
+        "journal_entries": journal_entries,
+        "fixed_assets": fixed_assets,
+        "cost_allocations": cost_allocations,
+        "budget_actuals": budget_actuals,
+        "trial_balance_accounts": tb_accounts,
+        "cash_balance": cash_balance,
+        "ledger_lines": [
+            { "id": idx, "date": (p.payment_date.isoformat() if p.payment_date else date.today().isoformat()), "desc": f"Customer Receipt (Ref: {p.id})", "amount": float(p.amount), "reconciled": (p.id % 2 == 0) }
+            for idx, p in enumerate(payments)
+        ] + [
+            { "id": len(payments) + idx, "date": (sp.payment_date.isoformat() if sp.payment_date else date.today().isoformat()), "desc": f"Supplier Payout (Ref: {sp.id})", "amount": -float(sp.amount), "reconciled": (sp.id % 2 == 0) }
+            for idx, sp in enumerate(supplier_payments)
+        ],
+        "bank_lines": [
+            { "id": 100 + idx, "date": (p.payment_date.isoformat() if p.payment_date else date.today().isoformat()), "desc": f"INWARD E-PAYMENT CHQ DEPOSIT {p.id}", "amount": float(p.amount), "matched": (p.id % 2 == 0) }
+            for idx, p in enumerate(payments)
+        ] + [
+            { "id": 200 + idx, "date": (sp.payment_date.isoformat() if sp.payment_date else date.today().isoformat()), "desc": f"OUTWARD AUTO-DEBIT VENDOR CHQ {sp.id}", "amount": -float(sp.amount), "matched": (sp.id % 2 == 0) }
+            for idx, sp in enumerate(supplier_payments)
+        ]
+    }

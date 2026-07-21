@@ -1,24 +1,15 @@
-<<<<<<< HEAD
+
 # GNS Insights Security Implementation Report
 
 Generated after production-ready security hardening across the React + FastAPI GNS Insights application.
-=======
 # SMRT AI ERP Security Implementation Report
 
 Generated after production-ready security hardening across the React + FastAPI SMRT application.
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
-
----
 
 ## Executive Summary
 
-<<<<<<< HEAD
 Security features were implemented across authentication, session management, input validation, multi-tenant isolation, API protection, logging, and frontend auth flows. **All 19 backend tests pass.** Development mode preserves auto-verified registration for local testing. Production mode (`ENVIRONMENT=production`) enforces email verification before login.
-=======
 Security features were implemented across authentication, session management, input validation, multi-tenant isolation, API protection, logging, and frontend auth flows. **All 19 backend tests pass.** Development mode preserves backward compatibility (auto-verified registration, demo logins work). Production mode (`ENVIRONMENT=production`) enforces email verification before login.
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
-
----
 
 ## Completed Security Features
 
@@ -149,7 +140,7 @@ Security features were implemented across authentication, session management, in
 | High | Rotate `JWT_SECRET_KEY` | Use `openssl rand -hex 32` in production `.env` |
 | Medium | Rate limiting at edge | Add nginx/Cloudflare rate limits on `/auth/login` and `/auth/forgot-password` |
 | Medium | Full CRUD audit coverage | Wire `log_audit()` into inventory, sales, HR, etc. service layers |
-| Medium | MFA / 2FA | Consider TOTP for Admin accounts |
+| Medium | MFA / 2FA | Consider OTP for Admin accounts |
 | Low | CSP header | Add Content-Security-Policy tuned for Vite build |
 | Low | Migrate to Alembic-only migrations | Replace startup `ALTER TABLE` with formal migration revision |
 | Low | Refresh token cookie option | HttpOnly cookies instead of localStorage for XSS resilience |
@@ -181,11 +172,7 @@ Security features were implemented across authentication, session management, in
 | `backend/app/api/auth_deps.py` | Session inactivity, email verified check |
 | `backend/app/schemas/auth.py` | Validated request/response schemas |
 | `backend/app/main.py` | Security headers, DB migrations, security model import |
-<<<<<<< HEAD
 | `backend/app/core/seed_users.py` | No default demo users seeded; user accounts are created via registration |
-=======
-| `backend/app/core/seed_users.py` | email_verified=True for demo users |
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
 | `backend/.env.example` | All security env vars documented |
 | `backend/tests/conftest.py` | email_verified on test users |
 | `backend/tests/test_auth.py` | Lockout, refresh, forgot-password tests |
