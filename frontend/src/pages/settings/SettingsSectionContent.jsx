@@ -89,16 +89,12 @@ function CompanySection() {
           city: "",
           state: "",
           pincode: "",
-          country: regional.country || "India",
-          timezone: regional.timezone || "Asia/Kolkata",
-          currency: regional.currency || currency || "INR",
-          language: regional.language || language || "English",
           ...(res.data || {}),
-          country: regional.country || "India",
-          timezone: regional.timezone || "Asia/Kolkata",
-          currency: regional.currency || currency || "INR",
-          language: regional.language || language || "English",
         };
+        data.country = data.country || regional.country || "India";
+        data.timezone = data.timezone || regional.timezone || "Asia/Kolkata";
+        data.currency = data.currency || regional.currency || currency || "INR";
+        data.language = data.language || regional.language || language || "English";
         setForm(data);
         setBaseline(data);
       } catch {
