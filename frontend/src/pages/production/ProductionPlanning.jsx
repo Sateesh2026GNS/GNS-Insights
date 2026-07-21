@@ -17,11 +17,13 @@ import {
 
 import DataTable from "../../components/common/DataTable";
 import Loader from "../../components/common/Loader";
+import ManufacturingWorkflowBar from "../../components/manufacturing/ManufacturingWorkflowBar";
 import ProductionOrderDetailModal, {
   CompleteWorkflowModal,
   StartCheckModal,
 } from "../../components/production/ProductionOrderDetailModal";
 import { useToast } from "../../context/ToastContext";
+import useManufacturingRefresh from "../../hooks/useManufacturingRefresh";
 import {
   completeProductionOrder,
   getProductionOrderDetail,
@@ -32,15 +34,12 @@ import {
   startProductionOrder,
 } from "../../api/productionApi";
 import {
-  DEMO_PRODUCTION_ORDERS,
-  DEMO_SUMMARY,
   DEPARTMENTS,
   IMPORT_TEMPLATE_HEADERS,
   ORDER_STATUSES,
   PRIORITIES,
   SHIFTS,
   STATUS_FLOW,
-  WORKFLOW_STEPS,
   canComplete,
   canPause,
   canStart,
@@ -147,6 +146,8 @@ export default function ProductionPlanning() {
     load();
   }, [load]);
 
+  useManufacturingRefresh(load);
+
   const filteredOrders = useMemo(() => {
     return orders.filter((o) => {
       if (filters.order_number && !String(o.order_number).toLowerCase().includes(filters.order_number.toLowerCase())) return false;
@@ -168,11 +169,7 @@ export default function ProductionPlanning() {
     if (apiSummary && !Object.values(filters).some(Boolean)) {
       return apiSummary;
     }
-    const computed = computePlanningSummary(filteredOrders);
-    if (!apiSummary && filteredOrders.length === DEMO_PRODUCTION_ORDERS.length && !Object.values(filters).some(Boolean)) {
-      return DEMO_SUMMARY;
-    }
-    return computed;
+    return computePlanningSummary(filteredOrders);
   }, [apiSummary, filteredOrders, filters]);
 
   const openOrder = async (order) => {
@@ -417,6 +414,13 @@ export default function ProductionPlanning() {
         </div>
       </header>
 
+      <ManufacturingWorkflowBar currentStepId="production_planning" />
+
+      <div className="mb-0 flex flex-wrap gap-2">
+        <Link to="/production/mrp" className="ui-btn-secondary text-sm">Run MRP</Link>
+        <Link to="/production/work-orders" className="ui-btn-secondary text-sm">Work Orders</Link>
+      </div>
+
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 xl:grid-cols-8">
         <SummaryCard label="Total Orders" value={summary.total_orders} icon={ClipboardList} color="bg-[#2563EB]" />
         <SummaryCard label="Planned" value={summary.planned_orders} icon={FileText} color="bg-blue-500" />
@@ -485,14 +489,7 @@ export default function ProductionPlanning() {
         />
       </div>
 
-      <div className="flex flex-wrap gap-2 rounded-xl bg-slate-50 px-4 py-3">
-        {WORKFLOW_STEPS.map((step, i) => (
-          <span key={step} className="flex items-center gap-2 text-xs text-slate-600">
-            <span className="font-semibold text-[#2563EB]">{step}</span>
-            {i < WORKFLOW_STEPS.length - 1 && <span className="text-slate-300">→</span>}
-          </span>
-        ))}
-      </div>
+      <ManufacturingWorkflowBar currentStepId="production_planning" compact />
 
       <div className="rounded-xl border border-slate-200 bg-white px-4 py-3">
         <p className="mb-2 text-xs font-semibold text-slate-500">Status Flow</p>

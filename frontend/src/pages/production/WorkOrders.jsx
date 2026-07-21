@@ -16,30 +16,32 @@ import {
 
 import DataTable from "../../components/common/DataTable";
 import Loader from "../../components/common/Loader";
+import ManufacturingWorkflowBar from "../../components/manufacturing/ManufacturingWorkflowBar";
 import WorkOrderDetailModal, {
   WorkOrderCompleteModal,
   WorkOrderStartModal,
 } from "../../components/production/WorkOrderDetailModal";
 import { useToast } from "../../context/ToastContext";
+import useManufacturingRefresh from "../../hooks/useManufacturingRefresh";
 import {
   completeWorkOrder,
   getWorkOrderDetail,
   getWorkOrders,
   getWorkOrderStartChecks,
   getWorkOrderSummary,
+  issueWorkOrderMaterials,
   pauseWorkOrder,
   startWorkOrder,
   stopWorkOrder,
 } from "../../api/productionApi";
 import {
-  DEMO_WO_SUMMARY,
   DEPARTMENTS,
   PRIORITIES,
   SHIFTS,
   STATUS_FLOW,
   WO_STATUSES,
-  WORKFLOW_STEPS,
   canWoComplete,
+  canWoIssueMaterials,
   canWoPause,
   canWoStart,
   canWoStop,
@@ -48,6 +50,10 @@ import {
   priorityBadge,
   woStatusLabel,
 } from "../../data/workOrdersMasterData";
+import {
+  MANUFACTURING_EVENTS,
+  notifyManufacturingSpine,
+} from "../../utils/manufacturingEvents";
 import { exportToExcel, exportToPdf } from "../../utils/exportUtils";
 
 function SummaryCard({ label, value, icon: Icon, color }) {
@@ -138,6 +144,7 @@ export default function WorkOrders() {
   const [startLoading, setStartLoading] = useState(false);
   const [completeModal, setCompleteModal] = useState(null);
   const [completeSteps, setCompleteSteps] = useState([]);
+  const [issuingId, setIssuingId] = useState(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -152,12 +159,14 @@ export default function WorkOrders() {
       setApiSummary(sRes.data);
     } catch {
       setWorkOrders([]);
+      setApiSummary(null);
     } finally {
       setLoading(false);
     }
   }, [poFilter]);
 
   useEffect(() => { load(); }, [load]);
+  useManufacturingRefresh(load);
 
   const filtered = useMemo(() => {
     return workOrders.filter((w) => {
@@ -178,9 +187,7 @@ export default function WorkOrders() {
 
   const summary = useMemo(() => {
     if (apiSummary && !Object.values(filters).some(Boolean) && !poFilter) return apiSummary;
-    const computed = computeWorkOrderSummary(filtered);
-    if (!apiSummary && filtered.length === DEMO_WORK_ORDERS.length && !Object.values(filters).some(Boolean)) return DEMO_WO_SUMMARY;
-    return computed;
+    return computeWorkOrderSummary(filtered);
   }, [apiSummary, filtered, filters, poFilter]);
 
   const openWo = async (wo) => {
@@ -269,6 +276,34 @@ export default function WorkOrders() {
     addToast("Stopped");
   };
 
+  const handleIssueMaterials = async (wo) => {
+    if (typeof wo.id !== "number") {
+      addToast("Issue materials requires a saved work order", "error");
+      return;
+    }
+    setIssuingId(wo.id);
+    try {
+      const res = await issueWorkOrderMaterials(wo.id);
+      const data = res.data || {};
+      addToast(data.message || "Materials issued", "success");
+      notifyManufacturingSpine(MANUFACTURING_EVENTS.MATERIALS_ISSUED, {
+        workOrderId: wo.id,
+        ...data,
+      });
+      await load();
+      if (selected?.id === wo.id) {
+        const detailRes = await getWorkOrderDetail(wo.id);
+        setDetail(enrichApiWorkOrder(detailRes.data));
+        setSelected(enrichApiWorkOrder({ ...wo, ...detailRes.data, materials_issued: true }));
+      }
+    } catch (err) {
+      const msg = err?.response?.data?.detail || err?.message || "Material issue failed";
+      addToast(typeof msg === "string" ? msg : "Material issue failed", "error");
+    } finally {
+      setIssuingId(null);
+    }
+  };
+
   const handleComplete = async (wo) => {
     if (typeof wo.id === "number") {
       try {
@@ -276,19 +311,23 @@ export default function WorkOrders() {
         if (res.data?.success) {
           setCompleteSteps(res.data.steps || []);
           setCompleteModal(wo);
-          addToast("Completed");
+          addToast("Completed — inventory, QC, and production updated");
+          notifyManufacturingSpine(MANUFACTURING_EVENTS.WORK_ORDER_COMPLETED, {
+            workOrderId: wo.id,
+            steps: res.data.steps,
+          });
           load();
           setSelected(null);
         } else {
           addToast(res.data?.message || "Complete failed", "error");
         }
-      } catch { addToast("Complete failed", "error"); }
+      } catch (err) {
+        const msg = err?.response?.data?.detail || "Complete failed";
+        addToast(typeof msg === "string" ? msg : "Complete failed", "error");
+      }
       return;
     }
-    setCompleteSteps(["Production finished", "Quality passed", "FG recorded", "WO closed"]);
-    setWorkOrders((prev) => prev.map((w) => (w.id === wo.id ? { ...w, status: "completed", produced_quantity: w.planned_quantity, progress_pct: 100 } : w)));
-    setCompleteModal(wo);
-    addToast("Completed");
+    addToast("Complete requires a saved work order", "error");
   };
 
   const exportCols = [
@@ -358,7 +397,19 @@ export default function WorkOrders() {
       render: (r) => (
         <div className="flex flex-wrap gap-1 text-xs">
           <button type="button" onClick={() => openWo(r)} className="font-semibold text-[#2563EB] hover:underline">👁 View</button>
-          <Link to={`/production/planning`} className="font-semibold text-slate-600 hover:underline">✏ Edit</Link>
+          {canWoIssueMaterials(r.status, r.materials_issued) && (
+            <button
+              type="button"
+              disabled={issuingId === r.id}
+              onClick={() => handleIssueMaterials(r)}
+              className="font-semibold text-cyan-700 hover:underline disabled:opacity-50"
+            >
+              {issuingId === r.id ? "Issuing…" : "📦 Issue Materials"}
+            </button>
+          )}
+          {r.materials_issued && (
+            <span className="text-[10px] font-semibold text-emerald-600">Materials ✔</span>
+          )}
           {canWoStart(r.status) && <button type="button" onClick={() => handleStartClick(r)} className="font-semibold text-green-700 hover:underline">▶ Start</button>}
           {canWoPause(r.status) && <button type="button" onClick={() => handlePause(r)} className="font-semibold text-amber-700 hover:underline">⏸ Pause</button>}
           {canWoStop(r.status) && <button type="button" onClick={() => handleStop(r)} className="font-semibold text-slate-600 hover:underline">⏹ Stop</button>}
@@ -377,11 +428,14 @@ export default function WorkOrders() {
       <header className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <p className="text-xs text-slate-400">
-            <Link to="/production/planning" className="hover:text-[#2563EB]">Production Planning</Link> → Work Orders
+            <Link to="/production/planning" className="hover:text-[#2563EB]">Production Planning</Link>
+            {" → "}
+            <Link to="/production/mrp" className="hover:text-[#2563EB]">MRP</Link>
+            {" → Work Orders"}
           </p>
-          <h1 className="text-2xl font-bold text-slate-900">Work Orders</h1>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Work Orders</h1>
           <p className="mt-1 text-sm text-slate-500">
-            Who, which machine, when, and how — shop floor execution from planning to finished goods.
+            Issue materials, assign machine/operator, run production, complete with QC and finished goods.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -393,6 +447,8 @@ export default function WorkOrders() {
           </button>
         </div>
       </header>
+
+      <ManufacturingWorkflowBar currentStepId="work_order" />
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-6">
         <SummaryCard label="Total Work Orders" value={summary.total_work_orders} icon={ClipboardList} color="bg-[#2563EB]" />
@@ -457,14 +513,7 @@ export default function WorkOrders() {
         } />
       </div>
 
-      <div className="flex flex-wrap gap-2 rounded-xl bg-slate-50 px-4 py-3">
-        {WORKFLOW_STEPS.map((step, i) => (
-          <span key={step} className="flex items-center gap-2 text-xs text-slate-600">
-            <span className="font-semibold text-[#2563EB]">{step}</span>
-            {i < WORKFLOW_STEPS.length - 1 && <span className="text-slate-300">→</span>}
-          </span>
-        ))}
-      </div>
+      <ManufacturingWorkflowBar currentStepId="material_issue" compact />
 
       <div className="rounded-xl border bg-white px-4 py-3">
         <p className="mb-2 text-xs font-semibold text-slate-500">Status Workflow</p>
@@ -483,6 +532,8 @@ export default function WorkOrders() {
           workOrder={selected}
           detail={detail}
           onClose={() => { setSelected(null); setDetail(null); }}
+          onIssueMaterials={handleIssueMaterials}
+          issuing={issuingId === selected.id}
           onStart={handleStartClick}
           onPause={handlePause}
           onStop={handleStop}

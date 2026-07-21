@@ -317,6 +317,22 @@ def work_order_stop(
     return success_response("Work order stopped", _dump(stop_work_order(db, tenant_id, work_order_id)))
 
 
+@router.post("/work-orders/{work_order_id}/issue-materials")
+def work_order_issue_materials(
+    work_order_id: int,
+    warehouse_id: int | None = Query(None),
+    user_tenant: tuple[User, int] = Depends(require_tenant("workorders")),
+    db: Session = Depends(get_db),
+):
+    from app.services.manufacturing_workflow_service import issue_materials_for_work_order
+
+    _, tenant_id = user_tenant
+    result = issue_materials_for_work_order(
+        db, tenant_id, work_order_id, warehouse_id=warehouse_id
+    )
+    return success_response(result.get("message") or "Materials issued", result)
+
+
 @router.post("/work-orders/{work_order_id}/complete")
 def work_order_complete(
     work_order_id: int,
@@ -324,7 +340,42 @@ def work_order_complete(
     db: Session = Depends(get_db),
 ):
     _, tenant_id = user_tenant
-    return success_response("Work order completed", _dump(complete_work_order(db, tenant_id, work_order_id)))
+    user, _ = user_tenant
+    from app.services.manufacturing_workflow_service import complete_work_order_integrated
+
+    result = complete_work_order_integrated(
+        db, tenant_id, work_order_id, user_id=user.id if user else None
+    )
+    if not result.success:
+        from fastapi import HTTPException
+
+        raise HTTPException(status_code=400, detail=result.message)
+    return success_response("Work order completed", _dump(result))
+
+
+@router.post("/mrp/run")
+def run_mrp_endpoint(
+    product_id: int = Query(...),
+    quantity: float = Query(..., gt=0),
+    create_purchase_request: bool = Query(True),
+    user_tenant: tuple[User, int] = Depends(require_tenant("production")),
+    db: Session = Depends(get_db),
+):
+    from app.services.manufacturing_workflow_service import run_mrp
+
+    user, tenant_id = user_tenant
+    result = run_mrp(
+        db,
+        tenant_id,
+        product_id,
+        quantity,
+        create_purchase_request=create_purchase_request,
+        requested_by=user.full_name or user.email,
+    )
+    return success_response(
+        "Produce" if result["enough_stock"] else "Purchase required — material request created",
+        result,
+    )
 
 
 # ── Shop Floor ─────────────────────────────────────────────────────────────

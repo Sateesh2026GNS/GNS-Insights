@@ -1,0 +1,155 @@
+"""Shared journal posting for invoice/payment and manual JVs."""
+
+from __future__ import annotations
+
+from datetime import date
+
+from sqlalchemy import func, select
+from sqlalchemy.orm import Session
+
+from app.models.accounts import JournalEntry, JournalLeg
+
+
+def post_journal_entry(
+    db: Session,
+    tenant_id: int,
+    *,
+    entry_date: date,
+    reference: str | None,
+    description: str | None,
+    legs: list[dict],
+    status: str = "Posted",
+    branch: str = "Head Office",
+    commit: bool = False,
+) -> JournalEntry:
+    """
+    Create a balanced journal entry.
+    Each leg: {"account": str, "debit": float, "credit": float}
+    """
+    total_debit = sum(float(l.get("debit") or 0) for l in legs)
+    total_credit = sum(float(l.get("credit") or 0) for l in legs)
+    if round(total_debit, 2) != round(total_credit, 2):
+        raise ValueError(
+            f"Unbalanced journal: debit={total_debit} credit={total_credit}"
+        )
+    if total_debit <= 0:
+        raise ValueError("Journal must have positive amounts")
+
+    count = (
+        db.scalar(
+            select(func.count(JournalEntry.id)).where(
+                JournalEntry.tenant_id == tenant_id
+            )
+        )
+        or 0
+    )
+    entry_number = f"JV-{entry_date.year}-{count + 1:04d}"
+
+    entry = JournalEntry(
+        tenant_id=tenant_id,
+        entry_number=entry_number,
+        entry_date=entry_date,
+        reference=reference,
+        description=description,
+        status=status,
+        branch=branch,
+    )
+    db.add(entry)
+    db.flush()
+    for leg in legs:
+        db.add(
+            JournalLeg(
+                entry_id=entry.id,
+                account=str(leg.get("account") or "General"),
+                debit=float(leg.get("debit") or 0),
+                credit=float(leg.get("credit") or 0),
+            )
+        )
+    if commit:
+        db.commit()
+        db.refresh(entry)
+    return entry
+
+
+def post_sales_invoice_journal(
+    db: Session,
+    tenant_id: int,
+    *,
+    invoice_number: str,
+    issue_date: date,
+    subtotal: float,
+    discount: float,
+    sgst: float,
+    cgst: float,
+    igst: float,
+    round_off: float,
+    grand_total: float,
+) -> JournalEntry | None:
+    """Dr AR / Cr Sales + GST outputs for a tax invoice."""
+    net_sales = round(float(subtotal or 0) - float(discount or 0), 2)
+    legs: list[dict] = [
+        {"account": "Accounts Receivable", "debit": float(grand_total), "credit": 0},
+        {"account": "Sales Revenue", "debit": 0, "credit": net_sales},
+    ]
+    if float(sgst or 0) > 0:
+        legs.append({"account": "Output SGST", "debit": 0, "credit": float(sgst)})
+    if float(cgst or 0) > 0:
+        legs.append({"account": "Output CGST", "debit": 0, "credit": float(cgst)})
+    if float(igst or 0) > 0:
+        legs.append({"account": "Output IGST", "debit": 0, "credit": float(igst)})
+    if float(round_off or 0) != 0:
+        if float(round_off) > 0:
+            legs.append({"account": "Round Off", "debit": 0, "credit": float(round_off)})
+        else:
+            legs.append(
+                {"account": "Round Off", "debit": abs(float(round_off)), "credit": 0}
+            )
+
+    # Rebalance tiny float drift against AR debit
+    debit = sum(float(l["debit"]) for l in legs)
+    credit = sum(float(l["credit"]) for l in legs)
+    diff = round(debit - credit, 2)
+    if abs(diff) >= 0.01:
+        legs[0]["debit"] = round(float(legs[0]["debit"]) - diff, 2)
+
+    try:
+        return post_journal_entry(
+            db,
+            tenant_id,
+            entry_date=issue_date,
+            reference=invoice_number,
+            description=f"Sales invoice {invoice_number}",
+            legs=legs,
+            commit=False,
+        )
+    except ValueError:
+        return None
+
+
+def post_sales_payment_journal(
+    db: Session,
+    tenant_id: int,
+    *,
+    invoice_number: str,
+    payment_date: date,
+    amount: float,
+    method: str = "cash",
+) -> JournalEntry | None:
+    """Dr Cash/Bank / Cr AR for customer payment."""
+    cash_account = "Bank" if (method or "").lower() in ("bank", "upi", "neft", "rtgs", "card") else "Cash"
+    legs = [
+        {"account": cash_account, "debit": float(amount), "credit": 0},
+        {"account": "Accounts Receivable", "debit": 0, "credit": float(amount)},
+    ]
+    try:
+        return post_journal_entry(
+            db,
+            tenant_id,
+            entry_date=payment_date,
+            reference=invoice_number,
+            description=f"Payment against invoice {invoice_number}",
+            legs=legs,
+            commit=False,
+        )
+    except ValueError:
+        return None

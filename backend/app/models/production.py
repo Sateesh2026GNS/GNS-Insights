@@ -1,6 +1,6 @@
 from datetime import date, datetime
 
-from sqlalchemy import Date, DateTime, ForeignKey, Integer, Numeric, String
+from sqlalchemy import Date, DateTime, ForeignKey, Integer, Numeric, String, Boolean
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, TimestampMixin
@@ -23,6 +23,9 @@ class ProductionOrder(Base, TimestampMixin):
     priority: Mapped[str] = mapped_column(String(16), default="medium", nullable=False)
     bom_version: Mapped[str | None] = mapped_column(String(64))
     sales_order_number: Mapped[str | None] = mapped_column(String(64))
+    sales_order_id: Mapped[int | None] = mapped_column(
+        ForeignKey("sales_orders.id"), index=True
+    )
     department: Mapped[str | None] = mapped_column(String(128))
     shift: Mapped[str | None] = mapped_column(String(64))
 
@@ -56,6 +59,7 @@ class WorkOrder(Base, TimestampMixin):
     shift: Mapped[str | None] = mapped_column(String(64))
     department: Mapped[str | None] = mapped_column(String(128))
     supervisor: Mapped[str | None] = mapped_column(String(255))
+    materials_issued: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
     production_order = relationship("ProductionOrder", back_populates="work_orders")
     machine = relationship("Machine", back_populates="work_orders")

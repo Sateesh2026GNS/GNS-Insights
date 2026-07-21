@@ -150,6 +150,16 @@ export default function AccountsDashboard() {
         <QuickLink to="/finance/general-ledger" label="General Ledger" />
         <QuickLink to="/accounts/tax-reports" label="GST Reports" />
         <QuickLink to="/accounts/profit-loss" label="Profit & Loss" />
+        <QuickLink to="/accounts/balance-sheet" label="Balance Sheet" />
+        <QuickLink to="/accounts/trial-balance" label="Trial Balance" />
+        <QuickLink to="/accounts/journal-entries" label="Journal Entries" />
+        <QuickLink to="/accounts/chart-of-accounts" label="Chart of Accounts" />
+        <QuickLink to="/accounts/fixed-assets" label="Fixed Assets" />
+        <QuickLink to="/accounts/bank-reconciliation" label="Bank Reconciliation" />
+        <QuickLink to="/accounts/budget-actual" label="Budget vs Actual" />
+        <QuickLink to="/accounts/cost-allocation" label="Cost Allocation" />
+        <QuickLink to="/accounts/multi-branch-ledger" label="Multi-Branch Ledger" />
+        <QuickLink to="/accounts/year-closing" label="Year Closing" />
       </div>
     </div>
   );

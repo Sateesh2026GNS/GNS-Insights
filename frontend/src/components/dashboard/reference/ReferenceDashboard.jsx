@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
@@ -37,6 +37,7 @@ import {
 } from "../../../data/referenceDashboardData";
 import { getErpDashboard } from "../../../api/dashboardApi";
 import useAuth from "../../../hooks/useAuth";
+import useManufacturingRefresh from "../../../hooks/useManufacturingRefresh";
 import { userCanAccess } from "../../../config/permissions";
 import {
   CardShell,
@@ -516,7 +517,7 @@ export default function ReferenceDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const load = () => {
+  const load = useCallback(() => {
     setLoading(true);
     setError(null);
     getErpDashboard()
@@ -526,9 +527,10 @@ export default function ReferenceDashboard() {
         setError("Failed to load dashboard data.");
       })
       .finally(() => setLoading(false));
-  };
+  }, []);
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); }, [load]);
+  useManufacturingRefresh(load);
 
   const kpiCardsLive = useMemo(() => {
     if (!apiData?.kpi_cards?.length) return [];

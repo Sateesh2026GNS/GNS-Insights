@@ -9,6 +9,10 @@ export const getSalesOrdersEnriched = () => api.get("/sales/sales-orders/enriche
 export const getSOSummary = () => api.get("/sales/sales-orders/summary");
 export const getSalesOrderDetail = (orderId) => api.get(`/sales/sales-orders/${orderId}`);
 export const createSalesOrder = (payload) => api.post("/sales/sales-orders", payload);
+export const updateSalesOrderStatus = (orderId, status) =>
+  api.patch(`/sales/sales-orders/${orderId}/status`, null, { params: { status } });
+export const confirmSalesOrder = (orderId) =>
+  api.post(`/sales/sales-orders/${orderId}/confirm`);
 export const updateSalesOrderDispatch = (orderId, flags) =>
   api.patch(`/sales/sales-orders/${orderId}/dispatch`, null, { params: flags });
 
@@ -37,5 +41,7 @@ export const getQuotationsEnriched = () => api.get("/sales/quotations/enriched")
 export const createQuotation = (payload) => api.post("/sales/quotations", payload);
 export const updateQuotationStatus = (quoteId, status) =>
   api.patch(`/sales/quotations/${quoteId}/status`, null, { params: { status } });
+export const convertQuotationToSalesOrder = (quoteId, payload = {}) =>
+  api.post(`/sales/quotations/${quoteId}/convert-to-so`, payload);
 
 export const getSalesHub = () => api.get("/sales/hub");

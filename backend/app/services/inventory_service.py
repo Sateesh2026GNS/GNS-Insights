@@ -146,8 +146,9 @@ def update_stock_level(
 
 
 def record_stock_movement(
-    db: Session, payload: StockMovementCreate
+    db: Session, payload: StockMovementCreate, *, commit: bool = True
 ) -> StockMovement:
+    """Post a stock movement and update stock_levels. Set commit=False for multi-step workflows."""
     mov = StockMovement(**payload.model_dump())
     db.add(mov)
     stmt = select(StockLevel).where(
@@ -159,10 +160,21 @@ def record_stock_movement(
         if payload.movement_type == "in":
             sl.quantity += payload.quantity
         elif payload.movement_type == "out":
-            sl.quantity = max(0, sl.quantity - abs(payload.quantity))
+            if sl.quantity < abs(payload.quantity):
+                from fastapi import HTTPException
+
+                raise HTTPException(
+                    status_code=400,
+                    detail=(
+                        f"Insufficient stock for item #{payload.item_id} "
+                        f"in warehouse #{payload.warehouse_id}: "
+                        f"need {abs(payload.quantity)}, available {sl.quantity}"
+                    ),
+                )
+            sl.quantity = sl.quantity - abs(payload.quantity)
         elif payload.movement_type == "adjustment":
             sl.quantity = max(0, sl.quantity + payload.quantity)
-    elif not sl and payload.movement_type == "in":
+    elif payload.movement_type == "in":
         db.add(
             StockLevel(
                 warehouse_id=payload.warehouse_id,
@@ -170,8 +182,21 @@ def record_stock_movement(
                 quantity=payload.quantity,
             )
         )
-    db.commit()
-    db.refresh(mov)
+    elif payload.movement_type == "out":
+        from fastapi import HTTPException
+
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"No stock level for item #{payload.item_id} "
+                f"in warehouse #{payload.warehouse_id}"
+            ),
+        )
+    if commit:
+        db.commit()
+        db.refresh(mov)
+    else:
+        db.flush()
     return mov
 
 

@@ -125,6 +125,7 @@ def _to_list_read(db: Session, tenant_id: int, wo: WorkOrder) -> WorkOrderListRe
         operator_name=operator.full_name if operator else None,
         progress_pct=ctx["progress"],
         is_delayed=_is_delayed(wo),
+        materials_issued=bool(getattr(wo, "materials_issued", False)),
     )
 
 
@@ -170,27 +171,23 @@ def get_work_order_summary(
 def _materials_for_wo(db: Session, tenant_id: int, wo: WorkOrder, po: ProductionOrder | None) -> list[WorkOrderMaterialRead]:
     if not po:
         return []
-    bom_items = list(
-        db.scalars(
-            select(BillOfMaterial).where(
-                BillOfMaterial.tenant_id == tenant_id,
-                BillOfMaterial.product_id == po.product_id,
-            )
-        ).all()
+    from app.services.manufacturing_workflow_service import get_bom_requirements
+
+    requirements = get_bom_requirements(
+        db, tenant_id, po.product_id, float(wo.planned_quantity or 0)
     )
-    planned = float(wo.planned_quantity or 0)
+    issued_flag = bool(getattr(wo, "materials_issued", False))
     materials = []
-    for item in bom_items:
-        component = db.get(Product, item.component_product_id)
-        required = float(item.quantity) * planned
-        issued = round(required * 0.7, 2)
+    for req in requirements:
+        required = float(req["required_qty"])
+        issued = required if issued_flag else 0.0
         materials.append(
             WorkOrderMaterialRead(
-                component_name=component.name if component else f"Component #{item.component_product_id}",
+                component_name=req["component_name"],
                 required_qty=round(required, 2),
-                issued_qty=issued,
+                issued_qty=round(issued, 2),
                 balance_qty=round(max(required - issued, 0), 2),
-                unit=item.unit,
+                unit=req["unit"],
             )
         )
     return materials
@@ -251,14 +248,33 @@ def _start_checks(db: Session, tenant_id: int, wo: WorkOrder) -> list[WorkOrderS
     ctx = _wo_context(db, tenant_id, wo)
     po = ctx["po"]
     materials = _materials_for_wo(db, tenant_id, wo, po)
-    material_ok = all(m.issued_qty >= m.required_qty * 0.5 for m in materials) if materials else True
+    issued = bool(getattr(wo, "materials_issued", False))
+    if materials:
+        material_ok = issued and all(m.issued_qty >= m.required_qty for m in materials)
+    else:
+        material_ok = True
     machine = ctx["machine"]
     machine_ok = machine is not None and machine.is_active
     operator_ok = wo.assigned_user_id is not None or machine is not None
     return [
-        WorkOrderStartCheckRead(check_type="material", label="Material Issued", ready=material_ok, message="Materials issued" if material_ok else "Material issue pending"),
-        WorkOrderStartCheckRead(check_type="machine", label="Machine Ready", ready=machine_ok, message="Machine allocated" if machine_ok else "Machine not assigned"),
-        WorkOrderStartCheckRead(check_type="operator", label="Operator Assigned", ready=operator_ok, message="Operator ready" if operator_ok else "Assign operator"),
+        WorkOrderStartCheckRead(
+            check_type="material",
+            label="Material Issued",
+            ready=material_ok,
+            message="Materials issued" if material_ok else "Issue BOM materials before start",
+        ),
+        WorkOrderStartCheckRead(
+            check_type="machine",
+            label="Machine Ready",
+            ready=machine_ok,
+            message="Machine allocated" if machine_ok else "Machine not assigned",
+        ),
+        WorkOrderStartCheckRead(
+            check_type="operator",
+            label="Operator Assigned",
+            ready=operator_ok,
+            message="Operator ready" if operator_ok else "Assign operator",
+        ),
     ]
 
 
@@ -306,23 +322,6 @@ def stop_work_order(db: Session, tenant_id: int, work_order_id: int) -> WorkOrde
 
 
 def complete_work_order(db: Session, tenant_id: int, work_order_id: int) -> WorkOrderActionResponse:
-    wo = db.scalars(select(WorkOrder).where(WorkOrder.id == work_order_id, WorkOrder.tenant_id == tenant_id)).first()
-    if not wo:
-        return WorkOrderActionResponse(success=False, message="Work order not found")
-    steps = [
-        "Production finished",
-        "Quality inspection passed",
-        "Finished goods recorded",
-        "Work order closed",
-    ]
-    wo.status = "completed"
-    wo.actual_quantity = wo.actual_quantity or wo.planned_quantity
-    wo.planned_end = datetime.now(timezone.utc)
-    db.commit()
-    db.refresh(wo)
-    return WorkOrderActionResponse(
-        success=True,
-        steps=steps,
-        work_order=_to_list_read(db, tenant_id, wo),
-        message="Work order completed",
-    )
+    from app.services.manufacturing_workflow_service import complete_work_order_integrated
+
+    return complete_work_order_integrated(db, tenant_id, work_order_id)

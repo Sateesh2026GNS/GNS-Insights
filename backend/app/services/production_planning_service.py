@@ -204,27 +204,31 @@ def get_production_planning_summary(
 def _materials_for_order(
     db: Session, tenant_id: int, order: ProductionOrder
 ) -> list[ProductionMaterialRead]:
-    bom_items = list(
-        db.scalars(
-            select(BillOfMaterial).where(
-                BillOfMaterial.tenant_id == tenant_id,
-                BillOfMaterial.product_id == order.product_id,
-            )
+    from app.services.manufacturing_workflow_service import get_bom_requirements
+
+    requirements = get_bom_requirements(
+        db, tenant_id, order.product_id, float(order.planned_quantity or 0)
+    )
+    # Any WO under this PO with materials_issued
+    issued = any(
+        bool(getattr(wo, "materials_issued", False))
+        for wo in db.scalars(
+            select(WorkOrder).where(WorkOrder.production_order_id == order.id)
         ).all()
     )
     materials = []
-    planned = float(order.planned_quantity or 0)
-    for item in bom_items:
-        component = db.get(Product, item.component_product_id)
-        required = float(item.quantity) * planned
+    for req in requirements:
+        required = float(req["required_qty"])
+        available = float(req["available_qty"])
+        issued_qty = required if issued else 0.0
         materials.append(
             ProductionMaterialRead(
-                component_name=component.name if component else f"Component #{item.component_product_id}",
+                component_name=req["component_name"],
                 required_qty=round(required, 2),
-                available_qty=0.0,
-                issued_qty=0.0,
-                balance_qty=round(required, 2),
-                unit=item.unit,
+                available_qty=round(available, 2),
+                issued_qty=round(issued_qty, 2),
+                balance_qty=round(max(required - issued_qty, 0), 2),
+                unit=req["unit"],
             )
         )
     return materials
@@ -312,7 +316,7 @@ def _run_start_checks(
 ) -> list[ProductionStartCheckRead]:
     ctx = _order_context(db, tenant_id, order)
     materials = _materials_for_order(db, tenant_id, order)
-    material_ok = all(m.available_qty >= m.required_qty * 0.5 for m in materials) if materials else True
+    material_ok = all(m.available_qty >= m.required_qty for m in materials) if materials else True
     machine = ctx["machine"]
     machine_ok = machine is not None and machine.is_active and machine.status in ("idle", "running")
     wo = ctx["active_wo"]
@@ -412,15 +416,29 @@ def complete_production_order(
         )
 
     steps = []
-    order.status = "quality_check"
-    db.commit()
-    steps.append("Production finished — quality inspection initiated")
+    # Complete linked work orders through the integrated manufacturing spine
+    from app.services.manufacturing_workflow_service import complete_work_order_integrated
 
-    order.status = "completed"
-    update_production_order_status(db, order_id, tenant_id, "completed")
-    steps.append("Quality inspection passed")
-    steps.append("Inventory updated with finished goods")
-    steps.append("Order marked completed")
+    work_orders = list(
+        db.scalars(select(WorkOrder).where(WorkOrder.production_order_id == order.id)).all()
+    )
+    if work_orders:
+        for wo in work_orders:
+            if wo.status not in {"completed", "closed", "done"}:
+                result = complete_work_order_integrated(db, tenant_id, wo.id)
+                if not result.success:
+                    return ProductionCompleteResponse(
+                        success=False,
+                        steps=result.steps or [],
+                        message=result.message or "Work order completion failed",
+                    )
+                steps.extend(result.steps or [])
+    else:
+        order.status = "completed"
+        update_production_order_status(db, order_id, tenant_id, "completed")
+        steps.append("Quality inspection recorded")
+        steps.append("Finished goods posted to inventory")
+        steps.append("Order marked completed")
 
     order = db.scalars(
         select(ProductionOrder).where(
@@ -430,9 +448,9 @@ def complete_production_order(
 
     return ProductionCompleteResponse(
         success=True,
-        steps=steps,
+        steps=steps or ["Production completed"],
         order=_to_list_read(db, tenant_id, order) if order else None,
-        message="Production completed through quality and inventory workflow",
+        message="Production completed — QC, inventory, and production updated",
     )
 
 

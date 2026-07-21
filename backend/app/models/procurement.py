@@ -22,11 +22,15 @@ class PurchaseOrder(Base, TimestampMixin):
     payment_terms: Mapped[str | None] = mapped_column(String(128))
     buyer: Mapped[str | None] = mapped_column(String(255))
     warehouse_id: Mapped[int | None] = mapped_column(ForeignKey("warehouses.id"))
+    material_request_id: Mapped[int | None] = mapped_column(
+        ForeignKey("material_requests.id")
+    )
     gst_amount: Mapped[float | None] = mapped_column(Numeric(12, 2))
     discount: Mapped[float | None] = mapped_column(Numeric(12, 2))
     notes: Mapped[str | None] = mapped_column(Text)
 
     supplier = relationship("Supplier", back_populates="purchase_orders")
+    material_request = relationship("MaterialRequest", foreign_keys=[material_request_id])
     line_items = relationship(
         "PurchaseOrderLine",
         back_populates="purchase_order",

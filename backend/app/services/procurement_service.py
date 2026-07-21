@@ -1,6 +1,10 @@
+from datetime import date
+
+from fastapi import HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session, joinedload
 
+from app.models.inventory import Supplier
 from app.models.procurement import (
     GoodsReceipt,
     GoodsReceiptLine,
@@ -12,6 +16,8 @@ from app.models.procurement import (
 )
 from app.schemas.procurement import (
     GoodsReceiptCreate,
+    GoodsReceiptQCRequest,
+    MaterialRequestConvertToPORequest,
     MaterialRequestCreate,
     PurchaseOrderCreate,
     SupplierPaymentCreate,
@@ -46,6 +52,7 @@ def create_purchase_order(db: Session, payload: PurchaseOrderCreate) -> Purchase
         status=payload.status,
         total_amount=payload.total_amount,
         notes=payload.notes,
+        material_request_id=payload.material_request_id,
     )
     db.add(po)
     db.flush()
@@ -75,7 +82,7 @@ def list_purchase_orders(db: Session, tenant_id: int) -> list[PurchaseOrder]:
         .where(PurchaseOrder.tenant_id == tenant_id)
         .order_by(PurchaseOrder.order_date.desc())
     )
-    return list(db.scalars(stmt).all())
+    return list(db.scalars(stmt).unique().all())
 
 
 def create_material_request(db: Session, payload: MaterialRequestCreate) -> MaterialRequest:
@@ -104,18 +111,122 @@ def create_material_request(db: Session, payload: MaterialRequestCreate) -> Mate
 
 
 def list_material_requests(db: Session, tenant_id: int) -> list[MaterialRequest]:
-    stmt = select(MaterialRequest).where(MaterialRequest.tenant_id == tenant_id)
-    return list(db.scalars(stmt).all())
+    stmt = (
+        select(MaterialRequest)
+        .options(joinedload(MaterialRequest.line_items))
+        .where(MaterialRequest.tenant_id == tenant_id)
+        .order_by(MaterialRequest.id.desc())
+    )
+    return list(db.scalars(stmt).unique().all())
+
+
+def get_material_request(
+    db: Session, tenant_id: int, mr_id: int
+) -> MaterialRequest | None:
+    return db.scalars(
+        select(MaterialRequest)
+        .options(joinedload(MaterialRequest.line_items))
+        .where(
+            MaterialRequest.id == mr_id,
+            MaterialRequest.tenant_id == tenant_id,
+        )
+    ).first()
+
+
+def convert_material_request_to_purchase_order(
+    db: Session,
+    tenant_id: int,
+    mr_id: int,
+    payload: MaterialRequestConvertToPORequest,
+) -> PurchaseOrder:
+    """Create a PO from MR lines (MRP shortage path) and mark the MR converted."""
+    mr = get_material_request(db, tenant_id, mr_id)
+    if not mr:
+        raise HTTPException(404, "Material request not found")
+    if mr.status in ("converted", "fulfilled", "cancelled"):
+        raise HTTPException(400, f"Material request already {mr.status}")
+    if not mr.line_items:
+        raise HTTPException(400, "Material request has no line items to purchase")
+
+    supplier = db.scalars(
+        select(Supplier).where(
+            Supplier.id == payload.supplier_id,
+            Supplier.tenant_id == tenant_id,
+        )
+    ).first()
+    if not supplier:
+        raise HTTPException(404, "Supplier not found")
+
+    unit_price = float(payload.unit_price or 0)
+    po_payload = PurchaseOrderCreate(
+        tenant_id=tenant_id,
+        supplier_id=payload.supplier_id,
+        po_number=payload.po_number or f"PO-MR-{mr.mr_number}-{int(date.today().strftime('%Y%m%d'))}",
+        order_date=date.today(),
+        expected_date=payload.expected_date or mr.required_date,
+        status=payload.status or "draft",
+        notes=payload.notes or f"Converted from material request {mr.mr_number}",
+        material_request_id=mr.id,
+        line_items=[
+            {
+                "item_id": int(line.item_id),
+                "quantity": float(line.quantity),
+                "unit_price": unit_price,
+            }
+            for line in mr.line_items
+        ],
+    )
+    po = create_purchase_order(db, po_payload)
+
+    # create_purchase_order commits; reload MR and update status
+    mr = get_material_request(db, tenant_id, mr_id)
+    if mr:
+        mr.status = "converted"
+        mr.approval_status = "approved"
+        db.commit()
+        db.refresh(po)
+
+    return po
+
+
+def _post_grn_stock(db: Session, gr: GoodsReceipt, tenant_id: int) -> None:
+    """Post accepted quantities (received − rejected) into warehouse stock."""
+    for line in gr.line_items:
+        accepted = int(
+            max(0, float(line.quantity_received or 0) - float(line.quantity_rejected or 0))
+        )
+        if accepted > 0:
+            record_stock_movement(
+                db,
+                StockMovementCreate(
+                    tenant_id=tenant_id,
+                    warehouse_id=gr.warehouse_id,
+                    item_id=line.item_id,
+                    quantity=accepted,
+                    movement_type="in",
+                ),
+            )
 
 
 def create_goods_receipt(db: Session, payload: GoodsReceiptCreate) -> GoodsReceipt:
+    """
+    Create GRN. Stock is posted only when qc_status is pass/passed.
+    Pending QC keeps inventory unchanged until QC approval.
+    """
+    qc = (payload.qc_status or "pending").lower()
+    post_stock_now = qc in ("pass", "passed", "approved")
+    status = payload.status
+    if not post_stock_now and status == "received":
+        status = "pending_qc"
+
     gr = GoodsReceipt(
         tenant_id=payload.tenant_id,
         purchase_order_id=payload.purchase_order_id,
         grn_number=payload.grn_number,
         receipt_date=payload.receipt_date,
         warehouse_id=payload.warehouse_id,
-        status=payload.status,
+        status=status,
+        qc_status="pass" if post_stock_now else "pending",
         notes=payload.notes,
     )
     db.add(gr)
@@ -128,22 +239,22 @@ def create_goods_receipt(db: Session, payload: GoodsReceiptCreate) -> GoodsRecei
             quantity_rejected=line.quantity_rejected,
         )
         db.add(grl)
-        received_qty = int(line.quantity_received or 0)
-        if received_qty > 0:
-            record_stock_movement(
-                db,
-                StockMovementCreate(
-                    tenant_id=payload.tenant_id,
-                    warehouse_id=payload.warehouse_id,
-                    item_id=line.item_id,
-                    quantity=received_qty,
-                    movement_type="in",
-                ),
-            )
-    if payload.purchase_order_id:
-        po = db.get(PurchaseOrder, payload.purchase_order_id)
-        if po and po.tenant_id == payload.tenant_id:
-            po.status = "received"
+    db.flush()
+
+    if post_stock_now:
+        # Ensure line_items are loaded for stock posting
+        db.refresh(gr)
+        gr = db.scalars(
+            select(GoodsReceipt)
+            .options(joinedload(GoodsReceipt.line_items))
+            .where(GoodsReceipt.id == gr.id)
+        ).first()
+        _post_grn_stock(db, gr, payload.tenant_id)
+        if payload.purchase_order_id:
+            po = db.get(PurchaseOrder, payload.purchase_order_id)
+            if po and po.tenant_id == payload.tenant_id:
+                po.status = "received"
+
     db.commit()
     db.refresh(gr)
     try:
@@ -155,9 +266,65 @@ def create_goods_receipt(db: Session, payload: GoodsReceiptCreate) -> GoodsRecei
     return gr
 
 
+def approve_goods_receipt_qc(
+    db: Session,
+    tenant_id: int,
+    grn_id: int,
+    payload: GoodsReceiptQCRequest,
+) -> GoodsReceipt:
+    """Pass QC → post stock; Fail QC → reject without stock."""
+    gr = db.scalars(
+        select(GoodsReceipt)
+        .options(joinedload(GoodsReceipt.line_items))
+        .where(GoodsReceipt.id == grn_id, GoodsReceipt.tenant_id == tenant_id)
+    ).first()
+    if not gr:
+        raise HTTPException(404, "Goods receipt not found")
+
+    result = (payload.result or "").lower()
+    if result not in ("pass", "passed", "fail", "failed", "reject", "rejected"):
+        raise HTTPException(400, "result must be pass or fail")
+
+    if gr.qc_status in ("pass", "passed") and gr.status == "received":
+        raise HTTPException(400, "QC already passed and stock posted")
+
+    if result in ("pass", "passed"):
+        if gr.status == "received" and gr.qc_status == "pass":
+            raise HTTPException(400, "Stock already posted for this GRN")
+        _post_grn_stock(db, gr, tenant_id)
+        gr.qc_status = "pass"
+        gr.status = "received"
+        if gr.purchase_order_id:
+            po = db.get(PurchaseOrder, gr.purchase_order_id)
+            if po and po.tenant_id == tenant_id:
+                po.status = "received"
+        if payload.notes:
+            gr.notes = ((gr.notes or "") + f"\nQC pass: {payload.notes}").strip()
+    else:
+        gr.qc_status = "rejected"
+        gr.status = "rejected"
+        if payload.notes:
+            gr.notes = ((gr.notes or "") + f"\nQC fail: {payload.notes}").strip()
+
+    db.commit()
+    db.refresh(gr)
+    try:
+        from app.services.alert_service import sync_low_stock_alerts
+
+        sync_low_stock_alerts(db, tenant_id)
+    except Exception:
+        pass
+    return gr
+
+
 def list_goods_receipts(db: Session, tenant_id: int) -> list[GoodsReceipt]:
-    stmt = select(GoodsReceipt).where(GoodsReceipt.tenant_id == tenant_id)
-    return list(db.scalars(stmt).all())
+    stmt = (
+        select(GoodsReceipt)
+        .options(joinedload(GoodsReceipt.line_items))
+        .where(GoodsReceipt.tenant_id == tenant_id)
+        .order_by(GoodsReceipt.receipt_date.desc())
+    )
+    return list(db.scalars(stmt).unique().all())
 
 
 def create_supplier_payment(db: Session, payload: SupplierPaymentCreate) -> SupplierPayment:

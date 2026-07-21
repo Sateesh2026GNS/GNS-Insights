@@ -4,8 +4,8 @@ const inputClass =
   "w-full rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-sm";
 
 /**
- * Shared line-item editor for purchase orders and goods receipts.
- * mode: "purchase" | "grn"
+ * Shared line-item editor for purchase orders, goods receipts, and material requests.
+ * mode: "purchase" | "grn" | "request"
  */
 export default function InventoryLineItems({
   items = [],
@@ -18,7 +18,9 @@ export default function InventoryLineItems({
       ...lines,
       mode === "purchase"
         ? { item_id: "", quantity: "", unit_price: "" }
-        : { item_id: "", quantity_received: "", quantity_rejected: "0" },
+        : mode === "request"
+          ? { item_id: "", quantity: "", notes: "" }
+          : { item_id: "", quantity_received: "", quantity_rejected: "0" },
     ]);
   };
 
@@ -93,6 +95,19 @@ export default function InventoryLineItems({
                 />
               </div>
             </>
+          ) : mode === "request" ? (
+            <div className="sm:col-span-5">
+              <label className="text-xs text-slate-500">Qty</label>
+              <input
+                type="number"
+                min="0.01"
+                step="0.01"
+                required
+                value={line.quantity}
+                onChange={(e) => updateLine(index, "quantity", e.target.value)}
+                className={inputClass}
+              />
+            </div>
           ) : (
             <>
               <div className="sm:col-span-3">

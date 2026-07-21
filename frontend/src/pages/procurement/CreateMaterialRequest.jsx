@@ -1,12 +1,17 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 
 import PageHeader from "../../components/common/PageHeader";
+import InventoryLineItems from "../../components/common/InventoryLineItems";
+import ManufacturingWorkflowBar from "../../components/manufacturing/ManufacturingWorkflowBar";
 import { createMaterialRequest } from "../../api/procurementApi";
+import { getInventoryDashboard } from "../../api/inventoryApi";
 import useTenantId from "../../hooks/useTenantId";
-
-
+import {
+  MANUFACTURING_EVENTS,
+  notifyManufacturingSpine,
+} from "../../utils/manufacturingEvents";
 
 const inputClass =
   "mt-1.5 w-full rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 px-4 py-2.5 text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/20";
@@ -16,6 +21,8 @@ const STATUSES = ["pending", "approved", "rejected", "fulfilled"];
 export default function CreateMaterialRequest() {
   const tenantId = useTenantId();
   const navigate = useNavigate();
+  const [inventoryItems, setInventoryItems] = useState([]);
+  const [lineItems, setLineItems] = useState([{ item_id: "", quantity: "", notes: "" }]);
   const [form, setForm] = useState({
     tenant_id: tenantId,
     mr_number: "",
@@ -28,29 +35,51 @@ export default function CreateMaterialRequest() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
+  useEffect(() => {
+    getInventoryDashboard()
+      .then((r) => setInventoryItems(r.data || []))
+      .catch(() => setInventoryItems([]));
+  }, []);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    const validLines = lineItems.filter((l) => l.item_id && Number(l.quantity) > 0);
+    if (validLines.length === 0) {
+      setError("Add at least one inventory line item.");
+      return;
+    }
     setError("");
     setSaving(true);
     try {
-      await createMaterialRequest({
+      const res = await createMaterialRequest({
         ...form,
+        tenant_id: tenantId,
         mr_number: form.mr_number || `MR-${Date.now()}`,
         required_date: form.required_date || null,
         requested_by: form.requested_by || null,
         notes: form.notes || null,
-        line_items: [],
+        line_items: validLines.map((l) => ({
+          item_id: Number(l.item_id),
+          quantity: Number(l.quantity),
+          notes: l.notes || null,
+        })),
+      });
+      notifyManufacturingSpine(MANUFACTURING_EVENTS.MRP_RUN, {
+        mr_id: res.data?.id,
+        created: true,
       });
       navigate("/procurement/material-requests");
     } catch (err) {
-      setError(err.response?.data?.detail || err.message || "Failed to create material request.");
+      setError(
+        err.response?.data?.detail || err.message || "Failed to create material request."
+      );
     } finally {
       setSaving(false);
     }
   };
 
   return (
-    <div className="mx-auto max-w-lg space-y-6">
+    <div className="mx-auto max-w-2xl space-y-6">
       <Link
         to="/procurement/material-requests"
         className="inline-flex items-center gap-2 text-sm font-medium text-teal-600 hover:text-teal-700 dark:text-teal-400"
@@ -58,9 +87,10 @@ export default function CreateMaterialRequest() {
         <ArrowLeft className="h-4 w-4" />
         Back to material requests
       </Link>
+      <ManufacturingWorkflowBar currentStepId="purchase_request" compact />
       <PageHeader
         title="New material request"
-        subtitle="Create a material request. You can add line items later."
+        subtitle="Request raw materials for production. Convert to a purchase order when ready."
       />
       <form onSubmit={handleSubmit} className="ui-card space-y-4 p-6">
         {error && (
@@ -123,6 +153,12 @@ export default function CreateMaterialRequest() {
             ))}
           </select>
         </label>
+        <InventoryLineItems
+          items={inventoryItems}
+          lines={lineItems}
+          onChange={setLineItems}
+          mode="request"
+        />
         <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
           Notes
           <textarea

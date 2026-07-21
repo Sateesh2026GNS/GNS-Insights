@@ -43,7 +43,7 @@ def get_mr_summary(db: Session, tenant_id: int) -> MRSummaryRead:
         pending_approval=pending,
         approved=approved,
         rejected=rejected,
-        converted_to_rfq=rfq_count,
+        converted_to_rfq=sum(1 for m in mrs if m.status == "converted") + rfq_count,
         urgent_requests=urgent,
     )
 
@@ -155,10 +155,10 @@ def get_po_summary(db: Session, tenant_id: int) -> POSummaryRead:
     value = sum(float(p.total_amount or 0) for p in pos)
     return POSummaryRead(
         total_po=len(pos),
-        pending=sum(1 for p in pos if p.status in ("draft", "pending")) or 12,
-        approved=sum(1 for p in pos if p.status == "approved") or 45,
-        delivered=sum(1 for p in pos if p.status in ("received", "delivered")) or 22,
-        cancelled=sum(1 for p in pos if p.status == "cancelled") or 3,
+        pending=sum(1 for p in pos if p.status in ("draft", "pending")),
+        approved=sum(1 for p in pos if p.status == "approved"),
+        delivered=sum(1 for p in pos if p.status in ("received", "delivered")),
+        cancelled=sum(1 for p in pos if p.status == "cancelled"),
         po_value=value,
     )
 
@@ -193,10 +193,20 @@ def get_grn_summary(db: Session, tenant_id: int) -> GRNSummaryRead:
     today = date.today()
     return GRNSummaryRead(
         todays_grn=sum(1 for g in grns if g.receipt_date == today),
-        pending_qc=sum(1 for g in grns if getattr(g, "qc_status", "pending") == "pending") or 6,
-        received=sum(1 for g in grns if g.status == "received") or 32,
-        rejected=sum(1 for g in grns if g.status == "rejected") or 2,
-        total_value=1_250_000,
+        pending_qc=sum(
+            1
+            for g in grns
+            if (getattr(g, "qc_status", "pending") or "pending") == "pending"
+            or g.status == "pending_qc"
+        ),
+        received=sum(1 for g in grns if g.status == "received"),
+        rejected=sum(
+            1
+            for g in grns
+            if g.status == "rejected"
+            or (getattr(g, "qc_status", None) or "") == "rejected"
+        ),
+        total_value=0.0,
     )
 
 

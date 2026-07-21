@@ -4,86 +4,201 @@ import { CheckCircle, Package, Plus, RefreshCw, X } from "lucide-react";
 
 import DataTable from "../../components/common/DataTable";
 import Loader from "../../components/common/Loader";
+import ManufacturingWorkflowBar from "../../components/manufacturing/ManufacturingWorkflowBar";
 import { useToast } from "../../context/ToastContext";
-import { getGRNEnriched, getGRNSummary } from "../../api/procurementApi";
-import { DEMO_GRN_LIST, DEMO_GRN_SUMMARY, formatInr, statusColor } from "../../data/procurementMasterData";
+import {
+  approveGoodsReceiptQC,
+  getGRNEnriched,
+  getGRNSummary,
+} from "../../api/procurementApi";
+import { formatInr, statusColor } from "../../data/procurementMasterData";
+import useManufacturingRefresh from "../../hooks/useManufacturingRefresh";
+import {
+  MANUFACTURING_EVENTS,
+  notifyManufacturingSpine,
+} from "../../utils/manufacturingEvents";
 
 function KpiCard({ label, value, icon: Icon, color }) {
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
       <div className="flex items-center justify-between">
-        <div><p className="text-xs font-medium text-slate-500">{label}</p><p className="mt-1 text-xl font-bold text-slate-900">{value}</p></div>
-        {Icon && <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${color}`}><Icon className="h-5 w-5 text-white" /></div>}
+        <div>
+          <p className="text-xs font-medium text-slate-500">{label}</p>
+          <p className="mt-1 text-xl font-bold text-slate-900">{value ?? 0}</p>
+        </div>
+        {Icon && (
+          <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${color}`}>
+            <Icon className="h-5 w-5 text-white" />
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
-function WorkflowStrip() {
-  const steps = ["Purchase Order", "Goods Received", "QC Inspection", "Accepted", "Inventory Updated"];
-  return (
-    <div className="flex flex-wrap items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs font-medium text-slate-600">
-      {steps.map((s, i) => (
-        <span key={s} className="flex items-center gap-2">
-          <span className="rounded-lg bg-white px-2 py-1 shadow-sm">{s}</span>
-          {i < steps.length - 1 && <span className="text-slate-400">↓</span>}
-        </span>
-      ))}
-    </div>
-  );
-}
-
-function GRNDetailModal({ row, onClose }) {
+function GRNDetailModal({ row, onClose, onQC }) {
   if (!row) return null;
+  const pending =
+    (row.qc_status || "pending") === "pending" || row.status === "pending_qc";
+
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 sm:items-center">
       <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl">
         <div className="flex items-start justify-between">
           <div>
             <h2 className="text-lg font-bold text-slate-900">{row.grn_number}</h2>
-            <p className="text-sm text-slate-500">PO: {row.po_number} · {row.vendor_name}</p>
+            <p className="text-sm text-slate-500">
+              PO: {row.po_number || "—"} · {row.vendor_name || "—"}
+            </p>
           </div>
-          <button type="button" onClick={onClose} className="rounded-lg p-2 text-slate-400 hover:bg-slate-100"><X className="h-5 w-5" /></button>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-lg p-2 text-slate-400 hover:bg-slate-100"
+          >
+            <X className="h-5 w-5" />
+          </button>
         </div>
         <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
-          <div><p className="text-xs text-slate-400">Warehouse</p><p className="font-medium">{row.warehouse_name || "—"}</p></div>
-          <div><p className="text-xs text-slate-400">Quantity</p><p className="font-medium">{row.quantity}</p></div>
-          <div><p className="text-xs text-slate-400">QC Status</p><span className={`rounded-full px-2 py-0.5 text-xs font-semibold capitalize ${statusColor(row.qc_status)}`}>{row.qc_status}</span></div>
-          <div><p className="text-xs text-slate-400">Received By</p><p className="font-medium">{row.received_by || "—"}</p></div>
+          <div>
+            <p className="text-xs text-slate-400">Warehouse</p>
+            <p className="font-medium">{row.warehouse_name || "—"}</p>
+          </div>
+          <div>
+            <p className="text-xs text-slate-400">Quantity</p>
+            <p className="font-medium">{row.quantity}</p>
+          </div>
+          <div>
+            <p className="text-xs text-slate-400">QC Status</p>
+            <span
+              className={`rounded-full px-2 py-0.5 text-xs font-semibold capitalize ${statusColor(row.qc_status)}`}
+            >
+              {row.qc_status}
+            </span>
+          </div>
+          <div>
+            <p className="text-xs text-slate-400">Received By</p>
+            <p className="font-medium">{row.received_by || "—"}</p>
+          </div>
         </div>
-        <div className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs text-emerald-800">
-          After GRN: Raw Material Inventory automatically increased · Stock Ledger entry created
+        <div
+          className={`mt-4 rounded-lg border px-4 py-3 text-xs ${
+            pending
+              ? "border-amber-200 bg-amber-50 text-amber-900"
+              : row.qc_status === "pass" || row.qc_status === "passed"
+                ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+                : "border-red-200 bg-red-50 text-red-800"
+          }`}
+        >
+          {pending
+            ? "Pending QC — inventory is not updated until inspection passes."
+            : row.qc_status === "rejected"
+              ? "QC rejected — no stock posted."
+              : "QC passed — raw material inventory and stock ledger updated."}
         </div>
-        <button type="button" onClick={onClose} className="mt-4 w-full rounded-lg border px-4 py-2 text-sm font-semibold text-slate-700">Close</button>
+        <div className="mt-4 flex flex-wrap gap-2">
+          {pending && typeof row.id === "number" && (
+            <>
+              <button
+                type="button"
+                onClick={() => onQC(row, "pass")}
+                className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white"
+              >
+                Pass QC (post stock)
+              </button>
+              <button
+                type="button"
+                onClick={() => onQC(row, "fail")}
+                className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white"
+              >
+                Fail QC
+              </button>
+            </>
+          )}
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-lg border px-4 py-2 text-sm font-semibold text-slate-700"
+          >
+            Close
+          </button>
+        </div>
       </div>
     </div>
   );
 }
 
+const emptySummary = {
+  todays_grn: 0,
+  pending_qc: 0,
+  received: 0,
+  rejected: 0,
+  total_value: 0,
+};
+
 export default function GoodsReceipt() {
   const { addToast } = useToast();
   const [loading, setLoading] = useState(true);
-  const [summary, setSummary] = useState(DEMO_GRN_SUMMARY);
+  const [summary, setSummary] = useState(emptySummary);
   const [rows, setRows] = useState([]);
   const [selected, setSelected] = useState(null);
+  const [qcBusy, setQcBusy] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
       const [sumRes, listRes] = await Promise.allSettled([getGRNSummary(), getGRNEnriched()]);
-      if (sumRes.status === "fulfilled" && sumRes.value?.data) setSummary({ ...DEMO_GRN_SUMMARY, ...sumRes.value.data });
-      if (listRes.status === "fulfilled" && listRes.value?.data?.length) setRows(listRes.value.data);
+      if (sumRes.status === "fulfilled" && sumRes.value?.data) {
+        setSummary({ ...emptySummary, ...sumRes.value.data });
+      } else {
+        setSummary(emptySummary);
+      }
+      if (listRes.status === "fulfilled") setRows(listRes.value?.data || []);
       else setRows([]);
     } catch {
+      addToast("Failed to load goods receipts", "error");
     } finally {
       setLoading(false);
     }
   }, [addToast]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  useManufacturingRefresh(load);
+
+  const handleQC = async (row, result) => {
+    if (qcBusy) return;
+    setQcBusy(true);
+    try {
+      await approveGoodsReceiptQC(row.id, { result });
+      if (result === "pass") {
+        notifyManufacturingSpine(MANUFACTURING_EVENTS.GRN_QC_PASSED, { grn_id: row.id });
+        addToast("QC passed — stock posted to inventory");
+      } else {
+        notifyManufacturingSpine(MANUFACTURING_EVENTS.GRN_RECEIVED, {
+          grn_id: row.id,
+          rejected: true,
+        });
+        addToast("QC failed — GRN rejected");
+      }
+      setSelected(null);
+      load();
+    } catch (err) {
+      addToast(err.response?.data?.detail || "QC update failed", "error");
+    } finally {
+      setQcBusy(false);
+    }
+  };
 
   const qcColor = (qc) => {
-    const m = { passed: "bg-green-100 text-green-800", pending: "bg-amber-100 text-amber-800", rejected: "bg-red-100 text-red-800" };
+    const m = {
+      passed: "bg-green-100 text-green-800",
+      pass: "bg-green-100 text-green-800",
+      pending: "bg-amber-100 text-amber-800",
+      rejected: "bg-red-100 text-red-800",
+    };
     return m[qc] || m.pending;
   };
 
@@ -93,12 +208,42 @@ export default function GoodsReceipt() {
     { key: "vendor_name", label: "Vendor" },
     { key: "warehouse_name", label: "Warehouse" },
     { key: "quantity", label: "Qty" },
-    { key: "qc_status", label: "QC", render: (r) => <span className={`rounded-full px-2 py-0.5 text-xs font-semibold capitalize ${qcColor(r.qc_status)}`}>{r.qc_status || "pending"}</span> },
+    {
+      key: "qc_status",
+      label: "QC",
+      render: (r) => (
+        <span
+          className={`rounded-full px-2 py-0.5 text-xs font-semibold capitalize ${qcColor(r.qc_status)}`}
+        >
+          {r.qc_status || "pending"}
+        </span>
+      ),
+    },
     { key: "received_by", label: "Received By" },
-    { key: "status", label: "Status", render: (r) => <span className={`rounded-full px-2 py-0.5 text-xs font-semibold capitalize ${statusColor(r.status)}`}>{r.status}</span> },
-    { key: "actions", label: "Actions", render: (r) => (
-      <button type="button" onClick={() => setSelected(r)} className="text-xs font-semibold text-[#2563EB] hover:underline">View</button>
-    )},
+    {
+      key: "status",
+      label: "Status",
+      render: (r) => (
+        <span
+          className={`rounded-full px-2 py-0.5 text-xs font-semibold capitalize ${statusColor(r.status)}`}
+        >
+          {r.status}
+        </span>
+      ),
+    },
+    {
+      key: "actions",
+      label: "Actions",
+      render: (r) => (
+        <button
+          type="button"
+          onClick={() => setSelected(r)}
+          className="text-xs font-semibold text-[#2563EB] hover:underline"
+        >
+          View
+        </button>
+      ),
+    },
   ];
 
   if (loading) return <Loader label="Loading goods receipts..." />;
@@ -108,29 +253,55 @@ export default function GoodsReceipt() {
       <header className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Goods Receipt Note (GRN)</h1>
-          <p className="mt-1 text-sm text-slate-500">Receive goods against PO with QC inspection and automatic inventory update.</p>
+          <p className="mt-1 text-sm text-slate-500">
+            Receive against PO, run incoming QC, then post accepted qty to raw material inventory.
+          </p>
         </div>
         <div className="flex gap-2">
-          <Link to="/procurement/goods-receipt/create" className="ui-btn-primary"><Plus className="h-4 w-4" /> New GRN</Link>
-          <button type="button" onClick={load} className="inline-flex items-center gap-2 rounded-lg border bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50"><RefreshCw className="h-4 w-4" /> Refresh</button>
+          <Link to="/procurement/goods-receipt/create" className="ui-btn-primary">
+            <Plus className="h-4 w-4" /> New GRN
+          </Link>
+          <button
+            type="button"
+            onClick={load}
+            className="inline-flex items-center gap-2 rounded-lg border bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+          >
+            <RefreshCw className="h-4 w-4" /> Refresh
+          </button>
         </div>
       </header>
+
+      <ManufacturingWorkflowBar currentStepId="grn" />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <KpiCard label="Today's GRN" value={summary.todays_grn} icon={Package} color="bg-blue-600" />
         <KpiCard label="Pending QC" value={summary.pending_qc} icon={Package} color="bg-amber-500" />
         <KpiCard label="Received" value={summary.received} icon={CheckCircle} color="bg-green-600" />
         <KpiCard label="Rejected" value={summary.rejected} icon={Package} color="bg-red-500" />
-        <KpiCard label="Total Value" value={formatInr(summary.total_value)} icon={Package} color="bg-indigo-600" />
+        <KpiCard
+          label="Total Value"
+          value={formatInr(summary.total_value)}
+          icon={Package}
+          color="bg-indigo-600"
+        />
       </div>
-
-      <WorkflowStrip />
 
       <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-        <DataTable columns={columns} data={rows} searchPlaceholder="Search GRN, PO, vendor..." searchKeys={["grn_number", "po_number", "vendor_name"]} />
+        <DataTable
+          columns={columns}
+          data={rows}
+          searchPlaceholder="Search GRN, PO, vendor..."
+          searchKeys={["grn_number", "po_number", "vendor_name"]}
+        />
       </div>
 
-      {selected && <GRNDetailModal row={selected} onClose={() => setSelected(null)} />}
+      {selected && (
+        <GRNDetailModal
+          row={selected}
+          onClose={() => setSelected(null)}
+          onQC={handleQC}
+        />
+      )}
     </div>
   );
 }

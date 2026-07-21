@@ -147,14 +147,24 @@ def list_so_enriched(db: Session, tenant_id: int) -> list[SOListRead]:
 def get_dispatch_summary(db: Session, tenant_id: int) -> DispatchSummaryRead:
     orders = list(db.scalars(select(SalesOrder).where(SalesOrder.tenant_id == tenant_id)).all())
     packed = sum(1 for o in orders if o.packed and not o.shipped)
-    in_transit = sum(1 for o in orders if o.shipped and o.status != "delivered")
+    in_transit = sum(1 for o in orders if o.shipped and o.status not in ("delivered", "closed"))
     delivered = sum(1 for o in orders if o.status in ("delivered", "closed"))
-    ready = sum(1 for o in orders if o.status == "confirmed" and not o.packed)
-    dispatches = list(db.scalars(select(DispatchShipment).where(DispatchShipment.tenant_id == tenant_id)).all())
-    delayed = sum(1 for d in dispatches if d.eta and d.eta < date.today() and d.status != "delivered")
+    ready = sum(
+        1
+        for o in orders
+        if o.status in ("confirmed", "in_production", "ready") and not o.packed
+    )
+    dispatches = list(
+        db.scalars(select(DispatchShipment).where(DispatchShipment.tenant_id == tenant_id)).all()
+    )
+    delayed = sum(
+        1
+        for d in dispatches
+        if d.eta and d.eta < date.today() and d.status not in ("delivered", "closed")
+    )
     return DispatchSummaryRead(
         ready_to_dispatch=ready,
-        packed=packed or len(dispatches),
+        packed=packed,
         in_transit=in_transit,
         delivered=delivered,
         delayed=delayed,
@@ -162,10 +172,14 @@ def get_dispatch_summary(db: Session, tenant_id: int) -> DispatchSummaryRead:
 
 
 def list_dispatch_enriched(db: Session, tenant_id: int) -> list[DispatchListRead]:
+    """Prefer real DispatchShipment rows; fall back to packed/shipped SOs without fake courier data."""
     dispatches = list(
         db.scalars(
             select(DispatchShipment)
-            .options(joinedload(DispatchShipment.sales_order), joinedload(DispatchShipment.customer))
+            .options(
+                joinedload(DispatchShipment.sales_order),
+                joinedload(DispatchShipment.customer),
+            )
             .where(DispatchShipment.tenant_id == tenant_id)
             .order_by(DispatchShipment.dispatch_date.desc())
         ).all()
@@ -174,7 +188,9 @@ def list_dispatch_enriched(db: Session, tenant_id: int) -> list[DispatchListRead
         return [
             DispatchListRead(
                 id=d.id,
+                sales_order_id=d.sales_order_id,
                 dispatch_number=d.dispatch_number,
+                challan_number=d.dispatch_number,
                 so_number=d.sales_order.order_number if d.sales_order else None,
                 customer_name=d.customer.name if d.customer else None,
                 courier=d.courier,
@@ -185,32 +201,43 @@ def list_dispatch_enriched(db: Session, tenant_id: int) -> list[DispatchListRead
                 status=d.status,
                 lr_number=d.lr_number,
                 tracking_url=d.tracking_url,
+                packed=bool(d.sales_order.packed) if d.sales_order else d.status == "packed",
+                shipped=bool(d.sales_order.shipped) if d.sales_order else d.status in ("in_transit", "shipped", "delivered"),
+                invoiced=bool(d.sales_order.invoiced) if d.sales_order else False,
             )
             for d in dispatches
         ]
+
     orders = list(
         db.scalars(
             select(SalesOrder)
             .options(joinedload(SalesOrder.customer))
-            .where(SalesOrder.tenant_id == tenant_id, SalesOrder.packed.is_(True))
+            .where(
+                SalesOrder.tenant_id == tenant_id,
+                SalesOrder.packed.is_(True),
+            )
             .order_by(SalesOrder.order_date.desc())
-            .limit(20)
         ).all()
     )
     return [
         DispatchListRead(
             id=o.id,
-            dispatch_number=f"DSP-{o.id:05d}",
+            sales_order_id=o.id,
+            dispatch_number=f"DC-{o.order_number}",
+            challan_number=f"DC-{o.order_number}",
             so_number=o.order_number,
             customer_name=o.customer.name if o.customer else None,
-            courier="BlueDart",
-            vehicle_number=f"KA-01-{1000 + o.id}",
-            driver_name="Suresh Reddy",
+            courier=None,
+            vehicle_number=None,
+            driver_name=None,
             dispatch_date=o.order_date.isoformat() if o.order_date else None,
             eta=o.delivery_date.isoformat() if getattr(o, "delivery_date", None) else None,
             status="in_transit" if o.shipped else "packed",
-            lr_number=f"LR-{o.id:06d}",
+            lr_number=None,
             tracking_url=None,
+            packed=bool(o.packed),
+            shipped=bool(o.shipped),
+            invoiced=bool(o.invoiced),
         )
         for o in orders
     ]
@@ -220,12 +247,16 @@ def get_invoice_summary(db: Session, tenant_id: int) -> InvoiceSummaryRead:
     invs = list(db.scalars(select(Invoice).where(Invoice.tenant_id == tenant_id)).all())
     today = date.today()
     revenue = sum(float(i.grand_total or 0) for i in invs if i.status == "paid")
-    overdue = sum(1 for i in invs if i.due_date and i.due_date < today and i.status not in ("paid", "draft"))
+    overdue = sum(
+        1
+        for i in invs
+        if i.due_date and i.due_date < today and i.status not in ("paid", "draft")
+    )
     return InvoiceSummaryRead(
         total_invoices=len(invs),
-        draft=sum(1 for i in invs if i.status == "draft") or 8,
-        paid=sum(1 for i in invs if i.status == "paid") or 62,
-        pending=sum(1 for i in invs if i.status in ("sent", "partial")) or 18,
+        draft=sum(1 for i in invs if i.status == "draft"),
+        paid=sum(1 for i in invs if i.status == "paid"),
+        pending=sum(1 for i in invs if i.status in ("sent", "partial", "issued")),
         overdue=overdue,
         revenue=revenue,
     )

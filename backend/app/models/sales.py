@@ -98,6 +98,29 @@ class SalesOrder(Base, TimestampMixin):
     customer = relationship("Customer", back_populates="sales_orders")
     invoices = relationship("Invoice", back_populates="sales_order")
     dispatches = relationship("DispatchShipment", back_populates="sales_order")
+    line_items = relationship(
+        "SalesOrderLine",
+        back_populates="sales_order",
+        cascade="all, delete-orphan",
+    )
+
+
+class SalesOrderLine(Base, TimestampMixin):
+    __tablename__ = "sales_order_lines"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    sales_order_id: Mapped[int] = mapped_column(
+        ForeignKey("sales_orders.id"), nullable=False, index=True
+    )
+    product_id: Mapped[int | None] = mapped_column(ForeignKey("products.id"), index=True)
+    item_description: Mapped[str] = mapped_column(String(255), nullable=False)
+    quantity: Mapped[float] = mapped_column(Numeric(12, 2), nullable=False)
+    unit: Mapped[str] = mapped_column(String(32), default="pcs", nullable=False)
+    unit_price: Mapped[float] = mapped_column(Numeric(12, 2), default=0, nullable=False)
+    line_total: Mapped[float] = mapped_column(Numeric(12, 2), default=0, nullable=False)
+
+    sales_order = relationship("SalesOrder", back_populates="line_items")
+    product = relationship("Product")
 
 
 class Invoice(Base, TimestampMixin):

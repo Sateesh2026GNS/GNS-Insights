@@ -4,33 +4,98 @@ import { MapPin, Package, RefreshCw, Truck, X } from "lucide-react";
 
 import DataTable from "../../components/common/DataTable";
 import Loader from "../../components/common/Loader";
+import ManufacturingWorkflowBar from "../../components/manufacturing/ManufacturingWorkflowBar";
 import { useToast } from "../../context/ToastContext";
-import { getDispatchEnriched, getDispatchSummary } from "../../api/dispatchApi";
+import {
+  getDeliveryChallan,
+  getDispatchEnriched,
+  getDispatchSummary,
+} from "../../api/dispatchApi";
 import { updateSalesOrderDispatch } from "../../api/salesApi";
-import { DEMO_DISPATCH_LIST, DEMO_DISPATCH_SUMMARY, statusColor } from "../../data/salesMasterData";
+import { statusColor } from "../../data/salesMasterData";
+import useManufacturingRefresh from "../../hooks/useManufacturingRefresh";
+import {
+  MANUFACTURING_EVENTS,
+  notifyManufacturingSpine,
+} from "../../utils/manufacturingEvents";
 
 function KpiCard({ label, value, icon: Icon, color }) {
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
       <div className="flex items-center justify-between">
-        <div><p className="text-xs font-medium text-slate-500">{label}</p><p className="mt-1 text-xl font-bold text-slate-900">{value}</p></div>
-        {Icon && <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${color}`}><Icon className="h-5 w-5 text-white" /></div>}
+        <div>
+          <p className="text-xs font-medium text-slate-500">{label}</p>
+          <p className="mt-1 text-xl font-bold text-slate-900">{value ?? 0}</p>
+        </div>
+        {Icon && (
+          <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${color}`}>
+            <Icon className="h-5 w-5 text-white" />
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
-function TrackingModal({ row, onClose }) {
+function printChallan(challan) {
+  const linesHtml = (challan.lines || [])
+    .map(
+      (l, i) =>
+        `<tr><td>${i + 1}</td><td>${l.description || ""}</td><td>${l.quantity}</td><td>${l.unit || ""}</td><td>${l.line_total ?? ""}</td></tr>`
+    )
+    .join("");
+  const html = `<!doctype html><html><head><title>${challan.challan_number}</title>
+    <style>
+      body{font-family:Segoe UI,Arial,sans-serif;padding:24px;color:#111}
+      h1{font-size:18px;margin:0 0 4px} h2{font-size:14px;margin:16px 0 8px;color:#334}
+      table{width:100%;border-collapse:collapse;margin-top:12px;font-size:12px}
+      th,td{border:1px solid #cbd5e1;padding:6px 8px;text-align:left}
+      th{background:#f1f5f9} .meta{display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px}
+      @media print{button{display:none}}
+    </style></head><body>
+    <h1>Delivery Challan — ${challan.challan_number}</h1>
+    <p style="margin:0 0 12px;font-size:12px;color:#64748b">SO ${challan.so_number || "—"} · ${challan.dispatch_date || ""}</p>
+    <div class="meta">
+      <div><strong>Customer</strong><br>${challan.customer_name || "—"}<br>${challan.customer_address || ""}</div>
+      <div><strong>Transport</strong><br>${challan.courier || "—"} · ${challan.vehicle_number || "—"}<br>Driver: ${challan.driver_name || "—"} · LR: ${challan.lr_number || "—"}</div>
+    </div>
+    <h2>Line items</h2>
+    <table><thead><tr><th>#</th><th>Description</th><th>Qty</th><th>Unit</th><th>Amount</th></tr></thead>
+    <tbody>${linesHtml || "<tr><td colspan=5>No lines</td></tr>"}</tbody></table>
+    <p style="margin-top:12px;font-size:13px"><strong>Total:</strong> ${Number(challan.total_amount || 0).toLocaleString("en-IN")}</p>
+    <button onclick="window.print()">Print</button>
+    </body></html>`;
+  const w = window.open("", "_blank", "width=900,height=700");
+  if (w) {
+    w.document.write(html);
+    w.document.close();
+  }
+}
+
+function TrackingModal({ row, onClose, onPrintChallan, onShip }) {
   if (!row) return null;
+  const soId = row.sales_order_id || row.id;
+  const canShip = row.status === "packed" || (row.packed && !row.shipped);
+
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 sm:items-center">
       <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl">
         <div className="flex items-start justify-between">
           <div>
-            <h2 className="text-lg font-bold text-slate-900">{row.dispatch_number}</h2>
-            <p className="text-sm text-slate-500">{row.so_number} · {row.customer_name}</p>
+            <h2 className="text-lg font-bold text-slate-900">
+              {row.challan_number || row.dispatch_number}
+            </h2>
+            <p className="text-sm text-slate-500">
+              {row.so_number} · {row.customer_name}
+            </p>
           </div>
-          <button type="button" onClick={onClose} className="rounded-lg p-2 text-slate-400 hover:bg-slate-100"><X className="h-5 w-5" /></button>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-lg p-2 text-slate-400 hover:bg-slate-100"
+          >
+            <X className="h-5 w-5" />
+          </button>
         </div>
         <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
           <Field label="Courier" value={row.courier} />
@@ -41,11 +106,35 @@ function TrackingModal({ row, onClose }) {
           <Field label="ETA" value={row.eta} />
         </div>
         <div className="mt-4 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-xs text-blue-800">
-          <MapPin className="mb-1 inline h-4 w-4" /> GPS Tracking: Vehicle {row.vehicle_number} — {row.status === "in_transit" ? "En route" : row.status}
+          <MapPin className="mb-1 inline h-4 w-4" /> Status:{" "}
+          {row.status === "in_transit" ? "En route" : row.status}
+          {row.shipped ? " · FG stock deducted" : " · Packing complete"}
         </div>
-        <div className="mt-4 flex gap-2">
-          <button type="button" className="rounded-lg border px-4 py-2 text-sm font-semibold text-slate-700">Print Delivery Challan</button>
-          <button type="button" className="rounded-lg border px-4 py-2 text-sm font-semibold text-slate-700">Shipping Label</button>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => onPrintChallan(soId)}
+            className="rounded-lg border px-4 py-2 text-sm font-semibold text-slate-700"
+          >
+            Print Delivery Challan
+          </button>
+          {canShip && (
+            <button
+              type="button"
+              onClick={() => onShip(row)}
+              className="rounded-lg bg-teal-600 px-4 py-2 text-sm font-semibold text-white"
+            >
+              Ship (stock out)
+            </button>
+          )}
+          {row.shipped && !row.invoiced && (
+            <Link
+              to={`/sales/invoices/create?sales_order_id=${soId}`}
+              className="rounded-lg bg-[#2563EB] px-4 py-2 text-sm font-semibold text-white"
+            >
+              Create Invoice
+            </Link>
+          )}
         </div>
       </div>
     </div>
@@ -61,60 +150,129 @@ function Field({ label, value }) {
   );
 }
 
+const emptySummary = {
+  ready_to_dispatch: 0,
+  packed: 0,
+  in_transit: 0,
+  delivered: 0,
+  delayed: 0,
+};
+
 export default function Dispatch() {
   const { addToast } = useToast();
   const [loading, setLoading] = useState(true);
-  const [summary, setSummary] = useState(DEMO_DISPATCH_SUMMARY);
+  const [summary, setSummary] = useState(emptySummary);
   const [rows, setRows] = useState([]);
   const [selected, setSelected] = useState(null);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [sumRes, listRes] = await Promise.allSettled([getDispatchSummary(), getDispatchEnriched()]);
-      if (sumRes.status === "fulfilled" && sumRes.value?.data) setSummary({ ...DEMO_DISPATCH_SUMMARY, ...sumRes.value.data });
-      if (listRes.status === "fulfilled" && listRes.value?.data?.length) setRows(listRes.value.data);
+      const [sumRes, listRes] = await Promise.allSettled([
+        getDispatchSummary(),
+        getDispatchEnriched(),
+      ]);
+      if (sumRes.status === "fulfilled" && sumRes.value?.data) {
+        setSummary({ ...emptySummary, ...sumRes.value.data });
+      } else setSummary(emptySummary);
+      if (listRes.status === "fulfilled") setRows(listRes.value?.data || []);
       else setRows([]);
     } catch {
+      addToast("Failed to load dispatch", "error");
     } finally {
       setLoading(false);
     }
   }, [addToast]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  useManufacturingRefresh(load);
 
   const handleShip = async (row) => {
-    if (typeof row.id === "number") {
-      try {
-        await updateSalesOrderDispatch(row.id, { shipped: true });
-        addToast("Marked as shipped");
-        load();
-      } catch (err) {
-        addToast(err.response?.data?.detail || "Update failed", "error");
-      }
-    } else {
-      addToast("Shipment tracked (demo)");
+    const soId = row.sales_order_id || row.id;
+    if (typeof soId !== "number") {
+      addToast("Invalid sales order", "error");
+      return;
+    }
+    try {
+      await updateSalesOrderDispatch(soId, { shipped: true });
+      notifyManufacturingSpine(MANUFACTURING_EVENTS.ORDER_SHIPPED, {
+        sales_order_id: soId,
+      });
+      addToast("Shipped — finished goods stock deducted");
+      setSelected(null);
+      load();
+    } catch (err) {
+      addToast(err.response?.data?.detail || "Ship failed", "error");
+    }
+  };
+
+  const handlePrintChallan = async (salesOrderId) => {
+    try {
+      const res = await getDeliveryChallan(salesOrderId);
+      printChallan(res.data);
+    } catch (err) {
+      addToast(err.response?.data?.detail || "Failed to load challan", "error");
     }
   };
 
   const columns = [
-    { key: "dispatch_number", label: "Dispatch No" },
+    {
+      key: "dispatch_number",
+      label: "Challan / Dispatch",
+      render: (r) => r.challan_number || r.dispatch_number,
+    },
     { key: "so_number", label: "SO No" },
     { key: "customer_name", label: "Customer" },
-    { key: "courier", label: "Courier" },
-    { key: "vehicle_number", label: "Vehicle" },
-    { key: "driver_name", label: "Driver" },
-    { key: "dispatch_date", label: "Dispatch Date", render: (r) => String(r.dispatch_date || "").slice(0, 10) },
+    { key: "courier", label: "Courier", render: (r) => r.courier || "—" },
+    {
+      key: "vehicle_number",
+      label: "Vehicle",
+      render: (r) => r.vehicle_number || "—",
+    },
+    {
+      key: "dispatch_date",
+      label: "Dispatch Date",
+      render: (r) => String(r.dispatch_date || "").slice(0, 10),
+    },
     { key: "eta", label: "ETA", render: (r) => r.eta || "—" },
-    { key: "status", label: "Status", render: (r) => <span className={`rounded-full px-2 py-0.5 text-xs font-semibold capitalize ${statusColor(r.status)}`}>{r.status}</span> },
-    { key: "actions", label: "Actions", render: (r) => (
-      <div className="flex gap-2">
-        <button type="button" onClick={() => setSelected(r)} className="text-xs font-semibold text-[#2563EB] hover:underline">Track</button>
-        {r.status === "packed" && (
-          <button type="button" onClick={() => handleShip(r)} className="text-xs text-teal-600 hover:underline">Ship</button>
-        )}
-      </div>
-    )},
+    {
+      key: "status",
+      label: "Status",
+      render: (r) => (
+        <span
+          className={`rounded-full px-2 py-0.5 text-xs font-semibold capitalize ${statusColor(r.status)}`}
+        >
+          {r.status}
+        </span>
+      ),
+    },
+    {
+      key: "actions",
+      label: "Actions",
+      render: (r) => (
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => setSelected(r)}
+            className="text-xs font-semibold text-[#2563EB] hover:underline"
+          >
+            Track
+          </button>
+          {(r.status === "packed" || (r.packed && !r.shipped)) && (
+            <button
+              type="button"
+              onClick={() => handleShip(r)}
+              className="text-xs text-teal-600 hover:underline"
+            >
+              Ship
+            </button>
+          )}
+        </div>
+      ),
+    },
   ];
 
   if (loading) return <Loader label="Loading dispatch..." />;
@@ -124,36 +282,56 @@ export default function Dispatch() {
       <header className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Dispatch & Logistics</h1>
-          <p className="mt-1 text-sm text-slate-500">Shipment tracking, packing slips, delivery challans, and courier management.</p>
+          <p className="mt-1 text-sm text-slate-500">
+            Packing, delivery challans, FG stock-out on ship, then invoice.
+          </p>
         </div>
         <div className="flex gap-2">
-          <Link to="/sales/orders" className="ui-btn-primary"><Truck className="h-4 w-4" /> View Sales Orders</Link>
-          <button type="button" onClick={load} className="inline-flex items-center gap-2 rounded-lg border bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50"><RefreshCw className="h-4 w-4" /> Refresh</button>
+          <Link to="/sales/orders" className="ui-btn-primary">
+            <Truck className="h-4 w-4" /> View Sales Orders
+          </Link>
+          <button
+            type="button"
+            onClick={load}
+            className="inline-flex items-center gap-2 rounded-lg border bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+          >
+            <RefreshCw className="h-4 w-4" /> Refresh
+          </button>
         </div>
       </header>
 
+      <ManufacturingWorkflowBar currentStepId="dispatch" />
+
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-        <KpiCard label="Ready to Dispatch" value={summary.ready_to_dispatch} icon={Package} color="bg-amber-500" />
+        <KpiCard
+          label="Ready to Dispatch"
+          value={summary.ready_to_dispatch}
+          icon={Package}
+          color="bg-amber-500"
+        />
         <KpiCard label="Packed" value={summary.packed} icon={Package} color="bg-indigo-600" />
         <KpiCard label="In Transit" value={summary.in_transit} icon={Truck} color="bg-cyan-600" />
         <KpiCard label="Delivered" value={summary.delivered} icon={Truck} color="bg-green-600" />
         <KpiCard label="Delayed" value={summary.delayed} icon={Truck} color="bg-red-500" />
       </div>
 
-      <div className="flex flex-wrap items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs font-medium text-slate-600">
-        {["Quotation", "Sales Order", "Packing", "Dispatch", "Invoice", "Payment"].map((s, i, arr) => (
-          <span key={s} className="flex items-center gap-2">
-            <span className="rounded-lg bg-white px-2 py-1 shadow-sm">{s}</span>
-            {i < arr.length - 1 && <span className="text-slate-400">↓</span>}
-          </span>
-        ))}
-      </div>
-
       <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-        <DataTable columns={columns} data={rows} searchPlaceholder="Search dispatch, SO, customer..." searchKeys={["dispatch_number", "so_number", "customer_name", "courier"]} />
+        <DataTable
+          columns={columns}
+          data={rows}
+          searchPlaceholder="Search dispatch, SO, customer..."
+          searchKeys={["dispatch_number", "challan_number", "so_number", "customer_name", "courier"]}
+        />
       </div>
 
-      {selected && <TrackingModal row={selected} onClose={() => setSelected(null)} />}
+      {selected && (
+        <TrackingModal
+          row={selected}
+          onClose={() => setSelected(null)}
+          onPrintChallan={handlePrintChallan}
+          onShip={handleShip}
+        />
+      )}
     </div>
   );
 }

@@ -104,6 +104,11 @@ export function canWoStart(status) {
   return ["draft", "released", "planned", "material_ready", "machine_ready", "pending"].includes(status);
 }
 
+export function canWoIssueMaterials(status, materialsIssued) {
+  if (materialsIssued) return false;
+  return ["draft", "released", "planned", "pending", "machine_ready", "material_ready"].includes(status);
+}
+
 export function canWoPause(status) {
   return ["running", "in_progress"].includes(status);
 }
@@ -113,7 +118,7 @@ export function canWoStop(status) {
 }
 
 export function canWoComplete(status) {
-  return ["running", "in_progress", "paused", "quality_check"].includes(status);
+  return ["running", "in_progress", "paused", "quality_check", "material_ready", "machine_ready", "planned"].includes(status);
 }
 
 export function priorityBadge(priority) {

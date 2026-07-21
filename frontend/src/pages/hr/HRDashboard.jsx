@@ -116,6 +116,9 @@ export default function HRDashboard() {
         <QuickLink to="/hr/payroll" label="Payroll" />
         <QuickLink to="/hr/shifts" label="Shifts" />
         <QuickLink to="/hr/performance" label="Performance" />
+        <QuickLink to="/hr/assets" label="Assets" />
+        <QuickLink to="/hr/incidents" label="Incidents" />
+        <QuickLink to="/hr/documents" label="HR Documents" />
         <QuickLink to="/masters/departments" label="Departments" />
         <QuickLink to="/production/tasks" label="Machine Allocation" />
       </div>

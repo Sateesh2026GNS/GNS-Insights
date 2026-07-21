@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import Loader from "../../components/common/Loader";
+import ManufacturingWorkflowBar from "../../components/manufacturing/ManufacturingWorkflowBar";
 import { createInvoice } from "../../api/salesApi";
 import useTenantId from "../../hooks/useTenantId";
 import { useToast } from "../../context/ToastContext";
@@ -10,7 +11,10 @@ import {
   filterCustomers,
   resolveCustomerId,
 } from "../../utils/customerOptions";
-
+import {
+  MANUFACTURING_EVENTS,
+  notifyManufacturingSpine,
+} from "../../utils/manufacturingEvents";
 
 const inputStyle = { padding: "6px 10px", border: "1px solid #c4b5a0", borderRadius: 4, background: "#fff", width: "100%" };
 const labelRed = { color: "#b91c1c", fontSize: "0.9rem", marginBottom: 4, display: "block" };
@@ -19,13 +23,16 @@ export default function TaxInvoiceForm() {
   const tenantId = useTenantId();
   const navigate = useNavigate();
   const { addToast } = useToast();
+  const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [customers, setCustomers] = useState([]);
   const [customerSearch, setCustomerSearch] = useState("");
   const [form, setForm] = useState({
     tenant_id: tenantId,
     customer_id: "",
-    sales_order_id: null,
+    sales_order_id: searchParams.get("sales_order_id")
+      ? Number(searchParams.get("sales_order_id"))
+      : null,
     invoice_number: "",
     issue_date: new Date().toISOString().slice(0, 10),
     due_date: "",
@@ -97,7 +104,7 @@ export default function TaxInvoiceForm() {
     setSaving(true);
     try {
       const customerId = await resolveCustomerId(form.customer_id, customers, tenantId);
-      await createInvoice({
+      const res = await createInvoice({
         tenant_id: form.tenant_id,
         customer_id: customerId,
         sales_order_id: form.sales_order_id || null,
@@ -110,7 +117,7 @@ export default function TaxInvoiceForm() {
         cgst_pct: form.cgst_pct,
         igst_pct: form.igst_pct,
         grand_total: grandTotal,
-        status: "draft",
+        status: "issued",
         items: (() => {
         const list = items.filter((i) => i.item_description?.trim()).map((i) => ({
           item_description: (i.item_description + (i.sizes ? " | " + i.sizes : "") + (i.grade ? " | " + i.grade : "")).trim() || "Item",
@@ -124,6 +131,11 @@ export default function TaxInvoiceForm() {
         return list;
       })(),
       });
+      notifyManufacturingSpine(MANUFACTURING_EVENTS.INVOICE_CREATED, {
+        invoice_id: res.data?.id,
+        sales_order_id: form.sales_order_id,
+      });
+      addToast("Invoice created — AR journal posted");
       navigate("/sales/invoices");
     } catch (err) {
       console.error(err);
@@ -138,6 +150,9 @@ export default function TaxInvoiceForm() {
   return (
     <div style={{ background: "#f5e6d3", minHeight: "100%", padding: 20 }}>
       <div style={{ maxWidth: 1100, margin: "0 auto" }}>
+        <div style={{ marginBottom: 12 }}>
+          <ManufacturingWorkflowBar currentStepId="invoice" compact />
+        </div>
         <div style={{ background: "#1e3a5f", color: "#fff", padding: "8px 16px", marginBottom: 16, display: "flex", gap: 16, alignItems: "center" }}>
           <span>MASTERS</span>
           <span style={{ background: "#2d5a8a", padding: "4px 12px" }}>MAKE TAX INVOICE</span>

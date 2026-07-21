@@ -86,8 +86,26 @@ def _completed_quantity(order: ProductionOrder, work_orders: list[WorkOrder]) ->
 
 
 def _receive_finished_goods_on_completion(db: Session, order: ProductionOrder) -> None:
-    """Inventory module removed — production completion no longer posts stock movements."""
-    return
+    """Post finished goods into inventory when a production order is marked completed."""
+    from app.services.manufacturing_workflow_service import receive_finished_goods
+
+    product = db.get(Product, order.product_id)
+    if not product:
+        return
+    work_orders = list(
+        db.scalars(
+            select(WorkOrder).where(WorkOrder.production_order_id == order.id)
+        ).all()
+    )
+    qty = _completed_quantity(order, work_orders)
+    receive_finished_goods(
+        db,
+        order.tenant_id,
+        product,
+        qty,
+        reference=order.order_number,
+        commit=False,
+    )
 
 
 def create_work_order(db: Session, payload: WorkOrderCreate, assigned_user_id: int | None = None) -> WorkOrder:

@@ -29,6 +29,7 @@ class PurchaseOrderBase(BaseModel):
     status: str = "draft"
     total_amount: float | None = None
     notes: str | None = None
+    material_request_id: int | None = None
 
 
 class PurchaseOrderCreate(PurchaseOrderBase):
@@ -38,6 +39,17 @@ class PurchaseOrderCreate(PurchaseOrderBase):
 class PurchaseOrderRead(PurchaseOrderBase):
     id: int
     model_config = ConfigDict(from_attributes=True)
+
+
+class MaterialRequestConvertToPORequest(BaseModel):
+    """Convert an MRP-driven material request into a purchase order."""
+
+    supplier_id: int
+    expected_date: date | None = None
+    notes: str | None = None
+    unit_price: float | None = 0
+    po_number: str | None = None
+    status: str = "draft"
 
 
 class PurchaseOrderListRead(PurchaseOrderRead):
@@ -52,6 +64,12 @@ class MaterialRequestLineBase(BaseModel):
 
 class MaterialRequestLineCreate(MaterialRequestLineBase):
     pass
+
+
+class MaterialRequestLineRead(MaterialRequestLineBase):
+    id: int
+    material_request_id: int
+    model_config = ConfigDict(from_attributes=True)
 
 
 class MaterialRequestBase(BaseModel):
@@ -70,6 +88,7 @@ class MaterialRequestCreate(MaterialRequestBase):
 
 class MaterialRequestRead(MaterialRequestBase):
     id: int
+    line_items: list[MaterialRequestLineRead] = []
     model_config = ConfigDict(from_attributes=True)
 
 
@@ -83,6 +102,12 @@ class GoodsReceiptLineCreate(GoodsReceiptLineBase):
     pass
 
 
+class GoodsReceiptLineRead(GoodsReceiptLineBase):
+    id: int
+    goods_receipt_id: int
+    model_config = ConfigDict(from_attributes=True)
+
+
 class GoodsReceiptBase(BaseModel):
     tenant_id: int
     purchase_order_id: int | None = None
@@ -90,6 +115,7 @@ class GoodsReceiptBase(BaseModel):
     receipt_date: date
     warehouse_id: int
     status: str = "received"
+    qc_status: str = "pending"
     notes: str | None = None
 
 
@@ -99,7 +125,15 @@ class GoodsReceiptCreate(GoodsReceiptBase):
 
 class GoodsReceiptRead(GoodsReceiptBase):
     id: int
+    line_items: list[GoodsReceiptLineRead] = []
     model_config = ConfigDict(from_attributes=True)
+
+
+class GoodsReceiptQCRequest(BaseModel):
+    """Pass/fail incoming QC. Pass posts accepted qty into inventory."""
+
+    result: str  # pass | fail
+    notes: str | None = None
 
 
 class SupplierPaymentBase(BaseModel):

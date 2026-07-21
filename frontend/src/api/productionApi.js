@@ -84,6 +84,20 @@ export const stopWorkOrder = (workOrderId) =>
 export const completeWorkOrder = (workOrderId) =>
   apiPost(`/api/production/work-orders/${workOrderId}/complete`);
 
+export const issueWorkOrderMaterials = (workOrderId, warehouseId) =>
+  apiPost(`/api/production/work-orders/${workOrderId}/issue-materials`, null, {
+    params: warehouseId ? { warehouse_id: warehouseId } : {},
+  });
+
+export const runMrp = (productId, quantity, createPurchaseRequest = true) =>
+  apiPost("/api/production/mrp/run", null, {
+    params: {
+      product_id: productId,
+      quantity,
+      create_purchase_request: createPurchaseRequest,
+    },
+  });
+
 export const createWorkOrder = (payload) =>
   apiPost("/api/production/work-orders", payload);
 

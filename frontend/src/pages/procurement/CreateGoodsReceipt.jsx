@@ -1,20 +1,24 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 
 import PageHeader from "../../components/common/PageHeader";
 import InventoryLineItems from "../../components/common/InventoryLineItems";
+import ManufacturingWorkflowBar from "../../components/manufacturing/ManufacturingWorkflowBar";
 import useTenantId from "../../hooks/useTenantId";
 import { createGoodsReceipt, getPurchaseOrders } from "../../api/procurementApi";
 import { getWarehouses, getInventoryDashboard } from "../../api/inventoryApi";
+import {
+  MANUFACTURING_EVENTS,
+  notifyManufacturingSpine,
+} from "../../utils/manufacturingEvents";
 
 const inputClass =
   "mt-1.5 w-full rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 px-4 py-2.5 text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/20";
 
-const STATUSES = ["received", "partial", "rejected"];
-
 export default function CreateGoodsReceipt() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const tenantId = useTenantId();
   const [warehouses, setWarehouses] = useState([]);
   const [purchaseOrders, setPurchaseOrders] = useState([]);
@@ -27,8 +31,8 @@ export default function CreateGoodsReceipt() {
     grn_number: "",
     receipt_date: new Date().toISOString().slice(0, 10),
     warehouse_id: "",
-    purchase_order_id: "",
-    status: "received",
+    purchase_order_id: searchParams.get("po_id") || "",
+    qc_status: "pending",
     notes: "",
   });
   const [saving, setSaving] = useState(false);
@@ -54,7 +58,8 @@ export default function CreateGoodsReceipt() {
     setError("");
     setSaving(true);
     try {
-      await createGoodsReceipt({
+      const qc = form.qc_status || "pending";
+      const res = await createGoodsReceipt({
         tenant_id: tenantId,
         grn_number: form.grn_number || `GRN-${Date.now()}`,
         receipt_date: form.receipt_date,
@@ -62,7 +67,8 @@ export default function CreateGoodsReceipt() {
         purchase_order_id: form.purchase_order_id
           ? Number(form.purchase_order_id)
           : null,
-        status: form.status,
+        status: qc === "pass" ? "received" : "pending_qc",
+        qc_status: qc,
         notes: form.notes || null,
         line_items: validLines.map((l) => ({
           item_id: Number(l.item_id),
@@ -70,9 +76,20 @@ export default function CreateGoodsReceipt() {
           quantity_rejected: Number(l.quantity_rejected) || 0,
         })),
       });
+      notifyManufacturingSpine(MANUFACTURING_EVENTS.GRN_RECEIVED, {
+        grn_id: res.data?.id,
+        qc_status: qc,
+      });
+      if (qc === "pass") {
+        notifyManufacturingSpine(MANUFACTURING_EVENTS.GRN_QC_PASSED, {
+          grn_id: res.data?.id,
+        });
+      }
       navigate("/procurement/goods-receipt");
     } catch (err) {
-      setError(err.response?.data?.detail || err.message || "Failed to create goods receipt.");
+      setError(
+        err.response?.data?.detail || err.message || "Failed to create goods receipt."
+      );
     } finally {
       setSaving(false);
     }
@@ -95,9 +112,10 @@ export default function CreateGoodsReceipt() {
         <ArrowLeft className="h-4 w-4" />
         Back to goods receipts
       </Link>
+      <ManufacturingWorkflowBar currentStepId="grn" compact />
       <PageHeader
         title="New goods receipt (GRN)"
-        subtitle="Record received goods. Stock is updated automatically in the selected warehouse."
+        subtitle="Default: pending QC (no stock). Pass QC later, or mark Pass now to post inventory immediately."
       />
       <form onSubmit={handleSubmit} className="ui-card space-y-4 p-6">
         {error && (
@@ -108,7 +126,10 @@ export default function CreateGoodsReceipt() {
         {warehouses.length === 0 && (
           <p className="text-sm text-slate-500">
             No warehouses yet.{" "}
-            <Link to="/inventory/warehouses/create" className="font-medium text-teal-600 hover:underline">
+            <Link
+              to="/inventory/warehouses/create"
+              className="font-medium text-teal-600 hover:underline"
+            >
               Add a warehouse first
             </Link>
             .
@@ -154,7 +175,9 @@ export default function CreateGoodsReceipt() {
           Purchase order (optional)
           <select
             value={form.purchase_order_id}
-            onChange={(e) => setForm((f) => ({ ...f, purchase_order_id: e.target.value }))}
+            onChange={(e) =>
+              setForm((f) => ({ ...f, purchase_order_id: e.target.value }))
+            }
             className={inputClass}
           >
             <option value="">— None —</option>
@@ -165,26 +188,23 @@ export default function CreateGoodsReceipt() {
             ))}
           </select>
         </label>
+        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+          Incoming QC
+          <select
+            value={form.qc_status}
+            onChange={(e) => setForm((f) => ({ ...f, qc_status: e.target.value }))}
+            className={inputClass}
+          >
+            <option value="pending">Pending — hold stock until QC pass</option>
+            <option value="pass">Pass — post stock to inventory now</option>
+          </select>
+        </label>
         <InventoryLineItems
           items={inventoryItems}
           lines={lineItems}
           onChange={setLineItems}
           mode="grn"
         />
-        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
-          Status
-          <select
-            value={form.status}
-            onChange={(e) => setForm((f) => ({ ...f, status: e.target.value }))}
-            className={inputClass}
-          >
-            {STATUSES.map((s) => (
-              <option key={s} value={s}>
-                {s}
-              </option>
-            ))}
-          </select>
-        </label>
         <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
           Notes
           <textarea

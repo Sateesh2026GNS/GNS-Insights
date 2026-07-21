@@ -44,3 +44,22 @@ export const listExpenses = (_tenantId, year = null) =>
 
 export const createIncome = (payload) => api.post("/accounts/income", payload);
 export const createExpense = (payload) => api.post("/accounts/expenses", payload);
+
+/** Extended finance reports (Balance Sheet, Trial Balance, Journals, Assets, etc.). */
+export const getExtendedReports = (financialYear, month, branch) =>
+  api.get("/accounts/extended-reports", {
+    params: {
+      financial_year: financialYear || undefined,
+      month: month || undefined,
+      branch: branch || undefined,
+    },
+  });
+
+export const createJournalEntry = (payload) =>
+  api.post("/accounts/journal-entries", payload);
+
+export const createGLAccount = (payload) =>
+  api.post("/accounts/gl-accounts", payload);
+
+export const createFixedAsset = (payload) =>
+  api.post("/accounts/fixed-assets", payload);

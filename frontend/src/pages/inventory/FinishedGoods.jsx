@@ -6,7 +6,8 @@ import DataTable from "../../components/common/DataTable";
 import Loader from "../../components/common/Loader";
 import { useToast } from "../../context/ToastContext";
 import { getFinishedGoods, getFinishedGoodsSummary } from "../../api/inventoryApi";
-import { DEMO_FINISHED_GOODS, DEMO_FG_SUMMARY, formatInr, stockStatusColor, stockStatusLabel } from "../../data/inventoryMasterData";
+import { formatInr, stockStatusColor, stockStatusLabel } from "../../data/inventoryMasterData";
+import useManufacturingRefresh from "../../hooks/useManufacturingRefresh";
 import { exportToExcel } from "../../utils/exportUtils";
 
 function KpiCard({ label, value, icon: Icon, color }) {
@@ -23,7 +24,7 @@ function KpiCard({ label, value, icon: Icon, color }) {
 export default function FinishedGoods() {
   const { addToast } = useToast();
   const [loading, setLoading] = useState(true);
-  const [summary, setSummary] = useState(DEMO_FG_SUMMARY);
+  const [summary, setSummary] = useState({});
   const [products, setProducts] = useState([]);
   const [search, setSearch] = useState("");
 
@@ -31,13 +32,20 @@ export default function FinishedGoods() {
     setLoading(true);
     try {
       const [sumRes, listRes] = await Promise.allSettled([getFinishedGoodsSummary(), getFinishedGoods()]);
-      if (sumRes.status === "fulfilled" && sumRes.value?.data) setSummary({ ...DEMO_FG_SUMMARY, ...sumRes.value.data });
-      if (listRes.status === "fulfilled" && listRes.value?.data?.length) setProducts(listRes.value.data);
-    } catch { }
-    finally { setLoading(false); }
+      if (sumRes.status === "fulfilled" && sumRes.value?.data) setSummary(sumRes.value.data);
+      else setSummary({});
+      if (listRes.status === "fulfilled") setProducts(listRes.value?.data || []);
+      else setProducts([]);
+    } catch {
+      setProducts([]);
+      setSummary({});
+    } finally {
+      setLoading(false);
+    }
   }, [addToast]);
 
   useEffect(() => { load(); }, [load]);
+  useManufacturingRefresh(load);
 
   const filtered = search.trim()
     ? products.filter((p) => [p.sku, p.name, p.batch_number, p.customer_name].some((v) => v && String(v).toLowerCase().includes(search.toLowerCase())))
@@ -74,11 +82,11 @@ export default function FinishedGoods() {
       </header>
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-6">
-        <KpiCard label="Total Products" value={summary.total_products} icon={Package} color="bg-[#2563EB]" />
-        <KpiCard label="Available" value={summary.available} icon={Box} color="bg-green-500" />
-        <KpiCard label="Reserved" value={summary.reserved} icon={Package} color="bg-amber-500" />
-        <KpiCard label="Ready to Dispatch" value={summary.ready_to_dispatch} icon={Truck} color="bg-teal-500" />
-        <KpiCard label="Damaged" value={summary.damaged} icon={AlertTriangle} color="bg-red-500" />
+        <KpiCard label="Total Products" value={summary.total_products ?? 0} icon={Package} color="bg-[#2563EB]" />
+        <KpiCard label="Available" value={summary.available ?? 0} icon={Box} color="bg-green-500" />
+        <KpiCard label="Reserved" value={summary.reserved ?? 0} icon={Package} color="bg-amber-500" />
+        <KpiCard label="Ready to Dispatch" value={summary.ready_to_dispatch ?? 0} icon={Truck} color="bg-teal-500" />
+        <KpiCard label="Damaged" value={summary.damaged ?? 0} icon={AlertTriangle} color="bg-red-500" />
         <KpiCard label="Stock Value" value={formatInr(summary.stock_value)} icon={Box} color="bg-indigo-500" />
       </div>
 

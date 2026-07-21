@@ -15,6 +15,7 @@ from app.schemas.sales import (
     LeadRead,
     PaymentCreate,
     PaymentRead,
+    QuotationConvertRequest,
     QuotationCreate,
     QuotationRead,
     SalesOrderCreate,
@@ -193,6 +194,49 @@ def update_sales_order_status_endpoint(
     return order
 
 
+@router.post("/sales-orders/{order_id}/confirm")
+def confirm_sales_order_endpoint(
+    order_id: int,
+    user: User = Depends(require_permission(MODULE)),
+    db: Session = Depends(get_db),
+):
+    """Confirm SO → MRP + production orders. Returns workflow result."""
+    from app.services.sales_service import confirm_sales_order
+
+    try:
+        return confirm_sales_order(
+            db,
+            user.tenant_id,
+            order_id,
+            requested_by=user.full_name or user.email,
+        )
+    except ValueError as exc:
+        raise HTTPException(404, str(exc)) from exc
+
+
+@router.post("/quotations/{quote_id}/convert-to-so", response_model=SalesOrderRead)
+def convert_quotation_to_so_endpoint(
+    quote_id: int,
+    payload: QuotationConvertRequest | None = None,
+    user: User = Depends(require_permission(MODULE)),
+    db: Session = Depends(get_db),
+):
+    from app.services.sales_service import convert_quotation_to_sales_order
+
+    body = payload or QuotationConvertRequest()
+    so = convert_quotation_to_sales_order(
+        db,
+        user.tenant_id,
+        quote_id,
+        product_id=body.product_id,
+        item_description=body.item_description,
+        quantity=body.quantity,
+        unit=body.unit,
+        unit_price=body.unit_price,
+    )
+    return so
+
+
 @router.patch("/sales-orders/{order_id}/dispatch", response_model=SalesOrderRead)
 def update_sales_order_dispatch_endpoint(
     order_id: int,
@@ -220,7 +264,38 @@ def get_sales_order_detail_endpoint(
         raise HTTPException(404, "Sales order not found")
     data = SalesOrderRead.model_validate(order)
     cust = CustomerRead.model_validate(order.customer) if order.customer else None
-    return {"order": data, "customer": cust}
+    lines = [
+        {
+            "id": line.id,
+            "product_id": line.product_id,
+            "item_description": line.item_description,
+            "quantity": float(line.quantity),
+            "unit": line.unit,
+            "unit_price": float(line.unit_price or 0),
+            "line_total": float(line.line_total or 0),
+        }
+        for line in (order.line_items or [])
+    ]
+    from app.services.sales_service import list_production_orders_for_sales_order
+
+    production_orders = [
+        {
+            "id": po.id,
+            "order_number": po.order_number,
+            "product_id": po.product_id,
+            "planned_quantity": float(po.planned_quantity or 0),
+            "status": po.status,
+        }
+        for po in list_production_orders_for_sales_order(
+            db, tenant_id, order.id, order.order_number
+        )
+    ]
+    return {
+        "order": data,
+        "customer": cust,
+        "line_items": lines,
+        "production_orders": production_orders,
+    }
 
 
 @router.post("/invoices", response_model=InvoiceRead)

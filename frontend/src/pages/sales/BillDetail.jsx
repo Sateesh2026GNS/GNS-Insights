@@ -17,14 +17,6 @@ const STATUS_STYLES = {
 };
 const STATUS_LABEL = { paid: "Paid", draft: "Draft", pending_approval: "Pending", approved: "Approved", sent: "Sent", partial: "Partial" };
 
-const SELLER = {
-  name: "SMRT Business Solutions",
-  address: ["123 Corporate Park", "Hyderabad, Telangana 500076", "GSTIN: 36AABCS1234F1Z9"],
-  phone: "+91 98765 43210",
-  email: "support@smrt.ai",
-  stateCode: "36",
-};
-
 export default function BillDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -33,10 +25,18 @@ export default function BillDetail() {
   const [notFound, setNotFound] = useState(false);
 
   useEffect(() => {
+    if (!id) {
+      setNotFound(true);
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    setNotFound(false);
     getInvoiceDetail(id)
       .then((r) => {
-        if (!r.data || r.data.found === false) setNotFound(true);
-        else setBillData(r.data);
+        const payload = r?.data?.data ?? r?.data ?? null;
+        if (!payload || payload.found === false || !payload.invoice) setNotFound(true);
+        else setBillData(payload);
       })
       .catch(() => setNotFound(true))
       .finally(() => setLoading(false));

@@ -1,27 +1,34 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 
+import ManufacturingWorkflowBar from "../../components/manufacturing/ManufacturingWorkflowBar";
 import { createProductionOrder, getProducts, seedProducts } from "../../api/productionApi";
 import useTenantId from "../../hooks/useTenantId";
-
-
 
 export default function CreateProduction() {
   const tenantId = useTenantId();
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const salesOrderId = searchParams.get("sales_order_id");
+  const salesOrderNumber = searchParams.get("sales_order_number") || "";
+  const prefilledProductId = searchParams.get("product_id") || "";
+  const prefilledQty = searchParams.get("quantity") || "";
+
   const [products, setProducts] = useState([]);
   const [loadingProducts, setLoadingProducts] = useState(true);
   const [seeding, setSeeding] = useState(false);
   const [form, setForm] = useState({
     tenant_id: tenantId,
-    product_id: "",
-    order_number: "",
-    planned_quantity: "",
+    product_id: prefilledProductId,
+    order_number: salesOrderNumber ? `PO-${salesOrderNumber}` : "",
+    planned_quantity: prefilledQty,
     start_date: "",
     due_date: "",
     status: "planned",
+    sales_order_id: salesOrderId ? Number(salesOrderId) : null,
+    sales_order_number: salesOrderNumber || null,
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -85,8 +92,14 @@ export default function CreateProduction() {
         planned_quantity: Number(form.planned_quantity),
         start_date: form.start_date || null,
         due_date: form.due_date || null,
+        sales_order_id: form.sales_order_id || null,
+        sales_order_number: form.sales_order_number || null,
       });
-      navigate("/production/planning");
+      navigate(
+        salesOrderId
+          ? `/sales/orders/${salesOrderId}`
+          : "/production/planning"
+      );
     } catch (err) {
       const detail = err.response?.data?.detail;
       const msg = Array.isArray(detail)
@@ -109,12 +122,22 @@ export default function CreateProduction() {
       <div className="mb-6 flex items-center justify-between">
         <h2 className="text-xl font-bold text-slate-800">{t("createProduction.title")}</h2>
         <Link
-          to="/production/planning"
+          to={salesOrderId ? `/sales/orders/${salesOrderId}` : "/production/planning"}
           className="text-sm font-medium text-slate-600 hover:text-slate-900"
         >
-          ← Back to Planning
+          ← Back
         </Link>
       </div>
+
+      <div className="mb-4">
+        <ManufacturingWorkflowBar currentStepId="production_planning" compact />
+      </div>
+
+      {salesOrderNumber && (
+        <div className="mb-4 rounded-lg border border-teal-100 bg-teal-50 px-3 py-2 text-sm text-teal-800">
+          Linked sales order: <strong>{salesOrderNumber}</strong>
+        </div>
+      )}
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-5">
         <div>

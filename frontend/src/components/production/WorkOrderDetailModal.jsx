@@ -86,7 +86,17 @@ export function WorkOrderCompleteModal({ workOrder, steps, onClose }) {
   );
 }
 
-export default function WorkOrderDetailModal({ workOrder, detail, onClose, onStart, onPause, onStop, onComplete }) {
+export default function WorkOrderDetailModal({
+  workOrder,
+  detail,
+  onClose,
+  onIssueMaterials,
+  issuing,
+  onStart,
+  onPause,
+  onStop,
+  onComplete,
+}) {
   const [tab, setTab] = useState("overview");
   if (!workOrder) return null;
 
@@ -282,12 +292,27 @@ export default function WorkOrderDetailModal({ workOrder, detail, onClose, onSta
         </div>
 
         <div className="flex flex-wrap gap-2 border-t px-5 py-3">
+          {onIssueMaterials && !w.materials_issued && (
+            <button
+              type="button"
+              disabled={issuing}
+              onClick={() => onIssueMaterials(w)}
+              className="rounded-lg bg-cyan-600 px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
+            >
+              {issuing ? "Issuing…" : "📦 Issue Materials"}
+            </button>
+          )}
+          {w.materials_issued && (
+            <span className="inline-flex items-center rounded-lg bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700">
+              Materials issued ✔
+            </span>
+          )}
           {onStart && <button type="button" onClick={() => onStart(w)} className="rounded-lg bg-green-600 px-3 py-1.5 text-xs font-semibold text-white">▶ Start</button>}
           {onPause && <button type="button" onClick={() => onPause(w)} className="rounded-lg border px-3 py-1.5 text-xs font-semibold">⏸ Pause</button>}
           {onStop && <button type="button" onClick={() => onStop(w)} className="rounded-lg border px-3 py-1.5 text-xs font-semibold">⏹ Stop</button>}
           {onComplete && <button type="button" onClick={() => onComplete(w)} className="rounded-lg bg-[#2563EB] px-3 py-1.5 text-xs font-semibold text-white">✅ Complete</button>}
           <button type="button" onClick={() => window.print()} className="inline-flex items-center gap-1 rounded-lg border px-3 py-1.5 text-xs font-semibold"><Printer className="h-3 w-3" /> Job Card</button>
-          <Link to="/production/batch-tracking" className="rounded-lg border px-3 py-1.5 text-xs font-semibold text-slate-700">Batch Tracking</Link>
+          <Link to="/production/batches" className="rounded-lg border px-3 py-1.5 text-xs font-semibold text-slate-700">Batch Tracking</Link>
         </div>
       </div>
     </div>

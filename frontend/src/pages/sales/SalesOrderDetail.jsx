@@ -1,43 +1,60 @@
-import { useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import {
+  ArrowLeft,
+  CheckCircle2,
+  Factory,
+  Package,
+  RefreshCw,
+} from "lucide-react";
 
 import Loader from "../../components/common/Loader";
 import PageHeader from "../../components/common/PageHeader";
 import EmptyState from "../../components/common/EmptyState";
+import ManufacturingWorkflowBar from "../../components/manufacturing/ManufacturingWorkflowBar";
 import { StatusBadge } from "../../components/common/Table";
 import { useToast } from "../../context/ToastContext";
-import { getSalesOrderDetail, updateSalesOrderDispatch } from "../../api/salesApi";
+import {
+  confirmSalesOrder,
+  getSalesOrderDetail,
+  updateSalesOrderDispatch,
+} from "../../api/salesApi";
+import {
+  MANUFACTURING_EVENTS,
+  notifyManufacturingSpine,
+} from "../../utils/manufacturingEvents";
 
 export default function SalesOrderDetail() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const { addToast } = useToast();
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState(null);
+  const [confirming, setConfirming] = useState(false);
+  const [workflowResult, setWorkflowResult] = useState(null);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await getSalesOrderDetail(id);
+      setData(res.data || null);
+    } catch (err) {
+      addToast(err.response?.data?.detail || "Order not found", "error");
+      setData(null);
+    } finally {
+      setLoading(false);
+    }
+  }, [id, addToast]);
 
   useEffect(() => {
-    let active = true;
-    (async () => {
-      setLoading(true);
-      try {
-        const res = await getSalesOrderDetail(id);
-        if (active) setData(res.data || null);
-      } catch (err) {
-        if (active) addToast(err.response?.data?.detail || "Order not found", "error");
-      } finally {
-        if (active) setLoading(false);
-      }
-    })();
-    return () => {
-      active = false;
-    };
-  }, [id, addToast]);
+    load();
+  }, [load]);
 
   if (loading) return <Loader label="Loading sales order..." />;
 
   if (!data?.order) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-6 p-4 sm:p-6">
         <BackLink />
         <EmptyState icon="clipboard" title="Order not found" description="This sales order does not exist." />
       </div>
@@ -45,6 +62,33 @@ export default function SalesOrderDetail() {
   }
 
   const { order, customer } = data;
+  const lineItems = data.line_items || [];
+  const productionOrders = data.production_orders || [];
+  const status = (order.status || "").toLowerCase();
+  const isConfirmed = ["confirmed", "approved"].includes(status);
+
+  const handleConfirm = async () => {
+    setConfirming(true);
+    try {
+      const res = await confirmSalesOrder(order.id);
+      const result = res.data;
+      setWorkflowResult(result);
+      notifyManufacturingSpine(MANUFACTURING_EVENTS.MRP_RUN, result);
+      if (result?.warning) {
+        addToast(result.warning, "warning");
+      } else if (result?.already_confirmed) {
+        addToast("Order already confirmed");
+      } else {
+        addToast("Sales order confirmed — MRP and production planning updated", "success");
+      }
+      await load();
+    } catch (err) {
+      const msg = err.response?.data?.detail || "Confirm failed";
+      addToast(typeof msg === "string" ? msg : "Confirm failed", "error");
+    } finally {
+      setConfirming(false);
+    }
+  };
 
   const flags = [
     { label: "Invoiced", value: order.invoiced },
@@ -52,17 +96,70 @@ export default function SalesOrderDetail() {
     { label: "Shipped", value: order.shipped },
   ];
 
+  const firstLine = lineItems.find((l) => l.product_id);
+  const createProductionHref = firstLine
+    ? `/production/create?sales_order_id=${order.id}&sales_order_number=${encodeURIComponent(order.order_number)}&product_id=${firstLine.product_id}&quantity=${firstLine.quantity}`
+    : `/production/create?sales_order_id=${order.id}&sales_order_number=${encodeURIComponent(order.order_number)}`;
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-4 sm:p-6">
       <BackLink />
       <PageHeader
         title={`Order ${order.order_number}`}
         subtitle={`Placed on ${order.order_date}`}
-        action={<StatusBadge status={order.status} />}
+        action={
+          <div className="flex flex-wrap items-center gap-2">
+            <StatusBadge status={order.status} />
+            <button type="button" onClick={load} className="ui-btn-secondary inline-flex items-center gap-2 text-sm">
+              <RefreshCw className="h-4 w-4" /> Refresh
+            </button>
+          </div>
+        }
       />
 
+      <ManufacturingWorkflowBar currentStepId="sales_order" />
+
+      <div className="flex flex-wrap gap-2">
+        {!isConfirmed && (
+          <button
+            type="button"
+            disabled={confirming}
+            onClick={handleConfirm}
+            className="ui-btn-primary inline-flex items-center gap-2 disabled:opacity-50"
+          >
+            <CheckCircle2 className="h-4 w-4" />
+            {confirming ? "Confirming…" : "Confirm → MRP & Production"}
+          </button>
+        )}
+        {isConfirmed && (
+          <button
+            type="button"
+            disabled={confirming}
+            onClick={handleConfirm}
+            className="ui-btn-secondary inline-flex items-center gap-2"
+          >
+            View manufacturing status
+          </button>
+        )}
+        <Link to={createProductionHref} className="ui-btn-secondary inline-flex items-center gap-2">
+          <Factory className="h-4 w-4" /> Create Production Order
+        </Link>
+        <Link to="/production/mrp" className="ui-btn-secondary inline-flex items-center gap-2">
+          <Package className="h-4 w-4" /> Open MRP
+        </Link>
+        <Link to="/production/planning" className="ui-btn-secondary">
+          Production Planning
+        </Link>
+      </div>
+
+      {!lineItems.length && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200">
+          This sales order has no product lines. Add lines when creating the order so Confirm can run MRP and create production orders.
+        </div>
+      )}
+
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-6 shadow-sm lg:col-span-2">
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-800 lg:col-span-2">
           <h3 className="mb-4 text-sm font-semibold text-slate-700 dark:text-slate-200">Order Summary</h3>
           <dl className="grid grid-cols-2 gap-4 text-sm">
             <Field label="Order Number" value={order.order_number} />
@@ -74,6 +171,41 @@ export default function SalesOrderDetail() {
               value={`₹${Number(order.total_amount || 0).toLocaleString()}`}
             />
           </dl>
+
+          <h3 className="mb-3 mt-6 text-sm font-semibold text-slate-700 dark:text-slate-200">Line Items</h3>
+          {lineItems.length ? (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm">
+                <thead>
+                  <tr className="border-b text-xs uppercase text-slate-400">
+                    <th className="py-2">Product</th>
+                    <th className="py-2">Qty</th>
+                    <th className="py-2">Unit</th>
+                    <th className="py-2">Price</th>
+                    <th className="py-2">Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {lineItems.map((line) => (
+                    <tr key={line.id} className="border-b border-slate-50 dark:border-slate-700">
+                      <td className="py-2 font-medium">
+                        {line.item_description}
+                        {line.product_id ? (
+                          <span className="ml-2 text-xs text-slate-400">#{line.product_id}</span>
+                        ) : null}
+                      </td>
+                      <td className="py-2">{line.quantity}</td>
+                      <td className="py-2">{line.unit}</td>
+                      <td className="py-2">₹{Number(line.unit_price || 0).toLocaleString()}</td>
+                      <td className="py-2 font-semibold">₹{Number(line.line_total || 0).toLocaleString()}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <p className="text-sm text-slate-500">No line items.</p>
+          )}
 
           <div className="mt-6 flex flex-wrap gap-3">
             {flags.map((f) => (
@@ -96,9 +228,11 @@ export default function SalesOrderDetail() {
                 onClick={async () => {
                   try {
                     await updateSalesOrderDispatch(order.id, { packed: true });
-                    addToast("Order marked as packed");
-                    const res = await getSalesOrderDetail(id);
-                    setData(res.data || null);
+                    notifyManufacturingSpine(MANUFACTURING_EVENTS.ORDER_PACKED, {
+                      sales_order_id: order.id,
+                    });
+                    addToast("Order marked as packed — delivery challan created");
+                    load();
                   } catch (err) {
                     addToast(err.response?.data?.detail || "Update failed", "error");
                   }
@@ -119,19 +253,116 @@ export default function SalesOrderDetail() {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-6 shadow-sm">
-          <h3 className="mb-4 text-sm font-semibold text-slate-700 dark:text-slate-200">Customer</h3>
-          {customer ? (
-            <dl className="space-y-3 text-sm">
-              <Field label="Name" value={customer.name} />
-              <Field label="Email" value={customer.email || "—"} />
-              <Field label="Phone" value={customer.phone || "—"} />
-            </dl>
-          ) : (
-            <p className="text-sm text-slate-500">No customer linked.</p>
-          )}
+        <div className="space-y-6">
+          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-800">
+            <h3 className="mb-4 text-sm font-semibold text-slate-700 dark:text-slate-200">Customer</h3>
+            {customer ? (
+              <dl className="space-y-3 text-sm">
+                <Field label="Name" value={customer.name} />
+                <Field label="Email" value={customer.email || "—"} />
+                <Field label="Phone" value={customer.phone || "—"} />
+              </dl>
+            ) : (
+              <p className="text-sm text-slate-500">No customer linked.</p>
+            )}
+          </div>
+
+          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-800">
+            <h3 className="mb-4 text-sm font-semibold text-slate-700 dark:text-slate-200">
+              Production Orders
+            </h3>
+            {productionOrders.length ? (
+              <ul className="space-y-2 text-sm">
+                {productionOrders.map((po) => (
+                  <li key={po.id} className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2 dark:bg-slate-900/40">
+                    <div>
+                      <p className="font-semibold text-[#2563EB]">{po.order_number}</p>
+                      <p className="text-xs text-slate-500">
+                        Qty {po.planned_quantity} · {po.status}
+                      </p>
+                    </div>
+                    <Link
+                      to={`/production/work-orders?production_order_id=${po.id}`}
+                      className="text-xs font-semibold text-teal-700 hover:underline"
+                    >
+                      Work Orders →
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-sm text-slate-500">
+                No production orders yet. Confirm this SO or create production manually.
+              </p>
+            )}
+            <Link
+              to="/production/planning"
+              className="mt-3 inline-block text-sm font-semibold text-[#2563EB] hover:underline"
+            >
+              Open Production Planning →
+            </Link>
+          </div>
         </div>
       </div>
+
+      {workflowResult && (
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-800">
+          <h3 className="mb-4 text-sm font-semibold text-slate-700 dark:text-slate-200">
+            Manufacturing handoff result
+          </h3>
+          {workflowResult.warning && (
+            <p className="mb-3 text-sm text-amber-700">{workflowResult.warning}</p>
+          )}
+          <div className="grid gap-4 lg:grid-cols-2">
+            <div>
+              <p className="mb-2 text-xs font-semibold uppercase text-slate-400">MRP</p>
+              {(workflowResult.mrp_results || []).length ? (
+                <ul className="space-y-2 text-sm">
+                  {workflowResult.mrp_results.map((m, i) => (
+                    <li key={i} className="rounded-lg border px-3 py-2">
+                      <p className="font-medium">{m.product_name}</p>
+                      <p className="text-xs text-slate-500">
+                        Action: {m.action} · Shortages: {m.shortage_count}
+                        {m.material_request_number ? ` · ${m.material_request_number}` : ""}
+                      </p>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-sm text-slate-500">No MRP run (no product lines or already confirmed).</p>
+              )}
+              <Link to="/procurement/material-requests" className="mt-2 inline-block text-xs font-semibold text-teal-700 hover:underline">
+                Purchase Requests →
+              </Link>
+            </div>
+            <div>
+              <p className="mb-2 text-xs font-semibold uppercase text-slate-400">Production created</p>
+              {(workflowResult.production_orders || []).length ? (
+                <ul className="space-y-2 text-sm">
+                  {workflowResult.production_orders.map((po) => (
+                    <li key={po.id || po.order_number} className="rounded-lg border px-3 py-2">
+                      <p className="font-medium text-[#2563EB]">{po.order_number}</p>
+                      <p className="text-xs text-slate-500">
+                        {po.product || `Product #${po.product_id}`} · Qty {po.quantity}
+                        {po.enough_stock === false ? " · Buy materials first" : ""}
+                      </p>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-sm text-slate-500">No production orders created.</p>
+              )}
+              <button
+                type="button"
+                onClick={() => navigate("/production/planning")}
+                className="mt-2 text-xs font-semibold text-teal-700 hover:underline"
+              >
+                Go to Production Planning →
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

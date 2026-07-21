@@ -5,7 +5,8 @@ import DataTable from "../../components/common/DataTable";
 import Loader from "../../components/common/Loader";
 import { useToast } from "../../context/ToastContext";
 import { getLedgerSummary, getStockLedger } from "../../api/inventoryApi";
-import { DEMO_LEDGER, DEMO_LEDGER_SUMMARY, TRANSACTION_TYPES, formatInr } from "../../data/inventoryMasterData";
+import { TRANSACTION_TYPES, formatInr } from "../../data/inventoryMasterData";
+import useManufacturingRefresh from "../../hooks/useManufacturingRefresh";
 import { exportToExcel } from "../../utils/exportUtils";
 
 function KpiCard({ label, value, icon: Icon, color }) {
@@ -22,21 +23,28 @@ function KpiCard({ label, value, icon: Icon, color }) {
 export default function StockLedger() {
   const { addToast } = useToast();
   const [loading, setLoading] = useState(true);
-  const [summary, setSummary] = useState(DEMO_LEDGER_SUMMARY);
-  const [entries, setEntries] = useState(DEMO_LEDGER);
+  const [summary, setSummary] = useState({});
+  const [entries, setEntries] = useState([]);
   const [filters, setFilters] = useState({ date: "", warehouse: "", item: "", type: "", user: "", batch: "" });
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
       const [sumRes, listRes] = await Promise.allSettled([getLedgerSummary(), getStockLedger()]);
-      if (sumRes.status === "fulfilled" && sumRes.value?.data) setSummary({ ...DEMO_LEDGER_SUMMARY, ...sumRes.value.data });
-      if (listRes.status === "fulfilled" && listRes.value?.data?.length) setEntries(listRes.value.data);
-    } catch { }
-    finally { setLoading(false); }
+      if (sumRes.status === "fulfilled" && sumRes.value?.data) setSummary(sumRes.value.data);
+      else setSummary({});
+      if (listRes.status === "fulfilled") setEntries(listRes.value?.data || []);
+      else setEntries([]);
+    } catch {
+      setEntries([]);
+      setSummary({});
+    } finally {
+      setLoading(false);
+    }
   }, [addToast]);
 
   useEffect(() => { load(); }, [load]);
+  useManufacturingRefresh(load);
 
   const filtered = useMemo(() => {
     let rows = entries;
@@ -71,12 +79,12 @@ export default function StockLedger() {
       </header>
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-6">
-        <KpiCard label="Total Transactions" value={summary.total_transactions?.toLocaleString()} icon={Repeat} color="bg-[#2563EB]" />
-        <KpiCard label="Stock In" value={summary.stock_in?.toLocaleString()} icon={ArrowDown} color="bg-green-500" />
-        <KpiCard label="Stock Out" value={summary.stock_out?.toLocaleString()} icon={ArrowUp} color="bg-red-500" />
-        <KpiCard label="Transfers" value={summary.transfers} icon={Repeat} color="bg-indigo-500" />
-        <KpiCard label="Adjustments" value={summary.adjustments} icon={Repeat} color="bg-amber-500" />
-        <KpiCard label="Stock Value" value={formatInr(summary.current_stock_value)} icon={Repeat} color="bg-teal-500" />
+        <KpiCard label="Total Transactions" value={(summary.total_transactions ?? 0).toLocaleString()} icon={Repeat} color="bg-[#2563EB]" />
+        <KpiCard label="Stock In" value={(summary.stock_in ?? 0).toLocaleString()} icon={ArrowDown} color="bg-green-500" />
+        <KpiCard label="Stock Out" value={(summary.stock_out ?? 0).toLocaleString()} icon={ArrowUp} color="bg-red-500" />
+        <KpiCard label="Transfers" value={summary.transfers ?? 0} icon={Repeat} color="bg-indigo-500" />
+        <KpiCard label="Adjustments" value={summary.adjustments ?? 0} icon={Repeat} color="bg-amber-500" />
+        <KpiCard label="Stock Value" value={formatInr(summary.current_stock_value ?? 0)} icon={Repeat} color="bg-teal-500" />
       </div>
 
       <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">

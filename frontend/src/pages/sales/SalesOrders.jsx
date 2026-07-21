@@ -4,10 +4,10 @@ import { Download, Filter, IndianRupee, Plus, RefreshCw, ShoppingCart, Truck } f
 
 import DataTable from "../../components/common/DataTable";
 import Loader from "../../components/common/Loader";
-import SODetailModal from "../../components/sales/SODetailModal";
+import ManufacturingWorkflowBar from "../../components/manufacturing/ManufacturingWorkflowBar";
 import { useToast } from "../../context/ToastContext";
 import { getSOSummary, getSalesOrdersEnriched } from "../../api/salesApi";
-import { DEMO_SO_LIST, DEMO_SO_SUMMARY, formatInr, statusColor } from "../../data/salesMasterData";
+import { formatInr, statusColor } from "../../data/salesMasterData";
 import { exportToExcel } from "../../utils/exportUtils";
 
 function KpiCard({ label, value, icon: Icon, color }) {
@@ -26,20 +26,21 @@ const defaultFilters = { customer: "", status: "", sales_person: "" };
 export default function SalesOrders() {
   const { addToast } = useToast();
   const [loading, setLoading] = useState(true);
-  const [summary, setSummary] = useState(DEMO_SO_SUMMARY);
+  const [summary, setSummary] = useState({});
   const [rows, setRows] = useState([]);
   const [filters, setFilters] = useState(defaultFilters);
   const [showAdvanced, setShowAdvanced] = useState(false);
-  const [selected, setSelected] = useState(null);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
       const [sumRes, listRes] = await Promise.allSettled([getSOSummary(), getSalesOrdersEnriched()]);
-      if (sumRes.status === "fulfilled" && sumRes.value?.data) setSummary({ ...DEMO_SO_SUMMARY, ...sumRes.value.data });
-      if (listRes.status === "fulfilled" && listRes.value?.data?.length) setRows(listRes.value.data);
+      if (sumRes.status === "fulfilled" && sumRes.value?.data) setSummary(sumRes.value.data);
+      else setSummary({});
+      if (listRes.status === "fulfilled") setRows(listRes.value?.data || []);
       else setRows([]);
     } catch {
+      setRows([]);
     } finally {
       setLoading(false);
     }
@@ -68,7 +69,9 @@ export default function SalesOrders() {
     { key: "payment_terms", label: "Payment", render: (r) => r.payment_terms || "—" },
     { key: "status", label: "Status", render: (r) => <span className={`rounded-full px-2 py-0.5 text-xs font-semibold capitalize ${statusColor(r.status)}`}>{r.status}</span> },
     { key: "actions", label: "Actions", render: (r) => (
-      <button type="button" onClick={() => setSelected(r)} className="text-xs font-semibold text-[#2563EB] hover:underline">View</button>
+      typeof r.id === "number"
+        ? <Link to={`/sales/orders/${r.id}`} className="text-xs font-semibold text-[#2563EB] hover:underline">Open</Link>
+        : null
     )},
   ];
 
@@ -88,15 +91,17 @@ export default function SalesOrders() {
         </div>
       </header>
 
+      <ManufacturingWorkflowBar currentStepId="sales_order" />
+
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8">
-        <KpiCard label="Total Orders" value={summary.total_orders} icon={ShoppingCart} color="bg-blue-600" />
-        <KpiCard label="Pending" value={summary.pending} icon={ShoppingCart} color="bg-amber-500" />
-        <KpiCard label="Confirmed" value={summary.confirmed} icon={ShoppingCart} color="bg-indigo-600" />
-        <KpiCard label="Packed" value={summary.packed} icon={ShoppingCart} color="bg-purple-600" />
-        <KpiCard label="Shipped" value={summary.shipped} icon={Truck} color="bg-teal-600" />
-        <KpiCard label="Delivered" value={summary.delivered} icon={Truck} color="bg-green-600" />
-        <KpiCard label="Cancelled" value={summary.cancelled} icon={ShoppingCart} color="bg-red-500" />
-        <KpiCard label="Revenue" value={formatInr(summary.revenue)} icon={IndianRupee} color="bg-emerald-600" />
+        <KpiCard label="Total Orders" value={summary.total_orders ?? 0} icon={ShoppingCart} color="bg-blue-600" />
+        <KpiCard label="Pending" value={summary.pending ?? 0} icon={ShoppingCart} color="bg-amber-500" />
+        <KpiCard label="Confirmed" value={summary.confirmed ?? 0} icon={ShoppingCart} color="bg-indigo-600" />
+        <KpiCard label="Packed" value={summary.packed ?? 0} icon={ShoppingCart} color="bg-purple-600" />
+        <KpiCard label="Shipped" value={summary.shipped ?? 0} icon={Truck} color="bg-teal-600" />
+        <KpiCard label="Delivered" value={summary.delivered ?? 0} icon={Truck} color="bg-green-600" />
+        <KpiCard label="Cancelled" value={summary.cancelled ?? 0} icon={ShoppingCart} color="bg-red-500" />
+        <KpiCard label="Revenue" value={formatInr(summary.revenue ?? 0)} icon={IndianRupee} color="bg-emerald-600" />
       </div>
 
       <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
@@ -113,8 +118,6 @@ export default function SalesOrders() {
         )}
         <DataTable columns={columns} data={filtered} searchPlaceholder="Search SO, customer..." searchKeys={["order_number", "customer_name", "sales_person"]} />
       </div>
-
-      {selected && <SODetailModal order={selected} onClose={() => setSelected(null)} />}
     </div>
   );
 }

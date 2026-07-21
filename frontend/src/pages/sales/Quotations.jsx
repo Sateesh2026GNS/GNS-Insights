@@ -3,10 +3,11 @@ import { Download, FileText, Filter, Plus, RefreshCw } from "lucide-react";
 
 import DataTable from "../../components/common/DataTable";
 import Loader from "../../components/common/Loader";
+import ManufacturingWorkflowBar from "../../components/manufacturing/ManufacturingWorkflowBar";
 import QuoteDetailModal from "../../components/sales/QuoteDetailModal";
 import { useToast } from "../../context/ToastContext";
 import { getQuotationSummary, getQuotationsEnriched, updateQuotationStatus } from "../../api/salesApi";
-import { DEMO_QUOTE_LIST, DEMO_QUOTE_SUMMARY, formatInr, statusColor } from "../../data/salesMasterData";
+import { formatInr, statusColor } from "../../data/salesMasterData";
 import { exportToExcel } from "../../utils/exportUtils";
 
 function KpiCard({ label, value, icon: Icon, color }) {
@@ -23,7 +24,7 @@ function KpiCard({ label, value, icon: Icon, color }) {
 export default function Quotations() {
   const { addToast } = useToast();
   const [loading, setLoading] = useState(true);
-  const [summary, setSummary] = useState(DEMO_QUOTE_SUMMARY);
+  const [summary, setSummary] = useState({});
   const [rows, setRows] = useState([]);
   const [statusFilter, setStatusFilter] = useState("");
   const [selected, setSelected] = useState(null);
@@ -32,10 +33,12 @@ export default function Quotations() {
     setLoading(true);
     try {
       const [sumRes, listRes] = await Promise.allSettled([getQuotationSummary(), getQuotationsEnriched()]);
-      if (sumRes.status === "fulfilled" && sumRes.value?.data) setSummary({ ...DEMO_QUOTE_SUMMARY, ...sumRes.value.data });
-      if (listRes.status === "fulfilled" && listRes.value?.data?.length) setRows(listRes.value.data);
+      if (sumRes.status === "fulfilled" && sumRes.value?.data) setSummary(sumRes.value.data);
+      else setSummary({});
+      if (listRes.status === "fulfilled") setRows(listRes.value?.data || []);
       else setRows([]);
     } catch {
+      setRows([]);
     } finally {
       setLoading(false);
     }
@@ -86,28 +89,23 @@ export default function Quotations() {
           <p className="mt-1 text-sm text-slate-500">Create, approve, and send quotations with GST, discount, and PDF export.</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <button type="button" className="ui-btn-primary"><Plus className="h-4 w-4" /> New Quotation</button>
+          <button type="button" className="ui-btn-primary opacity-60" disabled title="Use Convert from an existing quotation, or create SO with product lines">
+            <Plus className="h-4 w-4" /> New Quotation
+          </button>
           <button type="button" onClick={() => exportToExcel(filtered, columns.filter((c) => !c.render), "quotations")} className="inline-flex items-center gap-2 rounded-lg border bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50"><Download className="h-4 w-4" /> Export</button>
           <button type="button" onClick={load} className="inline-flex items-center gap-2 rounded-lg border bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50"><RefreshCw className="h-4 w-4" /> Refresh</button>
         </div>
       </header>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-        <KpiCard label="Total Quotations" value={summary.total_quotations} icon={FileText} color="bg-blue-600" />
-        <KpiCard label="Draft" value={summary.draft} icon={FileText} color="bg-slate-500" />
-        <KpiCard label="Sent" value={summary.sent} icon={FileText} color="bg-indigo-600" />
-        <KpiCard label="Accepted" value={summary.accepted} icon={FileText} color="bg-green-600" />
-        <KpiCard label="Rejected" value={summary.rejected} icon={FileText} color="bg-red-500" />
-        <KpiCard label="Expired" value={summary.expired} icon={FileText} color="bg-orange-500" />
-      </div>
+      <ManufacturingWorkflowBar currentStepId="sales_order" />
 
-      <div className="flex flex-wrap items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs font-medium text-slate-600">
-        {["Sales Executive", "Quotation", "Manager Approval", "Customer", "Accepted"].map((s, i, arr) => (
-          <span key={s} className="flex items-center gap-2">
-            <span className="rounded-lg bg-white px-2 py-1 shadow-sm">{s}</span>
-            {i < arr.length - 1 && <span className="text-slate-400">↓</span>}
-          </span>
-        ))}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+        <KpiCard label="Total Quotations" value={summary.total_quotations ?? 0} icon={FileText} color="bg-blue-600" />
+        <KpiCard label="Draft" value={summary.draft ?? 0} icon={FileText} color="bg-slate-500" />
+        <KpiCard label="Sent" value={summary.sent ?? 0} icon={FileText} color="bg-indigo-600" />
+        <KpiCard label="Accepted" value={summary.accepted ?? 0} icon={FileText} color="bg-green-600" />
+        <KpiCard label="Rejected" value={summary.rejected ?? 0} icon={FileText} color="bg-red-500" />
+        <KpiCard label="Expired" value={summary.expired ?? 0} icon={FileText} color="bg-orange-500" />
       </div>
 
       <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
@@ -121,7 +119,17 @@ export default function Quotations() {
         <DataTable columns={columns} data={filtered} searchPlaceholder="Search quote, customer..." searchKeys={["quote_number", "customer_name", "sales_person"]} />
       </div>
 
-      {selected && <QuoteDetailModal quote={selected} onClose={() => setSelected(null)} onStatusChange={handleStatus} />}
+      {selected && (
+        <QuoteDetailModal
+          quote={selected}
+          onClose={() => setSelected(null)}
+          onStatusChange={handleStatus}
+          onConverted={() => {
+            addToast("Quotation converted to sales order", "success");
+            load();
+          }}
+        />
+      )}
     </div>
   );
 }

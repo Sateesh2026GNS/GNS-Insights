@@ -14,7 +14,9 @@ from app.schemas.vendor import (
 )
 from app.schemas.procurement import (
     GoodsReceiptCreate,
+    GoodsReceiptQCRequest,
     GoodsReceiptRead,
+    MaterialRequestConvertToPORequest,
     MaterialRequestCreate,
     MaterialRequestRead,
     PurchaseOrderCreate,
@@ -33,10 +35,13 @@ from app.services.vendor_service import (
     update_vendor,
 )
 from app.services.procurement_service import (
+    approve_goods_receipt_qc,
+    convert_material_request_to_purchase_order,
     create_goods_receipt,
     create_material_request,
     create_purchase_order,
     create_supplier_payment,
+    get_material_request,
     list_goods_receipts,
     list_material_requests,
     list_purchase_orders,
@@ -218,6 +223,43 @@ def list_material_requests_endpoint(
     return list_material_requests(db, tenant_id)
 
 
+@router.get("/material-requests/summary", response_model=MRSummaryRead)
+def mr_summary(tenant_id: int = Depends(tenant_scope(MODULE)), db: Session = Depends(get_db)):
+    return get_mr_summary(db, tenant_id)
+
+
+@router.get("/material-requests/enriched", response_model=list[MRListRead])
+def mr_enriched(tenant_id: int = Depends(tenant_scope(MODULE)), db: Session = Depends(get_db)):
+    return list_mr_enriched(db, tenant_id)
+
+
+@router.get("/material-requests/{mr_id}", response_model=MaterialRequestRead)
+def get_material_request_endpoint(
+    mr_id: int,
+    tenant_id: int = Depends(tenant_scope(MODULE)),
+    db: Session = Depends(get_db),
+) -> MaterialRequestRead:
+    mr = get_material_request(db, tenant_id, mr_id)
+    if not mr:
+        raise HTTPException(404, "Material request not found")
+    return mr
+
+
+@router.post(
+    "/material-requests/{mr_id}/convert-to-po",
+    response_model=PurchaseOrderRead,
+)
+def convert_material_request_to_po_endpoint(
+    mr_id: int,
+    payload: MaterialRequestConvertToPORequest,
+    user: User = Depends(require_permission(MODULE)),
+    db: Session = Depends(get_db),
+) -> PurchaseOrderRead:
+    return convert_material_request_to_purchase_order(
+        db, user.tenant_id, mr_id, payload
+    )
+
+
 @router.post("/goods-receipt", response_model=GoodsReceiptRead)
 def create_goods_receipt_endpoint(
     payload: GoodsReceiptCreate,
@@ -235,6 +277,26 @@ def list_goods_receipts_endpoint(
     return list_goods_receipts(db, tenant_id)
 
 
+@router.get("/goods-receipt/summary", response_model=GRNSummaryRead)
+def grn_summary(tenant_id: int = Depends(tenant_scope(MODULE)), db: Session = Depends(get_db)):
+    return get_grn_summary(db, tenant_id)
+
+
+@router.get("/goods-receipt/enriched", response_model=list[GRNListRead])
+def grn_enriched(tenant_id: int = Depends(tenant_scope(MODULE)), db: Session = Depends(get_db)):
+    return list_grn_enriched(db, tenant_id)
+
+
+@router.post("/goods-receipt/{grn_id}/qc", response_model=GoodsReceiptRead)
+def goods_receipt_qc_endpoint(
+    grn_id: int,
+    payload: GoodsReceiptQCRequest,
+    user: User = Depends(require_permission(MODULE)),
+    db: Session = Depends(get_db),
+) -> GoodsReceiptRead:
+    return approve_goods_receipt_qc(db, user.tenant_id, grn_id, payload)
+
+
 @router.post("/supplier-payments", response_model=SupplierPaymentRead)
 def create_supplier_payment_endpoint(
     payload: SupplierPaymentCreate,
@@ -250,16 +312,6 @@ def list_supplier_payments_endpoint(
     tenant_id: int = Depends(tenant_scope(MODULE)), db: Session = Depends(get_db)
 ) -> list[SupplierPaymentRead]:
     return list_supplier_payments(db, tenant_id)
-
-
-@router.get("/material-requests/summary", response_model=MRSummaryRead)
-def mr_summary(tenant_id: int = Depends(tenant_scope(MODULE)), db: Session = Depends(get_db)):
-    return get_mr_summary(db, tenant_id)
-
-
-@router.get("/material-requests/enriched", response_model=list[MRListRead])
-def mr_enriched(tenant_id: int = Depends(tenant_scope(MODULE)), db: Session = Depends(get_db)):
-    return list_mr_enriched(db, tenant_id)
 
 
 @router.get("/rfq/summary", response_model=RFQSummaryRead)
@@ -285,16 +337,6 @@ def po_summary(tenant_id: int = Depends(tenant_scope(MODULE)), db: Session = Dep
 @router.get("/purchase-orders/enriched", response_model=list[POListRead])
 def po_enriched(tenant_id: int = Depends(tenant_scope(MODULE)), db: Session = Depends(get_db)):
     return list_po_enriched(db, tenant_id)
-
-
-@router.get("/goods-receipt/summary", response_model=GRNSummaryRead)
-def grn_summary(tenant_id: int = Depends(tenant_scope(MODULE)), db: Session = Depends(get_db)):
-    return get_grn_summary(db, tenant_id)
-
-
-@router.get("/goods-receipt/enriched", response_model=list[GRNListRead])
-def grn_enriched(tenant_id: int = Depends(tenant_scope(MODULE)), db: Session = Depends(get_db)):
-    return list_grn_enriched(db, tenant_id)
 
 
 @router.get("/vendor-bills/summary", response_model=VendorBillSummaryRead)

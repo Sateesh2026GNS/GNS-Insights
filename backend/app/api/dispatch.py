@@ -1,10 +1,25 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db
-from app.core.permissions import tenant_scope
-from app.models.sales import Customer, SalesOrder
+from app.core.permissions import require_permission, tenant_scope
+from app.models.sales import Customer, DispatchShipment, SalesOrder
+from app.models.user import User
+from app.schemas.sales_extended import (
+    DeliveryChallanRead,
+    DispatchListRead,
+    DispatchShipmentCreate,
+    DispatchSummaryRead,
+)
+from app.services.sales_extended_service import (
+    get_dispatch_summary,
+    list_dispatch_enriched,
+)
+from app.services.sales_service import (
+    create_or_update_dispatch_shipment,
+    get_delivery_challan,
+)
 
 router = APIRouter(prefix="/dispatch", tags=["Dispatch & Logistics"])
 
@@ -21,6 +36,57 @@ def _order_rows(db: Session, tenant_id: int, only_shipped: bool = False):
         stmt = stmt.where(SalesOrder.shipped.is_(True))
     stmt = stmt.order_by(SalesOrder.order_date.desc())
     return db.execute(stmt).all()
+
+
+@router.get("/summary", response_model=DispatchSummaryRead)
+def dispatch_summary(
+    tenant_id: int = Depends(tenant_scope(MODULE)), db: Session = Depends(get_db)
+):
+    return get_dispatch_summary(db, tenant_id)
+
+
+@router.get("/enriched", response_model=list[DispatchListRead])
+def dispatch_enriched(
+    tenant_id: int = Depends(tenant_scope(MODULE)), db: Session = Depends(get_db)
+):
+    return list_dispatch_enriched(db, tenant_id)
+
+
+@router.post("/shipments")
+def create_dispatch_shipment_endpoint(
+    payload: DispatchShipmentCreate,
+    user: User = Depends(require_permission(MODULE)),
+    db: Session = Depends(get_db),
+):
+    shipment = create_or_update_dispatch_shipment(db, user.tenant_id, payload)
+    return {
+        "id": shipment.id,
+        "dispatch_number": shipment.dispatch_number,
+        "challan_number": shipment.dispatch_number,
+        "sales_order_id": shipment.sales_order_id,
+        "status": shipment.status,
+        "courier": shipment.courier,
+        "vehicle_number": shipment.vehicle_number,
+        "driver_name": shipment.driver_name,
+        "lr_number": shipment.lr_number,
+        "dispatch_date": shipment.dispatch_date.isoformat() if shipment.dispatch_date else None,
+        "eta": shipment.eta.isoformat() if shipment.eta else None,
+    }
+
+
+@router.get(
+    "/sales-orders/{sales_order_id}/challan",
+    response_model=DeliveryChallanRead,
+)
+def delivery_challan_endpoint(
+    sales_order_id: int,
+    tenant_id: int = Depends(tenant_scope(MODULE)),
+    db: Session = Depends(get_db),
+):
+    challan = get_delivery_challan(db, tenant_id, sales_order_id)
+    if not challan:
+        raise HTTPException(404, "Sales order not found")
+    return challan
 
 
 @router.get("/dispatch-orders")
@@ -55,11 +121,26 @@ def get_shipment_tracking(
 ):
     """Shipped sales orders with reference numbers used as tracking ids."""
     rows = _order_rows(db, tenant_id, only_shipped=True)
+    shipments = {
+        s.sales_order_id: s
+        for s in db.scalars(
+            select(DispatchShipment).where(DispatchShipment.tenant_id == tenant_id)
+        ).all()
+    }
     return [
         {
             "id": so.id,
             "order_number": so.order_number,
-            "tracking_reference": so.reference_number or f"SHIP-{so.id:05d}",
+            "tracking_reference": (
+                (shipments.get(so.id).lr_number if shipments.get(so.id) else None)
+                or so.reference_number
+                or f"SHIP-{so.id:05d}"
+            ),
+            "challan_number": (
+                shipments[so.id].dispatch_number
+                if so.id in shipments
+                else f"DC-{so.order_number}"
+            ),
             "customer": cust,
             "shipped": so.shipped,
             "order_date": so.order_date.isoformat() if so.order_date else None,

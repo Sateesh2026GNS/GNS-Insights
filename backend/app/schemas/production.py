@@ -19,6 +19,10 @@ class ProductionOrderBase(BaseModel):
     start_date: datetime | None = None
     due_date: datetime | None = None
     status: str = "planned"
+    sales_order_id: int | None = None
+    sales_order_number: str | None = None
+    customer_name: str | None = None
+    priority: str = "medium"
 
 
 class ProductionOrderCreate(ProductionOrderBase):

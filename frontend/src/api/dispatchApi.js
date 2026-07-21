@@ -5,3 +5,6 @@ export const getDeliveryStatus = () => api.get("/dispatch/delivery-status");
 export const getShipmentTracking = () => api.get("/dispatch/shipment-tracking");
 export const getDispatchSummary = () => api.get("/dispatch/summary");
 export const getDispatchEnriched = () => api.get("/dispatch/enriched");
+export const createDispatchShipment = (payload) => api.post("/dispatch/shipments", payload);
+export const getDeliveryChallan = (salesOrderId) =>
+  api.get(`/dispatch/sales-orders/${salesOrderId}/challan`);

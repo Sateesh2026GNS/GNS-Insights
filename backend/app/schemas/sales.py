@@ -56,8 +56,27 @@ class SalesOrderBase(BaseModel):
     shipped: bool = False
 
 
-class SalesOrderCreate(SalesOrderBase):
+class SalesOrderLineBase(BaseModel):
+    product_id: int | None = None
+    item_description: str
+    quantity: float
+    unit: str = "pcs"
+    unit_price: float = 0
+    line_total: float = 0
+
+
+class SalesOrderLineCreate(SalesOrderLineBase):
     pass
+
+
+class SalesOrderLineRead(SalesOrderLineBase):
+    id: int
+    sales_order_id: int
+    model_config = ConfigDict(from_attributes=True)
+
+
+class SalesOrderCreate(SalesOrderBase):
+    line_items: list[SalesOrderLineCreate] = []
 
 
 class SalesOrderRead(SalesOrderBase):
@@ -161,3 +180,13 @@ class QuotationCreate(QuotationBase):
 class QuotationRead(QuotationBase):
     id: int
     model_config = ConfigDict(from_attributes=True)
+
+
+class QuotationConvertRequest(BaseModel):
+    """Optional product line when converting a quotation into a sales order."""
+
+    product_id: int | None = None
+    item_description: str | None = None
+    quantity: float | None = None
+    unit: str = "pcs"
+    unit_price: float | None = None

@@ -17,9 +17,12 @@ export const updateVendorApproval = (vendorId, status) =>
   api.patch(`/procurement/vendors/${vendorId}/approval`, null, { params: { status } });
 
 export const getMaterialRequests = () => api.get("/procurement/material-requests");
+export const getMaterialRequest = (mrId) => api.get(`/procurement/material-requests/${mrId}`);
 export const getMRSummary = () => api.get("/procurement/material-requests/summary");
 export const getMREnriched = () => api.get("/procurement/material-requests/enriched");
 export const createMaterialRequest = (payload) => api.post("/procurement/material-requests", payload);
+export const convertMaterialRequestToPO = (mrId, payload) =>
+  api.post(`/procurement/material-requests/${mrId}/convert-to-po`, payload);
 
 export const getRFQSummary = () => api.get("/procurement/rfq/summary");
 export const getRFQList = () => api.get("/procurement/rfq");
@@ -29,6 +32,8 @@ export const getGoodsReceipts = () => api.get("/procurement/goods-receipt");
 export const getGRNSummary = () => api.get("/procurement/goods-receipt/summary");
 export const getGRNEnriched = () => api.get("/procurement/goods-receipt/enriched");
 export const createGoodsReceipt = (payload) => api.post("/procurement/goods-receipt", payload);
+export const approveGoodsReceiptQC = (grnId, payload) =>
+  api.post(`/procurement/goods-receipt/${grnId}/qc`, payload);
 
 export const getVendorBills = () => api.get("/procurement/vendor-bills");
 export const getVendorBillSummary = () => api.get("/procurement/vendor-bills/summary");

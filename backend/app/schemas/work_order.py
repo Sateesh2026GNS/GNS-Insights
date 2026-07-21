@@ -33,6 +33,7 @@ class WorkOrderListRead(BaseModel):
     operator_name: str | None = None
     progress_pct: float = 0
     is_delayed: bool = False
+    materials_issued: bool = False
     model_config = ConfigDict(from_attributes=True)
 
 

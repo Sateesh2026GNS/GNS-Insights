@@ -1,3 +1,5 @@
+from datetime import date
+
 from pydantic import BaseModel
 
 
@@ -82,7 +84,9 @@ class DispatchSummaryRead(BaseModel):
 
 class DispatchListRead(BaseModel):
     id: int
+    sales_order_id: int | None = None
     dispatch_number: str
+    challan_number: str | None = None
     so_number: str | None = None
     customer_name: str | None = None
     courier: str | None = None
@@ -93,6 +97,37 @@ class DispatchListRead(BaseModel):
     status: str = "packed"
     lr_number: str | None = None
     tracking_url: str | None = None
+    packed: bool = False
+    shipped: bool = False
+    invoiced: bool = False
+
+
+class DispatchShipmentCreate(BaseModel):
+    sales_order_id: int
+    courier: str | None = None
+    vehicle_number: str | None = None
+    driver_name: str | None = None
+    lr_number: str | None = None
+    eta: date | None = None
+    tracking_url: str | None = None
+    status: str = "packed"
+
+
+class DeliveryChallanRead(BaseModel):
+    challan_number: str
+    dispatch_number: str
+    sales_order_id: int
+    so_number: str | None = None
+    customer_name: str | None = None
+    customer_address: str | None = None
+    dispatch_date: str | None = None
+    courier: str | None = None
+    vehicle_number: str | None = None
+    driver_name: str | None = None
+    lr_number: str | None = None
+    status: str = "packed"
+    lines: list[dict] = []
+    total_amount: float = 0
 
 
 class InvoiceSummaryRead(BaseModel):
