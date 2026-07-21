@@ -9,15 +9,7 @@ from app.models.procurement import (
     PurchaseOrder,
     PurchaseOrderLine,
     SupplierPayment,
-<<<<<<< HEAD
 )
-=======
-    RFQ,
-    VendorQuotation,
-    VendorBill,
-)
-from app.models.inventory import Supplier
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
 from app.schemas.procurement import (
     GoodsReceiptCreate,
     MaterialRequestCreate,
@@ -87,12 +79,6 @@ def list_purchase_orders(db: Session, tenant_id: int) -> list[PurchaseOrder]:
 
 
 def create_material_request(db: Session, payload: MaterialRequestCreate) -> MaterialRequest:
-<<<<<<< HEAD
-=======
-    import random
-    from datetime import date, timedelta
-    
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
     mr = MaterialRequest(
         tenant_id=payload.tenant_id,
         mr_number=payload.mr_number,
@@ -112,43 +98,6 @@ def create_material_request(db: Session, payload: MaterialRequestCreate) -> Mate
             notes=line.notes,
         )
         db.add(mrl)
-<<<<<<< HEAD
-=======
-    db.flush()
-
-    # Create corresponding RFQ
-    rfq_number = mr.mr_number.replace("MR", "RFQ")
-    rfq = RFQ(
-        tenant_id=mr.tenant_id,
-        rfq_number=rfq_number,
-        material_request_id=mr.id,
-        due_date=date.today() + timedelta(days=7),
-        status="open",
-    )
-    db.add(rfq)
-    db.flush()
-    
-    # Create Vendor Quotations
-    suppliers = list(db.scalars(select(Supplier).where(Supplier.tenant_id == mr.tenant_id)).all())
-    if suppliers:
-        for s in suppliers[:3]:
-            price = float(random.choice([12000, 14000, 15000, 18000]))
-            delivery = random.choice([3, 5, 7])
-            rating = random.choice([4.2, 4.5, 4.8])
-            vq = VendorQuotation(
-                tenant_id=mr.tenant_id,
-                rfq_id=rfq.id,
-                supplier_id=s.id,
-                price=price,
-                delivery_days=delivery,
-                gst_pct=18.0,
-                warranty="1 Year",
-                rating=rating,
-                status="submitted",
-            )
-            db.add(vq)
-
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
     db.commit()
     db.refresh(mr)
     return mr
@@ -197,40 +146,12 @@ def create_goods_receipt(db: Session, payload: GoodsReceiptCreate) -> GoodsRecei
             po.status = "received"
     db.commit()
     db.refresh(gr)
-<<<<<<< HEAD
     try:
         from app.services.alert_service import sync_low_stock_alerts
 
         sync_low_stock_alerts(db, payload.tenant_id)
     except Exception:
         pass
-=======
-    # Create corresponding VendorBill
-    from datetime import date, timedelta
-    po = db.get(PurchaseOrder, payload.purchase_order_id) if payload.purchase_order_id else None
-    supplier_id = po.supplier_id if po else 1
-    amount = float(po.total_amount) if po and po.total_amount else 5000.0
-    gst_amount = float(po.gst_amount) if po and po.gst_amount else 900.0
-    
-    bill_number = gr.grn_number.replace("GRN", "BILL")
-    due_date = date.today() + timedelta(days=30)
-    
-    bill = VendorBill(
-        tenant_id=gr.tenant_id,
-        bill_number=bill_number,
-        supplier_id=supplier_id,
-        purchase_order_id=gr.purchase_order_id,
-        goods_receipt_id=gr.id,
-        bill_date=gr.receipt_date,
-        due_date=due_date,
-        amount=amount,
-        gst_amount=gst_amount,
-        status="pending",
-    )
-    db.add(bill)
-    db.commit()
-
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
     return gr
 
 

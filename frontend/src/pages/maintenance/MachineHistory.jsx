@@ -7,11 +7,7 @@ import MaintenanceFilters from "../../components/maintenance/MaintenanceFilters"
 import Loader from "../../components/common/Loader";
 import { useToast } from "../../context/ToastContext";
 import { getMachineHistory } from "../../api/maintenanceApi";
-<<<<<<< HEAD
 import { DEMO_HISTORY_LIST, HISTORY_TIMELINE, formatInr } from "../../data/maintenanceMasterData";
-=======
-import { HISTORY_TIMELINE, formatInr } from "../../data/maintenanceMasterData";
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
 
 const activityIcons = {
   "Machine Installed": "🏭",
@@ -36,19 +32,11 @@ export default function MachineHistory() {
     setError(null);
     try {
       const res = await getMachineHistory();
-<<<<<<< HEAD
       if (res.data?.length) setRows(res.data);
       else setRows([]);
     } catch (e) {
       setError(e.message || "Network error");
       setRows([]);
-=======
-      if (res.data) setRows(res.data);
-    } catch (e) {
-      setError(e.message || "Network error");
-      setRows([]);
-      addToast("Failed to load machine history data", "error");
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
     } finally {
       setLoading(false);
     }

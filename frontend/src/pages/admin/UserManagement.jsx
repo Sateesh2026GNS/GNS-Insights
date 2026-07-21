@@ -1,9 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-<<<<<<< HEAD
 import { Plus, Pencil, Trash2, ShieldCheck, UserCog, KeyRound } from "lucide-react";
-=======
-import { Plus, Pencil, Trash2, ShieldCheck, UserCog } from "lucide-react";
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
 
 import PageHeader from "../../components/common/PageHeader";
 import DataTable from "../../components/common/DataTable";
@@ -19,22 +15,16 @@ import {
   createUser,
   updateUser,
   deleteUser,
-<<<<<<< HEAD
   adminResetUserPassword,
-=======
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
 } from "../../api/adminApi";
 
 const EMPTY_FORM = {
   full_name: "",
   email: "",
   phone: "",
-<<<<<<< HEAD
   employee_id: "",
   designation: "",
   department: "",
-=======
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
   password: "",
   is_active: true,
   role_ids: [],
@@ -69,10 +59,7 @@ export default function UserManagement() {
   const [saving, setSaving] = useState(false);
   const [toDelete, setToDelete] = useState(null);
   const [deleting, setDeleting] = useState(false);
-<<<<<<< HEAD
   const [resettingId, setResettingId] = useState(null);
-=======
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
 
   const load = useCallback(() => {
     setLoading(true);
@@ -104,12 +91,9 @@ export default function UserManagement() {
       full_name: u.full_name || "",
       email: u.email || "",
       phone: u.phone || "",
-<<<<<<< HEAD
       employee_id: u.employee_id || "",
       designation: u.designation || "",
       department: u.department || "",
-=======
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
       password: "",
       is_active: u.is_active,
       role_ids: (u.roles || []).map((r) => r.id),
@@ -192,7 +176,6 @@ export default function UserManagement() {
     }
   };
 
-<<<<<<< HEAD
   const handleResetPassword = async (user) => {
     setResettingId(user.id);
     try {
@@ -206,8 +189,6 @@ export default function UserManagement() {
     }
   };
 
-=======
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
   const columns = [
     {
       key: "full_name",
@@ -254,7 +235,6 @@ export default function UserManagement() {
         <div className="flex items-center gap-1">
           <button
             type="button"
-<<<<<<< HEAD
             onClick={() => handleResetPassword(r)}
             disabled={resettingId === r.id}
             className="rounded-lg p-1.5 text-slate-500 hover:bg-amber-50 hover:text-amber-600 disabled:opacity-50 dark:hover:bg-amber-900/20"
@@ -264,8 +244,6 @@ export default function UserManagement() {
           </button>
           <button
             type="button"
-=======
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
             onClick={() => openEdit(r)}
             className="rounded-lg p-1.5 text-slate-500 hover:bg-teal-50 hover:text-teal-600 dark:hover:bg-teal-900/20"
             title="Edit user"
@@ -363,7 +341,6 @@ export default function UserManagement() {
               placeholder="Optional"
             />
           </div>
-<<<<<<< HEAD
           <div className="grid gap-4 sm:grid-cols-2">
             <Input
               label="Employee ID"
@@ -384,8 +361,6 @@ export default function UserManagement() {
             onChange={(e) => setForm((f) => ({ ...f, designation: e.target.value }))}
             placeholder="Production Manager"
           />
-=======
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
           <Input
             label={editing ? "New Password" : "Password"}
             type="password"

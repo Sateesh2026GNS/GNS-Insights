@@ -27,10 +27,6 @@ import Loader from "../../components/common/Loader";
 import ProductDetailModal, { ProductFormModal } from "../../components/masters/ProductDetailModal";
 import { useToast } from "../../context/ToastContext";
 import useTenantId from "../../hooks/useTenantId";
-<<<<<<< HEAD
-=======
-import useAuth from "../../hooks/useAuth";
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
 import { getProducts, createProduct, updateProduct, deleteProduct } from "../../api/productsApi";
 import {
   BRANDS,
@@ -40,19 +36,12 @@ import {
   PRODUCT_STATUSES,
   PRODUCT_TYPES,
   WAREHOUSES,
-<<<<<<< HEAD
   categoryChartData,
-=======
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
   computeQuickStats,
   computeSummary,
   enrichApiProduct,
 } from "../../data/productsMasterData";
 import { exportToExcel } from "../../utils/exportUtils";
-<<<<<<< HEAD
-=======
-import { parseImportFile } from "../../utils/importUtils";
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
 
 function SummaryCard({ label, value, icon: Icon, color }) {
   return (
@@ -82,19 +71,8 @@ function StatusPill({ status }) {
 }
 
 export default function ProductsMaster() {
-<<<<<<< HEAD
   const { addToast } = useToast();
   const tenantId = useTenantId();
-=======
-  const { user } = useAuth();
-  const tenantId = useTenantId();
-  const { addToast } = useToast();
-
-  const userRoles = Array.isArray(user?.roles) ? user.roles : [user?.role].filter(Boolean);
-  const hasEditPermission = !userRoles.some(r =>
-    ["operator", "store manager", "hr manager", "accountant"].includes(r.toLowerCase())
-  );
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
   const [loading, setLoading] = useState(true);
   const [products, setProducts] = useState([]);
   const [selected, setSelected] = useState(null);
@@ -112,24 +90,13 @@ export default function ProductsMaster() {
     try {
       const res = await getProducts();
       const apiRows = res.data || [];
-<<<<<<< HEAD
       setProducts(apiRows.map((row, i) => enrichApiProduct(row, i)));
     } catch {
-=======
-      const enriched = apiRows.map((row, i) => enrichApiProduct(row, i));
-      setProducts(enriched);
-    } catch (err) {
-      addToast("Failed to load products from database", "error");
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
       setProducts([]);
     } finally {
       setLoading(false);
     }
-<<<<<<< HEAD
   }, []);
-=======
-  }, [addToast]);
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
 
   useEffect(() => {
     loadProducts();
@@ -149,24 +116,6 @@ export default function ProductsMaster() {
   const summary = useMemo(() => computeSummary(filteredProducts), [filteredProducts]);
   const quickStats = useMemo(() => computeQuickStats(filteredProducts), [filteredProducts]);
 
-<<<<<<< HEAD
-=======
-  const COLORS = ["#3B82F6", "#22C55E", "#F97316", "#A855F7", "#64748B", "#EC4899", "#EAB308"];
-
-  const dynamicCategoryChartData = useMemo(() => {
-    const counts = {};
-    filteredProducts.forEach((p) => {
-      const cat = p.category || "Uncategorized";
-      counts[cat] = (counts[cat] || 0) + 1;
-    });
-    return Object.keys(counts).map((name, i) => ({
-      name,
-      value: counts[name],
-      color: COLORS[i % COLORS.length],
-    }));
-  }, [filteredProducts]);
-
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
   const topSelling = useMemo(
     () => [...filteredProducts].sort((a, b) => (b.units_sold || 0) - (a.units_sold || 0)).slice(0, 5),
     [filteredProducts]
@@ -214,32 +163,7 @@ export default function ProductsMaster() {
     const input = document.createElement("input");
     input.type = "file";
     input.accept = ".csv,.xlsx";
-<<<<<<< HEAD
     input.onchange = () => addToast("Import queued — map file columns in a future release", "info");
-=======
-    input.onchange = async (e) => {
-      const file = e.target.files?.[0];
-      if (!file) return;
-      try {
-        const rows = await parseImportFile(file);
-        if (!rows.length) { addToast("No data rows found in file", "error"); return; }
-        const newProducts = rows.map((row, i) =>
-          enrichApiProduct(
-            { ...row, id: `import-${Date.now()}-${i}` },
-            products.length + i
-          )
-        );
-        setProducts((prev) => {
-          const existingSkus = new Set(prev.map((p) => p.sku));
-          const fresh = newProducts.filter((p) => !existingSkus.has(p.sku));
-          return [...prev, ...fresh];
-        });
-        addToast(`✅ Imported ${newProducts.length} product(s) from ${file.name}`, "success");
-      } catch {
-        addToast("Failed to parse file. Please use the template format.", "error");
-      }
-    };
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
     input.click();
   };
 
@@ -251,38 +175,18 @@ export default function ProductsMaster() {
       description: form.description || null,
       unit_cost: form.purchase_price ? Number(form.purchase_price) : null,
       unit_price: form.selling_price ? Number(form.selling_price) : null,
-<<<<<<< HEAD
-=======
-      category: form.category || null,
-      product_type: form.product_type || null,
-      unit: form.unit || null,
-      brand: form.brand || null,
-      warehouse: form.warehouse || null,
-      min_stock: form.min_stock ? Number(form.min_stock) : null,
-      max_stock: form.max_stock ? Number(form.max_stock) : null,
-      current_stock: form.current_stock ? Number(form.current_stock) : 0,
-      status: form.status || "active",
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
     };
     try {
       if (formProduct?.id && typeof formProduct.id === "number") {
         await updateProduct(formProduct.id, payload);
-<<<<<<< HEAD
         addToast("Product updated");
       } else {
         await createProduct(payload);
         addToast("Product created");
-=======
-        addToast("Product updated successfully", "success");
-      } else {
-        await createProduct(payload);
-        addToast("Product created successfully", "success");
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
       }
       setFormProduct(null);
       loadProducts();
     } catch (err) {
-<<<<<<< HEAD
       const localId = `new-${Date.now()}`;
       const code = `PRD${String(products.length + 1).padStart(3, "0")}`;
       const newProduct = {
@@ -301,10 +205,6 @@ export default function ProductsMaster() {
         addToast("Product added locally");
       }
       setFormProduct(null);
-=======
-      const errMsg = err.response?.data?.detail || "Failed to save product to database.";
-      addToast(errMsg, "error");
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
     }
   };
 
@@ -340,7 +240,6 @@ export default function ProductsMaster() {
   const clearFilters = () => setFilters({ category: "", brand: "", product_type: "", status: "", warehouse: "" });
 
   const columns = [
-<<<<<<< HEAD
     { key: "product_code", label: "Product Code" },
     { key: "name", label: "Product Name" },
     { key: "category", label: "Category" },
@@ -352,28 +251,6 @@ export default function ProductsMaster() {
       render: (r) => `₹${Number(r.selling_price || 0).toLocaleString("en-IN")}`,
     },
     { key: "current_stock", label: "Stock" },
-=======
-    { key: "name", label: "Product Name" },
-    { key: "sku", label: "SKU" },
-    { key: "category", label: "Category" },
-    { key: "product_type", label: "Product Type" },
-    { key: "unit", label: "Unit" },
-    { key: "brand", label: "Brand" },
-    { key: "warehouse", label: "Warehouse" },
-    {
-      key: "purchase_price",
-      label: "Purchase Price",
-      render: (r) => `₹${Number(r.purchase_price || 0).toLocaleString("en-IN")}`,
-    },
-    {
-      key: "selling_price",
-      label: "Selling Price",
-      render: (r) => `₹${Number(r.selling_price || 0).toLocaleString("en-IN")}`,
-    },
-    { key: "min_stock", label: "Min Stock" },
-    { key: "current_stock", label: "Current Stock" },
-    { key: "description", label: "Description" },
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
     {
       key: "status",
       label: "Status",
@@ -386,17 +263,8 @@ export default function ProductsMaster() {
       render: (r) => (
         <div className="flex flex-wrap gap-1">
           <button type="button" onClick={() => setSelected(r)} className="text-xs font-semibold text-[#2563EB] hover:underline">View</button>
-<<<<<<< HEAD
           <button type="button" onClick={() => setFormProduct(r)} className="text-xs font-semibold text-slate-600 hover:underline">Edit</button>
           <button type="button" onClick={() => handleDelete(r)} className="text-xs font-semibold text-red-600 hover:underline">Delete</button>
-=======
-          {hasEditPermission && (
-            <button type="button" onClick={() => setFormProduct(r)} className="text-xs font-semibold text-slate-600 hover:underline">Edit</button>
-          )}
-          {hasEditPermission && (
-            <button type="button" onClick={() => handleDelete(r)} className="text-xs font-semibold text-red-600 hover:underline">Delete</button>
-          )}
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
         </div>
       ),
     },
@@ -422,25 +290,12 @@ export default function ProductsMaster() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-<<<<<<< HEAD
           <button type="button" onClick={() => setFormProduct({})} className="ui-btn-primary">
             <Plus className="h-4 w-4" /> Add Product
           </button>
           <button type="button" onClick={handleImport} className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">
             <Upload className="h-4 w-4" /> Import Products
           </button>
-=======
-          {hasEditPermission && (
-            <button type="button" onClick={() => setFormProduct({})} className="ui-btn-primary">
-              <Plus className="h-4 w-4" /> Add Product
-            </button>
-          )}
-          {hasEditPermission && (
-            <button type="button" onClick={handleImport} className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">
-              <Upload className="h-4 w-4" /> Import Products
-            </button>
-          )}
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
           <button type="button" onClick={handleExport} className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">
             <Download className="h-4 w-4" /> Export Products
           </button>
@@ -508,13 +363,8 @@ export default function ProductsMaster() {
           <div className="h-[200px]">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
-<<<<<<< HEAD
                 <Pie data={categoryChartData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={50} outerRadius={75} paddingAngle={2}>
                   {categoryChartData.map((e) => (
-=======
-                <Pie data={dynamicCategoryChartData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={50} outerRadius={75} paddingAngle={2}>
-                  {dynamicCategoryChartData.map((e) => (
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
                     <Cell key={e.name} fill={e.color} />
                   ))}
                 </Pie>

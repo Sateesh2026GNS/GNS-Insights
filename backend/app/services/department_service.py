@@ -8,11 +8,7 @@ from sqlalchemy.orm import Session
 from app.models.department import Department
 from app.models.hr import AttendanceRecord, Employee
 from app.models.machine import Machine
-<<<<<<< HEAD
 from app.models.production import DailyProductionReport, WorkOrder
-=======
-from app.models.production import DailyProductionReport, ProductionOrder, WorkOrder
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
 from app.schemas.department import (
     DepartmentCreate,
     DepartmentDetailRead,
@@ -168,7 +164,6 @@ def get_department_detail(
         else:
             detail.machines_idle += 1
 
-<<<<<<< HEAD
     machine_ids = [m.id for m in ctx["machines"]]
     if machine_ids:
         detail.todays_production = int(
@@ -180,21 +175,6 @@ def get_department_detail(
                 )
             ) or 0
         )
-=======
-    # Count ProductionOrders starting today for this department
-    detail.todays_production = int(
-        db.scalar(
-            select(func.count(ProductionOrder.id)).where(
-                ProductionOrder.tenant_id == tenant_id,
-                ProductionOrder.department == dept.name,
-                func.date(ProductionOrder.start_date) == today,
-            )
-        ) or 0
-    )
-
-    machine_ids = [m.id for m in ctx["machines"]]
-    if machine_ids:
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
         detail.todays_target = int(
             db.scalar(
                 select(func.coalesce(func.sum(WorkOrder.planned_quantity), 0)).where(

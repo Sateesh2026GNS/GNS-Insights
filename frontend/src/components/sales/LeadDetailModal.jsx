@@ -6,69 +6,6 @@ import { formatInr, priorityColor, statusColor } from "../../data/salesMasterDat
 
 const TABS = ["Overview", "Contacts", "Notes", "Timeline", "Activities"];
 
-<<<<<<< HEAD
-=======
-function generateActivities(lead) {
-  const activities = [];
-  const exec = lead.sales_executive || "Ramesh Kumar";
-  const source = lead.source || "Website Search";
-
-  activities.push({
-    title: "Lead Created",
-    desc: `Lead registered automatically via ${source}. Assigned to sales executive ${exec}.`,
-    date: "3 days ago",
-    type: "system",
-  });
-
-  if (lead.status !== "new") {
-    activities.push({
-      title: "Email Sent",
-      desc: `Introduction email sent to ${lead.email || "customer"} by ${exec}.`,
-      date: "2 days ago",
-      type: "email",
-    });
-  }
-
-  if (["contacted", "qualified", "converted"].includes(lead.status)) {
-    activities.push({
-      title: "Call Logged",
-      desc: `Outgoing call completed by ${exec}. Customer interested, requested pricing.`,
-      date: "1 day ago",
-      type: "call",
-    });
-  }
-
-  if (["qualified", "converted"].includes(lead.status)) {
-    activities.push({
-      title: "Lead Qualified",
-      desc: `Lead marked as Qualified. Estimated opportunity value: ₹${Number(lead.opportunity_value || 50000).toLocaleString("en-IN")}.`,
-      date: "1 day ago",
-      type: "qualification",
-    });
-  }
-
-  if (lead.next_followup) {
-    activities.push({
-      title: "Follow-up Scheduled",
-      desc: `Next follow-up task scheduled for ${lead.next_followup} to discuss quotation.`,
-      date: "Today",
-      type: "followup",
-    });
-  }
-
-  if (lead.status === "converted") {
-    activities.push({
-      title: "Lead Converted",
-      desc: "Successfully converted to active customer. Created customer profile and linked to Sales Order.",
-      date: "Today",
-      type: "conversion",
-    });
-  }
-
-  return activities;
-}
-
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
 export default function LeadDetailModal({ lead, onClose, onStatusChange }) {
   const [tab, setTab] = useState("Overview");
   if (!lead) return null;
@@ -121,49 +58,7 @@ export default function LeadDetailModal({ lead, onClose, onStatusChange }) {
               <li className="rounded-lg bg-slate-50 px-3 py-2">Follow-up scheduled</li>
             </ul>
           )}
-<<<<<<< HEAD
           {tab === "Activities" && <p className="text-sm text-slate-500">Call and email history will appear here.</p>}
-=======
-          {tab === "Activities" && (
-            <div className="flow-root py-2">
-              <ul className="-mb-8">
-                {generateActivities(lead).map((act, actIdx) => (
-                  <li key={actIdx}>
-                    <div className="relative pb-8">
-                      {actIdx !== generateActivities(lead).length - 1 ? (
-                        <span className="absolute left-4 top-4 -ml-px h-full w-0.5 bg-slate-200" aria-hidden="true" />
-                      ) : null}
-                      <div className="relative flex space-x-3">
-                        <div>
-                          <span className={`flex h-8 w-8 items-center justify-center rounded-full ring-8 ring-white ${
-                            act.type === "call" ? "bg-green-50 text-green-600" :
-                            act.type === "email" ? "bg-blue-50 text-blue-600" :
-                            act.type === "qualification" ? "bg-purple-50 text-purple-600" :
-                            act.type === "conversion" ? "bg-emerald-50 text-emerald-600" :
-                            "bg-slate-100 text-slate-600"
-                          }`}>
-                            {act.type === "call" ? <Phone className="h-4 w-4" /> :
-                             act.type === "email" ? <Mail className="h-4 w-4" /> :
-                             <span className="h-2 w-2 rounded-full bg-current" />}
-                          </span>
-                        </div>
-                        <div className="flex min-w-0 flex-1 justify-between space-x-4 pt-1.5">
-                          <div>
-                            <p className="text-sm font-semibold text-slate-800">{act.title}</p>
-                            <p className="mt-0.5 text-xs text-slate-600">{act.desc}</p>
-                          </div>
-                          <div className="whitespace-nowrap text-right text-xs text-slate-400">
-                            <time>{act.date}</time>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
         </div>
 
         <div className="flex flex-wrap gap-2 border-t px-5 py-4">

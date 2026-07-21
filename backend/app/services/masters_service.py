@@ -2,10 +2,6 @@
 
 from sqlalchemy.orm import Session
 
-<<<<<<< HEAD
-=======
-from app.models.user import User
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
 from app.repositories.bom_repository import BomRepository
 from app.repositories.machine_repository import MachineRepository
 from app.repositories.product_repository import ProductRepository
@@ -43,26 +39,6 @@ class MastersService:
                 "description": p.description,
                 "unit_cost": float(p.unit_cost) if p.unit_cost else None,
                 "unit_price": float(p.unit_price) if p.unit_price else None,
-<<<<<<< HEAD
-=======
-                "category": p.category,
-                "product_type": p.product_type,
-                "unit": p.unit,
-                "brand": p.brand,
-                "warehouse": p.warehouse,
-                "min_stock": p.min_stock,
-                "max_stock": p.max_stock,
-                "current_stock": p.current_stock,
-                "status": p.status,
-                "barcode": p.barcode,
-                "bom": p.bom,
-                "production_time": p.production_time,
-                "machine_required": p.machine_required,
-                "quality_standard": p.quality_standard,
-                "batch_tracking": p.batch_tracking,
-                "serial_number": p.serial_number,
-                "expiry_date": p.expiry_date,
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
             }
             for p in list_products(self.db, self.tenant_id)
         ]
@@ -78,28 +54,7 @@ class MastersService:
             "description": p.description,
             "unit_cost": float(p.unit_cost) if p.unit_cost else None,
             "unit_price": float(p.unit_price) if p.unit_price else None,
-<<<<<<< HEAD
             "bom": [self.bom.enrich_item(b) for b in list_bom(self.db, self.tenant_id, p.id)],
-=======
-            "category": p.category,
-            "product_type": p.product_type,
-            "unit": p.unit,
-            "brand": p.brand,
-            "warehouse": p.warehouse,
-            "min_stock": p.min_stock,
-            "max_stock": p.max_stock,
-            "current_stock": p.current_stock,
-            "status": p.status,
-            "barcode": p.barcode,
-            "bom": p.bom,
-            "production_time": p.production_time,
-            "machine_required": p.machine_required,
-            "quality_standard": p.quality_standard,
-            "batch_tracking": p.batch_tracking,
-            "serial_number": p.serial_number,
-            "expiry_date": p.expiry_date,
-            "bom_items": [self.bom.enrich_item(b) for b in list_bom(self.db, self.tenant_id, p.id)],
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
         }
 
     def create_product(self, payload: ProductCreate) -> dict:
@@ -134,13 +89,8 @@ class MastersService:
 
     # ── Machines ───────────────────────────────────────────────────────────
 
-<<<<<<< HEAD
     def list_machines(self) -> list[dict]:
         enriched = list_machines_enriched(self.db, self.tenant_id)
-=======
-    def list_machines(self, user: User | None = None) -> list[dict]:
-        enriched = list_machines_enriched(self.db, self.tenant_id, user=user)
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
         return [m.model_dump(mode="json") for m in enriched]
 
     def get_machine(self, machine_id: int) -> dict | None:

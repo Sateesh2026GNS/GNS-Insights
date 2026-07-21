@@ -1,8 +1,4 @@
 import { createCustomer, getCustomers } from "../api/salesApi";
-<<<<<<< HEAD
-=======
-import { DEMO_CUSTOMERS } from "../data/customersMasterData";
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
 
 const STATE_CODES = {
   "Andhra Pradesh": "37",
@@ -17,45 +13,10 @@ const STATE_CODES = {
   Rajasthan: "08",
 };
 
-<<<<<<< HEAD
 /** Load customers from API only. */
 export async function fetchCustomersWithFallback() {
   const res = await getCustomers();
   return res.data || [];
-=======
-export function demoCustomersAsOptions() {
-  return DEMO_CUSTOMERS.map((c) => ({
-    id: c.id,
-    name: c.company,
-    contact_name: c.contact_person,
-    gstin: c.gstin,
-    state: c.state,
-    state_code: STATE_CODES[c.state] || "",
-    address_line1: c.billing_address,
-    address_line2: "",
-    phone: c.phone,
-    email: c.email,
-    isDemo: true,
-  }));
-}
-
-/** Load customers from API; fall back to demo master list when empty or offline. */
-export async function fetchCustomersWithFallback() {
-  try {
-    const res = await getCustomers();
-    const rows = res.data || [];
-    if (rows.length > 0) {
-      const demoNames = new Set(demoCustomersAsOptions().map((c) => c.name));
-      return [
-        ...rows,
-        ...demoCustomersAsOptions().filter((d) => !rows.some((r) => r.name === d.name)),
-      ];
-    }
-  } catch {
-    /* use demo list */
-  }
-  return demoCustomersAsOptions();
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
 }
 
 export function customerToConsigneeFields(customer) {
@@ -70,11 +31,7 @@ export function customerToConsigneeFields(customer) {
   };
 }
 
-<<<<<<< HEAD
 /** Ensure a numeric customer id for API calls. */
-=======
-/** Ensure a numeric customer id for API calls (creates demo customers on first use). */
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
 export async function resolveCustomerId(customerId, customers, tenantId) {
   const idStr = String(customerId);
   if (/^\d+$/.test(idStr)) return Number(idStr);

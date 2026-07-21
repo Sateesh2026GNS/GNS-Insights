@@ -6,11 +6,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.models.machine import Machine, MachineStatusEvent
-<<<<<<< HEAD
 from app.models.production import DailyProductionReport, WorkOrder
-=======
-from app.models.production import DailyProductionReport, ProductionOrder, WorkOrder
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
 from app.models.user import User
 from app.schemas.machine import (
     MachineCreateExtended,
@@ -91,7 +87,6 @@ def get_machine_summary(
         else:
             counts["idle"] += 1
 
-<<<<<<< HEAD
     active_count = len([m for m in machines if m.is_active])
     util = round(counts["running"] / active_count * 100, 1) if active_count else 0
 
@@ -100,24 +95,6 @@ def get_machine_summary(
         select(func.coalesce(func.sum(DailyProductionReport.produced_quantity), 0)).where(
             DailyProductionReport.tenant_id == tenant_id,
             DailyProductionReport.report_date == today,
-=======
-    active_machines = [m for m in machines if m.is_active]
-    oee_vals = [float(m.oee_pct) for m in active_machines if m.oee_pct is not None]
-    eff_vals = [float(m.efficiency_pct) for m in active_machines if m.efficiency_pct is not None]
-
-    if oee_vals:
-        util = round(sum(oee_vals) / len(oee_vals), 1)
-    elif eff_vals:
-        util = round(sum(eff_vals) / len(eff_vals), 1)
-    else:
-        util = round(counts["running"] / len(active_machines) * 100, 1) if active_machines else 0
-
-    today = date.today()
-    todays_prod = db.scalar(
-        select(func.count(ProductionOrder.id)).where(
-            ProductionOrder.tenant_id == tenant_id,
-            func.date(ProductionOrder.start_date) == today,
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
         )
     ) or 0
 

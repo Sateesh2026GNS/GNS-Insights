@@ -1,15 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-<<<<<<< HEAD
 import { Award, FileSearch, RefreshCw, Star, Trophy } from "lucide-react";
 
 import DataTable from "../../components/common/DataTable";
-=======
-import { Award, Eye, FileSearch, RefreshCw, Star, Trophy } from "lucide-react";
-
-import DataTable from "../../components/common/DataTable";
-import RowActionMenu from "../../components/common/RowActionMenu";
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
 import Loader from "../../components/common/Loader";
 import { useToast } from "../../context/ToastContext";
 import { getRFQComparison, getRFQList, getRFQSummary } from "../../api/procurementApi";
@@ -96,14 +89,8 @@ export default function RFQ() {
   const { addToast } = useToast();
   const [loading, setLoading] = useState(true);
   const [summary, setSummary] = useState(DEMO_RFQ_SUMMARY);
-<<<<<<< HEAD
   const [rows, setRows] = useState([]);
   const [comparison, setComparison] = useState(DEMO_VENDOR_COMPARISON);
-=======
-  const [rows, setRows] = useState(DEMO_RFQ_LIST);
-  const [comparison, setComparison] = useState(DEMO_VENDOR_COMPARISON);
-  const [openMenu, setOpenMenu] = useState(null);
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
   const [selectedRfq, setSelectedRfq] = useState(null);
 
   const load = useCallback(async () => {
@@ -115,18 +102,10 @@ export default function RFQ() {
         setRows(listRes.value.data);
         setSelectedRfq(listRes.value.data[0]);
       } else {
-<<<<<<< HEAD
         setRows([]);
         setSelectedRfq([]);
       }
     } catch {
-=======
-        setRows(DEMO_RFQ_LIST);
-        setSelectedRfq(DEMO_RFQ_LIST[0]);
-      }
-    } catch {
-      addToast("Using demo RFQ data", "info");
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
     } finally {
       setLoading(false);
     }
@@ -139,11 +118,7 @@ export default function RFQ() {
     const rfqId = typeof selectedRfq.id === "number" ? selectedRfq.id : 1;
     getRFQComparison(rfqId)
       .then((res) => { if (res.data?.length) setComparison(res.data); })
-<<<<<<< HEAD
       .catch(() => setComparison([]));
-=======
-      .catch(() => setComparison(DEMO_VENDOR_COMPARISON));
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
   }, [selectedRfq]);
 
   const bestVendor = comparison.find((v) => v.is_best) || comparison[0];
@@ -155,20 +130,8 @@ export default function RFQ() {
     { key: "due_date", label: "Due Date", render: (r) => String(r.due_date || "").slice(0, 10) },
     { key: "quotation_count", label: "Quotations" },
     { key: "status", label: "Status", render: (r) => <span className={`rounded-full px-2 py-0.5 text-xs font-semibold capitalize ${statusColor(r.status)}`}>{r.status}</span> },
-<<<<<<< HEAD
     { key: "actions", label: "Actions", render: (r) => (
       <button type="button" onClick={() => setSelectedRfq(r)} className="text-xs font-semibold text-[#2563EB] hover:underline">Compare</button>
-=======
-    { key: "actions", label: "Actions", sortable: false, render: (r) => (
-      <RowActionMenu
-        rowId={r.id}
-        openMenu={openMenu}
-        setOpenMenu={setOpenMenu}
-        items={[
-          { label: "Compare", icon: <Eye className="h-4 w-4" />, onClick: () => setSelectedRfq(r) },
-        ]}
-      />
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
     )},
   ];
 

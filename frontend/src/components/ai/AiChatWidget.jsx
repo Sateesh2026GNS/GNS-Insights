@@ -159,13 +159,8 @@ export default function AiChatWidget() {
             <div className="flex items-center gap-2">
               <Bot className="h-5 w-5" />
               <div>
-<<<<<<< HEAD
                 <p className="text-sm font-semibold">GNS Insights Assistant</p>
                 <p className="text-[10px] opacity-80">Production · Inventory · Analytics</p>
-=======
-                <p className="text-sm font-semibold">SMRT AI Operator</p>
-                <p className="text-[10px] opacity-80">Production · Inventory · Machines</p>
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
               </div>
             </div>
             <div className="flex items-center gap-1">

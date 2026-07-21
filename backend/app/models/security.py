@@ -58,7 +58,6 @@ class LoginAttempt(Base, TimestampMixin):
     failure_reason: Mapped[str | None] = mapped_column(String(64))
 
 
-<<<<<<< HEAD
 class LoginHistory(Base, TimestampMixin):
     """Enterprise login audit trail (success + failure) with device metadata."""
 
@@ -85,8 +84,6 @@ class LoginHistory(Base, TimestampMixin):
     user_agent: Mapped[str | None] = mapped_column(String(512))
 
 
-=======
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
 class AuditLog(Base, TimestampMixin):
     """CRUD and admin action audit trail."""
 
@@ -105,18 +102,14 @@ class AuditLog(Base, TimestampMixin):
 
 
 class AccessLog(Base, TimestampMixin):
-<<<<<<< HEAD
     """Enterprise audit / access log (backward compatible with legacy columns)."""
 
-=======
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
     __tablename__ = "access_logs"
 
     id: Mapped[int] = mapped_column(primary_key=True)
     tenant_id: Mapped[int] = mapped_column(
         ForeignKey("tenants.id"), nullable=False, index=True
     )
-<<<<<<< HEAD
     # Alias / denormalized company fields (company_id mirrors tenant_id)
     company_id: Mapped[int | None] = mapped_column(Integer, index=True)
     company_name: Mapped[str | None] = mapped_column(String(255))
@@ -139,12 +132,3 @@ class AccessLog(Base, TimestampMixin):
     logout_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     logged_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, index=True)
     details: Mapped[str | None] = mapped_column(Text)
-=======
-    user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"))
-    action: Mapped[str] = mapped_column(String(128), nullable=False)
-    resource: Mapped[str | None] = mapped_column(String(128))
-    resource_id: Mapped[int | None] = mapped_column(Integer)
-    ip_address: Mapped[str | None] = mapped_column(String(64))
-    user_agent: Mapped[str | None] = mapped_column(String(512))
-    logged_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8

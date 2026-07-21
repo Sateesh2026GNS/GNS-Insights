@@ -19,10 +19,6 @@ import {
 import DataTable from "../../components/common/DataTable";
 import Loader from "../../components/common/Loader";
 import { useToast } from "../../context/ToastContext";
-<<<<<<< HEAD
-=======
-import { getWorkOrders } from "../../api/productionApi";
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
 import {
   getScheduleBottomKpis,
   getScheduleCalendar,
@@ -252,7 +248,6 @@ export default function ProductionSchedule() {
   const [view, setView] = useState("timeline");
   const [dashboard, setDashboard] = useState(DEMO_DASHBOARD);
   const [timeline, setTimeline] = useState(DEMO_TIMELINE);
-<<<<<<< HEAD
   const [shifts, setShifts] = useState([]);
   const [liveMachines, setLiveMachines] = useState([]);
   const [queue, setQueue] = useState(DEMO_QUEUE);
@@ -261,18 +256,6 @@ export default function ProductionSchedule() {
   const [bottomKpis, setBottomKpis] = useState([]);
   const [calendarEvents, setCalendarEvents] = useState([]);
   const [kanban, setKanban] = useState(DEMO_KANBAN);
-=======
-  const [shifts, setShifts] = useState(DEMO_SHIFTS);
-  const [liveMachines, setLiveMachines] = useState(DEMO_LIVE_MACHINES);
-  const [queue, setQueue] = useState(DEMO_QUEUE);
-  const [materials, setMaterials] = useState(DEMO_MATERIALS);
-  const [conflicts, setConflicts] = useState(DEMO_CONFLICTS);
-  const [bottomKpis, setBottomKpis] = useState(DEMO_BOTTOM_KPIS);
-  const [calendarEvents, setCalendarEvents] = useState(DEMO_CALENDAR_EVENTS);
-  const [kanban, setKanban] = useState(DEMO_KANBAN);
-  const [workOrders, setWorkOrders] = useState([]);
-  const [selectedWorkOrder, setSelectedWorkOrder] = useState(null);
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
   const [tableSearch, setTableSearch] = useState("");
 
   const load = useCallback(async () => {
@@ -280,11 +263,7 @@ export default function ProductionSchedule() {
     try {
       const [
         dashRes, timelineRes, shiftRes, liveRes, queueRes,
-<<<<<<< HEAD
         matRes, conflictRes, bottomRes, calRes,
-=======
-        matRes, conflictRes, bottomRes, calRes, woRes,
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
       ] = await Promise.allSettled([
         getScheduleDashboard(),
         getScheduleTimeline(),
@@ -295,10 +274,6 @@ export default function ProductionSchedule() {
         getScheduleConflicts(),
         getScheduleBottomKpis(),
         getScheduleCalendar(),
-<<<<<<< HEAD
-=======
-        getWorkOrders(),
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
       ]);
 
       if (dashRes.status === "fulfilled" && dashRes.value?.data) {
@@ -330,32 +305,7 @@ export default function ProductionSchedule() {
       if (calRes.status === "fulfilled" && calRes.value?.data?.length) {
         setCalendarEvents(calRes.value.data);
       }
-<<<<<<< HEAD
     } catch {
-=======
-      if (woRes.status === "fulfilled" && woRes.value?.data) {
-        const list = woRes.value.data;
-        setWorkOrders(list);
-        
-        // Group for Kanban
-        const grouped = { planned: [], ready: [], running: [], quality: [], completed: [] };
-        list.forEach((wo) => {
-          const status = (wo.status || "planned").toLowerCase();
-          const colId = KANBAN_COLUMNS.some(c => c.id === status) ? status : "planned";
-          grouped[colId].push({
-            id: wo.id,
-            work_order_number: wo.work_order_number,
-            product_name: wo.product_name || "—",
-            quantity: wo.planned_quantity,
-            machine_name: wo.machine_name || "Unassigned",
-            priority: wo.priority || "medium",
-          });
-        });
-        setKanban(grouped);
-      }
-    } catch {
-      addToast("Using demo schedule data", "info");
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
     } finally {
       setLoading(false);
     }
@@ -363,15 +313,6 @@ export default function ProductionSchedule() {
 
   useEffect(() => { load(); }, [load]);
 
-<<<<<<< HEAD
-=======
-  useEffect(() => {
-    if (workOrders.length && !selectedWorkOrder) {
-      setSelectedWorkOrder(workOrders[0]);
-    }
-  }, [workOrders, selectedWorkOrder]);
-
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
   const tableRows = useMemo(
     () => buildTableFromTimeline(timeline, shifts),
     [timeline, shifts]
@@ -570,7 +511,6 @@ export default function ProductionSchedule() {
           <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
             <h3 className="mb-3 text-sm font-bold text-slate-800">Live Machine Status</h3>
             <div className="space-y-2">
-<<<<<<< HEAD
               {liveMachines.map((m) => (
                 <div key={m.machine_id} className="rounded-lg border border-slate-100 p-3">
                   <p className="text-sm font-bold text-slate-800">
@@ -588,32 +528,6 @@ export default function ProductionSchedule() {
             </div>
           </section>
 
-=======
-              {liveMachines.filter((m) => m.status === "running").length > 0 ? (
-                liveMachines
-                  .filter((m) => m.status === "running")
-                  .map((m) => (
-                    <div key={m.machine_id} className="rounded-lg border border-slate-100 p-3">
-                      <p className="text-sm font-bold text-slate-800">
-                        {machineStatusDot(m.status)} {m.machine_name}
-                      </p>
-                      <p className="text-xs capitalize text-slate-600">{m.status}</p>
-                      {m.job && <p className="text-xs text-slate-500">Job {m.job}</p>}
-                      {m.progress_pct > 0 && (
-                        <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-slate-200">
-                          <div className="h-full bg-green-500" style={{ width: `${m.progress_pct}%` }} />
-                        </div>
-                      )}
-                    </div>
-                  ))
-              ) : (
-                <p className="py-4 text-center text-xs text-slate-500">No machines currently running</p>
-              )}
-            </div>
-          </section>
-
-
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
           <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
             <h3 className="mb-3 text-sm font-bold text-slate-800">Production Queue</h3>
             <ol className="space-y-2">
@@ -649,36 +563,11 @@ export default function ProductionSchedule() {
           <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
             <h3 className="mb-3 text-sm font-bold text-slate-800">Resource Allocation</h3>
             <dl className="space-y-1 text-xs text-slate-700">
-<<<<<<< HEAD
               <div className="flex justify-between"><dt className="text-slate-500">Machine</dt><dd className="font-semibold">{DEMO_RESOURCE.machine}</dd></div>
               <div className="flex justify-between"><dt className="text-slate-500">Operator</dt><dd className="font-semibold">{DEMO_RESOURCE.operator}</dd></div>
               <div className="flex justify-between"><dt className="text-slate-500">Shift</dt><dd className="font-semibold">{DEMO_RESOURCE.shift}</dd></div>
               <div className="flex justify-between"><dt className="text-slate-500">Supervisor</dt><dd className="font-semibold">{DEMO_RESOURCE.supervisor}</dd></div>
             </dl>
-=======
-              <div className="flex justify-between"><dt className="text-slate-500">Machine</dt><dd className="font-semibold">{selectedWorkOrder?.machine_name || "—"}</dd></div>
-              <div className="flex justify-between"><dt className="text-slate-500">Operator</dt><dd className="font-semibold">{selectedWorkOrder?.operator_name || "—"}</dd></div>
-              <div className="flex justify-between"><dt className="text-slate-500">Shift</dt><dd className="font-semibold">{selectedWorkOrder?.shift || "—"}</dd></div>
-              <div className="flex justify-between"><dt className="text-slate-500">Supervisor</dt><dd className="font-semibold">{selectedWorkOrder?.supervisor || "—"}</dd></div>
-            </dl>
-            {workOrders.length > 1 && (
-              <div className="mt-3 border-t border-slate-100 pt-3">
-                <label className="block text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Select Work Order:</label>
-                <select
-                  value={selectedWorkOrder?.id || ""}
-                  onChange={(e) => {
-                    const found = workOrders.find(w => w.id === Number(e.target.value));
-                    if (found) setSelectedWorkOrder(found);
-                  }}
-                  className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-700 focus:border-[#2563EB] focus:outline-none focus:ring-1 focus:ring-[#2563EB]"
-                >
-                  {workOrders.map(w => (
-                    <option key={w.id} value={w.id}>{w.work_order_number} ({w.product_name})</option>
-                  ))}
-                </select>
-              </div>
-            )}
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
           </section>
 
           <section className="rounded-2xl border border-amber-200 bg-amber-50 p-4 shadow-sm">

@@ -6,11 +6,7 @@ import QualityFilters from "../../components/quality/QualityFilters";
 import Loader from "../../components/common/Loader";
 import { useToast } from "../../context/ToastContext";
 import { getFinalEnriched, getFinalSummary } from "../../api/qualityApi";
-<<<<<<< HEAD
 import { DEMO_FINAL_LIST, DEMO_FINAL_SUMMARY, FINAL_QC_FLOW, qcStatusColor } from "../../data/qualityMasterData";
-=======
-import { FINAL_QC_FLOW, qcStatusColor } from "../../data/qualityMasterData";
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
 
 function KpiCard({ label, value, icon: Icon, color }) {
   return (
@@ -23,25 +19,10 @@ function KpiCard({ label, value, icon: Icon, color }) {
   );
 }
 
-<<<<<<< HEAD
 export default function FinalQC() {
   const { addToast } = useToast();
   const [loading, setLoading] = useState(true);
   const [summary, setSummary] = useState(DEMO_FINAL_SUMMARY);
-=======
-const INITIAL_FINAL_SUMMARY = {
-  pending_final: 0,
-  passed: 0,
-  failed: 0,
-  packed: 0,
-  ready_dispatch: 0,
-};
-
-export default function FinalQC() {
-  const { addToast } = useToast();
-  const [loading, setLoading] = useState(true);
-  const [summary, setSummary] = useState(INITIAL_FINAL_SUMMARY);
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
   const [rows, setRows] = useState([]);
   const [search, setSearch] = useState("");
   const [resultFilter, setResultFilter] = useState("");
@@ -50,19 +31,10 @@ export default function FinalQC() {
     setLoading(true);
     try {
       const [sumRes, listRes] = await Promise.allSettled([getFinalSummary(), getFinalEnriched()]);
-<<<<<<< HEAD
       if (sumRes.status === "fulfilled" && sumRes.value?.data) setSummary({ ...DEMO_FINAL_SUMMARY, ...sumRes.value.data });
       if (listRes.status === "fulfilled" && listRes.value?.data?.length) setRows(listRes.value.data);
       else setRows([]);
     } catch {
-=======
-      if (sumRes.status === "fulfilled" && sumRes.value?.data) setSummary(sumRes.value.data);
-      if (listRes.status === "fulfilled" && listRes.value?.data) setRows(listRes.value.data);
-    } catch {
-      setSummary(INITIAL_FINAL_SUMMARY);
-      setRows([]);
-      addToast("Failed to load final QC data", "error");
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
     } finally {
       setLoading(false);
     }

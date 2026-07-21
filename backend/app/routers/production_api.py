@@ -14,10 +14,6 @@ from app.schemas.production import (
     BatchCreate,
     DailyProductionReportCreate,
     ProductionOrderCreate,
-<<<<<<< HEAD
-=======
-    ProductionOrderUpdate,
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
     WorkOrderCreate,
     WorkOrderQuickCreate,
     WorkOrderUpdate,
@@ -45,10 +41,6 @@ from app.services.production_service import (
     list_batches,
     list_daily_production_reports,
     quick_create_work_order,
-<<<<<<< HEAD
-=======
-    update_production_order,
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
     update_production_order_status,
     update_work_order,
 )
@@ -97,18 +89,6 @@ def production_planning(user_tenant: tuple[User, int] = Depends(require_tenant("
     })
 
 
-<<<<<<< HEAD
-=======
-@router.get("/planning/summary")
-def production_planning_summary(
-    user_tenant: tuple[User, int] = Depends(require_tenant("production")),
-    db: Session = Depends(get_db),
-):
-    _, tenant_id = user_tenant
-    return success_response("Production planning summary retrieved", _dump(get_production_planning_summary(db, tenant_id)))
-
-
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
 @router.get("/planning/{plan_id}")
 def production_plan_detail(
     plan_id: int,
@@ -134,27 +114,13 @@ def create_plan(
     return success_response("Production plan created", _dump(order))
 
 
-<<<<<<< HEAD
 @router.get("/planning/summary")
 def production_planning_summary(
-=======
-@router.put("/planning/{plan_id}")
-def update_plan(
-    plan_id: int,
-    payload: ProductionOrderUpdate,
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
     user_tenant: tuple[User, int] = Depends(require_tenant("production")),
     db: Session = Depends(get_db),
 ):
     _, tenant_id = user_tenant
-<<<<<<< HEAD
     return success_response("Production planning summary retrieved", _dump(get_production_planning_summary(db, tenant_id)))
-=======
-    order = update_production_order(db, plan_id, tenant_id, payload)
-    if not order:
-        raise HTTPException(404, "Production plan not found")
-    return success_response("Production plan updated", _dump(order))
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
 
 
 @router.get("/planning/{plan_id}/start-checks")
@@ -214,22 +180,6 @@ def production_plan_status(
     return success_response("Production plan status updated", _dump(order))
 
 
-<<<<<<< HEAD
-=======
-@router.delete("/planning/{plan_id}")
-def delete_production_plan(
-    plan_id: int,
-    user_tenant: tuple[User, int] = Depends(require_tenant("production")),
-    db: Session = Depends(get_db),
-):
-    from app.services.production_service import delete_production_order
-    _, tenant_id = user_tenant
-    if not delete_production_order(db, tenant_id, plan_id):
-        raise HTTPException(404, "Production plan not found")
-    return success_response("Production plan deleted successfully", {"id": plan_id})
-
-
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
 # ── Work Orders ────────────────────────────────────────────────────────────
 
 
@@ -294,11 +244,6 @@ def quick_work_order(
     db: Session = Depends(get_db),
 ):
     payload.tenant_id = user.tenant_id
-<<<<<<< HEAD
-=======
-    if user.plant_code:
-        payload.plant_code = user.plant_code
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
     wo = quick_create_work_order(db, payload)
     return success_response("Work order created", _dump(wo))
 
@@ -382,22 +327,6 @@ def work_order_complete(
     return success_response("Work order completed", _dump(complete_work_order(db, tenant_id, work_order_id)))
 
 
-<<<<<<< HEAD
-=======
-@router.delete("/work-orders/{work_order_id}")
-def delete_work_order_endpoint(
-    work_order_id: int,
-    user_tenant: tuple[User, int] = Depends(require_tenant("workorders")),
-    db: Session = Depends(get_db),
-):
-    from app.services.production_service import delete_work_order
-    _, tenant_id = user_tenant
-    if not delete_work_order(db, tenant_id, work_order_id):
-        raise HTTPException(404, "Work order not found")
-    return success_response("Work order deleted successfully", {"id": work_order_id})
-
-
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
 # ── Shop Floor ─────────────────────────────────────────────────────────────
 
 

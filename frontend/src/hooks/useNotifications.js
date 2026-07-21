@@ -31,7 +31,6 @@ export default function useNotifications() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState(null);
 
-<<<<<<< HEAD
   const refresh = useCallback(async () => {
     if (!isAuthenticated) {
       setCount(0);
@@ -39,19 +38,6 @@ export default function useNotifications() {
       setHasMore(false);
       setPage(1);
       setError(null);
-=======
-  const resetState = useCallback(() => {
-    setCount(0);
-    setNotifications([]);
-    setHasMore(false);
-    setPage(1);
-    setError(null);
-  }, []);
-
-  const refresh = useCallback(async () => {
-    if (!isAuthenticated) {
-      resetState();
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
       return;
     }
 
@@ -61,22 +47,14 @@ export default function useNotifications() {
       applyListData(setNotifications, setCount, setHasMore, setPage, res.data);
       setError(null);
     } catch (err) {
-<<<<<<< HEAD
       setCount(0);
       setNotifications([]);
       setHasMore(false);
-=======
-      resetState();
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
       setError(err.response?.data?.detail || err.response?.data?.message || "Failed to load notifications");
     } finally {
       setLoading(false);
     }
-<<<<<<< HEAD
   }, [isAuthenticated]);
-=======
-  }, [isAuthenticated, resetState]);
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
 
   const refreshCount = useCallback(async () => {
     if (!isAuthenticated) return;
@@ -180,25 +158,14 @@ export default function useNotifications() {
   );
 
   const clearAll = useCallback(async () => {
-<<<<<<< HEAD
     if (!isAuthenticated) return;
-=======
-    if (!isAuthenticated) {
-      resetState();
-      return;
-    }
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
 
     const previousNotifications = notifications;
     const previousCount = count;
 
-<<<<<<< HEAD
     setNotifications([]);
     setCount(0);
     setHasMore(false);
-=======
-    resetState();
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
 
     try {
       await clearAllNotifications();
@@ -208,11 +175,7 @@ export default function useNotifications() {
       await refresh();
       throw new Error("Failed to clear notifications");
     }
-<<<<<<< HEAD
   }, [count, isAuthenticated, notifications, refresh]);
-=======
-  }, [count, isAuthenticated, notifications, refresh, resetState]);
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
 
   useEffect(() => {
     refresh();
@@ -234,9 +197,5 @@ export default function useNotifications() {
     markAllRead,
     deleteNotification,
     clearAll,
-<<<<<<< HEAD
-=======
-    resetState,
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
   };
 }

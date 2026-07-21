@@ -31,32 +31,11 @@ import {
   Zap,
 } from "lucide-react";
 
-<<<<<<< HEAD
 import EmptyChart from "../../common/EmptyChart";
 import {
   quickActionsRef,
 } from "../../../data/referenceDashboardData";
 import { getErpDashboard } from "../../../api/dashboardApi";
-=======
-import {
-  alertsFeed,
-  inventoryBlocks,
-  kpiCards,
-  ordersOverview,
-  productionOverview,
-  productionOverviewWeekly,
-  productionOverviewMonthly,
-  productionOverviewYearly,
-  quickActionsRef,
-  recentWorkOrdersRef,
-  shopFloorStatus,
-  todaysSummaryRef,
-  topMachines,
-  warehouseLocations,
-} from "../../../data/referenceDashboardData";
-import { getErpDashboard } from "../../../api/dashboardApi";
-import Loader from "../../common/Loader";
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
 import useAuth from "../../../hooks/useAuth";
 import { userCanAccess } from "../../../config/permissions";
 import {
@@ -82,20 +61,6 @@ const KPI_TITLE_KEYS = {
   "reject-qty": "rejectQtyToday",
 };
 
-<<<<<<< HEAD
-=======
-const KPI_MODULES = {
-  "total-orders": "production",
-  "today-production": "production",
-  "machines-running": "production",
-  "pending-orders": "production",
-  "good-qty": "quality",
-  "reject-qty": "quality",
-};
-
-
-
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
 const TREND_LABEL_KEYS = {
   "vs last 7 days": "vsLast7Days",
   "vs yesterday": "vsYesterday",
@@ -124,7 +89,6 @@ const ALERT_TIME_META = [
   { key: "hrsAgo", count: 3 },
 ];
 
-<<<<<<< HEAD
 const KPI_STYLE = {
   "total-orders": { gradient: "from-blue-600 to-blue-500", iconBg: "bg-white/20" },
   "today-production": { gradient: "from-emerald-600 to-emerald-500", iconBg: "bg-white/20" },
@@ -137,17 +101,6 @@ const KPI_STYLE = {
 const EMPTY_ORDERS = { total: 0, inProgress: 0, completed: 0, onHold: 0, progress: 0 };
 
 const PERIOD_KEYS = { Daily: "daily", Weekly: "weekly", Monthly: "monthly" };
-=======
-const PERIOD_KEYS = { Daily: "daily", Weekly: "weekly", Monthly: "monthly", Yearly: "yearly" };
-
-const PRODUCTION_DATA = {
-  Daily: productionOverview,
-  Weekly: productionOverviewWeekly,
-  Monthly: productionOverviewMonthly,
-  Yearly: productionOverviewYearly,
-};
-
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
 
 const summaryIcons = {
   users: Users,
@@ -174,7 +127,6 @@ const blockIcons = {
 
 function KpiStrip({ cards = [] }) {
   const { t } = useTranslation();
-<<<<<<< HEAD
   if (!cards.length) {
     return (
       <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/50 px-6 py-10 text-center text-sm text-slate-500">
@@ -195,53 +147,6 @@ function KpiStrip({ cards = [] }) {
           >
             <div className="flex items-start gap-3">
               <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${style.iconBg}`}>
-=======
-
-  const visibleCards = cards;
-
-  if (!visibleCards.length) {
-    return (
-      <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-8 text-center text-sm text-slate-500">
-        {t("refDashboard.noKpiData", { defaultValue: "No KPI data available yet." })}
-      </div>
-    );
-  }
-
-  const todayStr = new Date().toISOString().slice(0, 10);
-  const getKpiRoute = (id) => {
-    switch (id) {
-      case "total-orders":
-        return "/production/planning";
-      case "today-production":
-        return `/production/planning?date_today=${todayStr}`;
-      case "machines-running":
-        return "/production/machines?status=running";
-      case "pending-orders":
-        return "/production/work-orders?status_group=pending";
-      case "good-qty":
-        return "/production/reports";
-      case "reject-qty":
-        return "/quality/defects";
-      default:
-        return "#";
-    }
-  };
-
-  return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
-      {visibleCards.map((card) => {
-        const titleKey = KPI_TITLE_KEYS[card.id];
-        const trendKey = TREND_LABEL_KEYS[card.trendLabel];
-        const targetRoute = getKpiRoute(card.id);
-        return (
-          <Link
-            key={card.id}
-            to={targetRoute}
-            className={`relative block overflow-hidden rounded-2xl bg-gradient-to-br ${card.gradient} p-4 text-white shadow-[0_4px_14px_rgba(0,0,0,0.12)] transition-transform hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(0,0,0,0.16)]`}
-          >
-            <div className="flex items-start gap-3">
-              <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${card.iconBg}`}>
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
                 <KpiIcon id={card.id} className="h-6 w-6 text-white" />
               </div>
               <div className="min-w-0 flex-1">
@@ -260,11 +165,7 @@ function KpiStrip({ cards = [] }) {
                 />
               </div>
             </div>
-<<<<<<< HEAD
           </div>
-=======
-          </Link>
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
         );
       })}
     </div>
@@ -274,12 +175,8 @@ function KpiStrip({ cards = [] }) {
 function ProductionOverview({ chartSets }) {
   const { t } = useTranslation();
   const [period, setPeriod] = useState("Daily");
-<<<<<<< HEAD
   const chartData = chartSets?.[period] ?? [];
   const hasChartData = chartData.length > 0;
-=======
-  const chartData = chartSets?.[period] ?? PRODUCTION_DATA[period] ?? productionOverview;
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
   return (
     <CardShell
       title={t("refDashboard.productionOverview")}
@@ -300,10 +197,7 @@ function ProductionOverview({ chartSets }) {
       }
     >
       <div className="h-[260px] w-full">
-<<<<<<< HEAD
         {hasChartData ? (
-=======
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={chartData} margin={{ top: 8, right: 8, left: -20, bottom: 0 }} key={period}>
             <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
@@ -315,18 +209,14 @@ function ProductionOverview({ chartSets }) {
             <Line type="monotone" dataKey="actual" name={t("refDashboard.actualQty")} stroke="#22C55E" strokeWidth={2.5} dot={{ r: 3, fill: "#22C55E" }} />
           </LineChart>
         </ResponsiveContainer>
-<<<<<<< HEAD
         ) : (
           <EmptyChart message={t("common.noData", "No data available.")} />
         )}
-=======
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
       </div>
     </CardShell>
   );
 }
 
-<<<<<<< HEAD
 function ShopFloorStatus({ statusData = [] }) {
   const { t } = useTranslation();
   const total = statusData.reduce((s, d) => s + d.value, 0);
@@ -340,14 +230,6 @@ function ShopFloorStatus({ statusData = [] }) {
   return (
     <CardShell title={t("refDashboard.shopFloorStatus")} className="h-full">
       <div className="flex flex-col items-center gap-3 sm:flex-row">
-=======
-function ShopFloorStatus({ statusData = shopFloorStatus }) {
-  const { t } = useTranslation();
-  const total = statusData.reduce((s, d) => s + d.value, 0);
-  return (
-    <CardShell title={t("refDashboard.shopFloorStatus")} className="h-full">
-      <div className="flex flex-col items-center gap-4">
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
         <div className="relative h-[180px] w-[180px] shrink-0">
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
@@ -363,7 +245,6 @@ function ShopFloorStatus({ statusData = shopFloorStatus }) {
             <span className="text-2xl font-bold text-[#1E293B]">{total}</span>
           </div>
         </div>
-<<<<<<< HEAD
         <ul className="flex-1 space-y-2 text-sm">
           {statusData.map((item) => {
             const key = SHOP_FLOOR_KEYS[item.name];
@@ -378,44 +259,11 @@ function ShopFloorStatus({ statusData = shopFloorStatus }) {
             );
           })}
         </ul>
-=======
-        <div className="grid w-full grid-cols-2 gap-x-6 gap-y-2 text-sm px-2">
-          <ul className="space-y-2">
-            {statusData.slice(0, 3).map((item) => {
-              const key = SHOP_FLOOR_KEYS[item.name];
-              return (
-                <li key={item.name} className="flex items-center justify-between gap-2">
-                  <span className="flex items-center gap-1.5 text-slate-600 min-w-0">
-                    <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: item.color }} />
-                    <span className="truncate text-xs">{key ? t(`refDashboard.${key}`) : item.name}</span>
-                  </span>
-                  <span className="font-bold text-slate-800 text-xs shrink-0">{item.value}</span>
-                </li>
-              );
-            })}
-          </ul>
-          <ul className="space-y-2">
-            {statusData.slice(3, 5).map((item) => {
-              const key = SHOP_FLOOR_KEYS[item.name];
-              return (
-                <li key={item.name} className="flex items-center justify-between gap-2">
-                  <span className="flex items-center gap-1.5 text-slate-600 min-w-0">
-                    <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: item.color }} />
-                    <span className="truncate text-xs">{key ? t(`refDashboard.${key}`) : item.name}</span>
-                  </span>
-                  <span className="font-bold text-slate-800 text-xs shrink-0">{item.value}</span>
-                </li>
-              );
-            })}
-          </ul>
-        </div>
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
       </div>
     </CardShell>
   );
 }
 
-<<<<<<< HEAD
 function TopMachines({ machines = [] }) {
   const { t } = useTranslation();
   if (!machines.length) {
@@ -425,10 +273,6 @@ function TopMachines({ machines = [] }) {
       </CardShell>
     );
   }
-=======
-function TopMachines({ machines = topMachines }) {
-  const { t } = useTranslation();
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
   return (
     <CardShell title={t("refDashboard.topMachines")} className="h-full">
       <ul className="space-y-3">
@@ -453,11 +297,7 @@ function TopMachines({ machines = topMachines }) {
   );
 }
 
-<<<<<<< HEAD
 function OrdersOverview({ overview = EMPTY_ORDERS }) {
-=======
-function OrdersOverview({ overview = ordersOverview }) {
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
   const { t } = useTranslation();
   const stats = [
     { labelKey: "totalOrders", value: overview.total, color: "text-[#2563EB]" },
@@ -488,7 +328,6 @@ function OrdersOverview({ overview = ordersOverview }) {
   );
 }
 
-<<<<<<< HEAD
 function InventorySummary({ blocks = [], warehouses = [] }) {
   const { t } = useTranslation();
   if (!blocks.length) {
@@ -498,23 +337,6 @@ function InventorySummary({ blocks = [], warehouses = [] }) {
       </CardShell>
     );
   }
-=======
-function InventorySummary({ summary }) {
-  const { t } = useTranslation();
-
-  const blocks = useMemo(() => {
-    if (!summary) return inventoryBlocks;
-    return [
-      { label: "Raw Materials", count: summary.raw_materials_count, icon: "boxes", color: "#3B82F6" },
-      { label: "WIP Items", count: summary.wip_items_count, icon: "cog", color: "#F97316" },
-      { label: "Finished Goods", count: summary.finished_goods_count, icon: "package", color: "#22C55E" },
-      { label: "Low Stock Items", count: summary.low_stock_count, icon: "alert", color: "#EF4444" },
-    ];
-  }, [summary]);
-
-  const locations = summary?.warehouse_locations ?? warehouseLocations;
-
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
   return (
     <CardShell title={t("refDashboard.inventorySummary")}>
       <div className="grid grid-cols-2 gap-3 mb-4">
@@ -538,11 +360,7 @@ function InventorySummary({ summary }) {
       </div>
       <p className="mb-2 text-xs font-semibold text-slate-600">{t("refDashboard.warehouseLocation")}</p>
       <div className="flex h-3 overflow-hidden rounded-full">
-<<<<<<< HEAD
         {warehouses.map((w, i) => (
-=======
-        {locations.map((w, i) => (
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
           <div
             key={w.name}
             style={{ width: `${w.pct}%`, backgroundColor: w.color }}
@@ -551,11 +369,7 @@ function InventorySummary({ summary }) {
         ))}
       </div>
       <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[10px] text-slate-500">
-<<<<<<< HEAD
         {warehouses.map((w, i) => (
-=======
-        {locations.map((w, i) => (
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
           <span key={w.name} className="flex items-center gap-1">
             <span className="h-2 w-2 rounded-full" style={{ backgroundColor: w.color }} />
             {WAREHOUSE_KEYS[i] ? t(`refDashboard.${WAREHOUSE_KEYS[i]}`) : w.name}
@@ -566,18 +380,13 @@ function InventorySummary({ summary }) {
   );
 }
 
-<<<<<<< HEAD
 function AlertsNotifications({ alerts = [] }) {
-=======
-function AlertsNotifications({ alerts = alertsFeed }) {
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
   const { t } = useTranslation();
   return (
     <CardShell
       title={t("refDashboard.alertsNotifications")}
       action={<Link to="/production/work-orders" className="text-xs font-semibold text-[#2563EB] hover:underline">{t("common.viewAll")}</Link>}
     >
-<<<<<<< HEAD
       {!alerts.length ? (
         <p className="py-6 text-center text-sm text-slate-500">{t("common.noData", "No data available.")}</p>
       ) : (
@@ -586,37 +395,18 @@ function AlertsNotifications({ alerts = alertsFeed }) {
           const Icon = alertIcons[a.icon] || AlertTriangle;
           return (
             <li key={a.id || i} className="flex gap-3">
-=======
-      <ul className="space-y-3 max-h-[220px] overflow-y-auto pr-1">
-        {alerts.map((a) => {
-          const Icon = alertIcons[a.icon] || AlertTriangle;
-          return (
-            <li key={a.id} className="flex gap-3">
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
               <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg" style={{ backgroundColor: `${a.color}18`, color: a.color }}>
                 <Icon className="h-4 w-4" />
               </div>
               <div className="min-w-0">
-<<<<<<< HEAD
                 <p className="text-sm text-slate-700 leading-snug">{a.message}</p>
                 <p className="mt-0.5 text-[11px] text-slate-400">{a.time || "—"}</p>
-=======
-                <p className="text-sm text-slate-700 leading-snug">
-                  {a.message}
-                </p>
-                <p className="mt-0.5 text-[11px] text-slate-400">
-                  {a.time}
-                </p>
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
               </div>
             </li>
           );
         })}
       </ul>
-<<<<<<< HEAD
       )}
-=======
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
     </CardShell>
   );
 }
@@ -651,23 +441,16 @@ function QuickActions() {
   );
 }
 
-<<<<<<< HEAD
 function RecentWorkOrders({ workOrders = [] }) {
-=======
-function RecentWorkOrders({ workOrders = recentWorkOrdersRef }) {
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
   const { t } = useTranslation();
   return (
     <CardShell
       title={t("refDashboard.recentWorkOrders")}
       action={<Link to="/production/work-orders" className="text-xs font-semibold text-[#2563EB] hover:underline">{t("common.viewAll")}</Link>}
     >
-<<<<<<< HEAD
       {!workOrders.length ? (
         <p className="py-6 text-center text-sm text-slate-500">{t("common.noRecords", "No records found.")}</p>
       ) : (
-=======
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
       <div className="overflow-x-auto">
         <table className="w-full min-w-[420px] text-left text-sm">
           <thead>
@@ -692,15 +475,11 @@ function RecentWorkOrders({ workOrders = recentWorkOrdersRef }) {
           </tbody>
         </table>
       </div>
-<<<<<<< HEAD
       )}
-=======
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
     </CardShell>
   );
 }
 
-<<<<<<< HEAD
 function TodaysSummary({ items = [] }) {
   const { t } = useTranslation();
   if (!items.length) {
@@ -710,11 +489,6 @@ function TodaysSummary({ items = [] }) {
       </CardShell>
     );
   }
-=======
-function TodaysSummary({ summary }) {
-  const { t } = useTranslation();
-  const items = summary ?? todaysSummaryRef;
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
   return (
     <CardShell title={t("refDashboard.todaysSummary")}>
       <ul className="space-y-3">
@@ -738,7 +512,6 @@ function TodaysSummary({ summary }) {
 
 export default function ReferenceDashboard() {
   const { t } = useTranslation();
-<<<<<<< HEAD
   const [apiData, setApiData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -762,37 +535,6 @@ export default function ReferenceDashboard() {
     return apiData.kpi_cards.map((k) => ({
       ...k,
       value: k.value ?? "0",
-=======
-  const { user } = useAuth();
-  const [apiData, setApiData] = useState(null);
-
-  useEffect(() => {
-    getErpDashboard()
-      .then((res) => setApiData(res.data))
-      .catch(() => setApiData(null));
-  }, []);
-
-  const kpiCardsLive = useMemo(() => {
-    const cardsToUse = apiData?.kpi_cards || [];
-    const byId = Object.fromEntries(kpiCards.map((c) => [c.id, c]));
-    if (!apiData) {
-      return kpiCards.map((c) => ({
-        ...c,
-        value: "0",
-        suffix: c.suffix ? "/ 0" : undefined,
-        trend: "0%",
-      }));
-    }
-    return cardsToUse.map((k) => ({
-      ...byId[k.id],
-      ...k,
-      value: k.value,
-      trend: k.trend,
-      trendUp: k.trendUp,
-      trendLabel: k.trendLabel,
-      unit: k.unit,
-      suffix: k.suffix,
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
     }));
   }, [apiData]);
 
@@ -802,7 +544,6 @@ export default function ReferenceDashboard() {
       Daily: apiData.production_overview || [],
       Weekly: apiData.production_overview_weekly || [],
       Monthly: apiData.production_overview_monthly || [],
-<<<<<<< HEAD
     };
   }, [apiData]);
 
@@ -810,25 +551,6 @@ export default function ReferenceDashboard() {
 
   const workOrdersLive = useMemo(() => {
     if (!apiData?.recent_work_orders?.length) return [];
-=======
-      Yearly: apiData.production_overview_yearly || [],
-    };
-  }, [apiData]);
-
-  const alertsLive = useMemo(() => {
-    if (!apiData) return [];
-    return (apiData.alerts_feed || []).map((a, i) => ({
-      id: a.id || i + 1,
-      message: a.message,
-      time: a.time || "",
-      color: a.color || "#EF4444",
-      icon: a.icon || "alert",
-    }));
-  }, [apiData]);
-
-  const workOrdersLive = useMemo(() => {
-    if (!apiData) return [];
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
     return apiData.recent_work_orders.map((w) => ({
       wo: w.wo,
       product: w.product,
@@ -838,7 +560,6 @@ export default function ReferenceDashboard() {
     }));
   }, [apiData]);
 
-<<<<<<< HEAD
   if (loading) {
     return <div className="py-16 text-center text-sm text-slate-500">{t("common.loading", "Loading...")}</div>;
   }
@@ -851,9 +572,6 @@ export default function ReferenceDashboard() {
       </div>
     );
   }
-=======
-  const hasQuickActions = quickActionsRef.some((_, i) => userCanAccess(user, QUICK_ACTION_MODULES[i]));
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
 
   return (
     <div className="space-y-5 pb-4">
@@ -864,33 +582,20 @@ export default function ReferenceDashboard() {
           <ProductionOverview chartSets={chartSets} />
         </div>
         <div className="xl:col-span-3">
-<<<<<<< HEAD
           <ShopFloorStatus statusData={apiData?.shop_floor_status || []} />
         </div>
         <div className="xl:col-span-4">
           <TopMachines machines={apiData?.top_machines || []} />
-=======
-          <ShopFloorStatus statusData={apiData ? apiData.shop_floor_status : []} />
-        </div>
-        <div className="xl:col-span-4">
-          <TopMachines machines={apiData ? apiData.top_machines : []} />
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
         </div>
       </div>
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
-<<<<<<< HEAD
         <OrdersOverview overview={apiData?.orders_overview || EMPTY_ORDERS} />
         <InventorySummary blocks={apiData?.inventory_blocks || []} warehouses={apiData?.warehouse_locations || []} />
-=======
-        <OrdersOverview overview={apiData ? apiData.orders_overview : { total: 0, inProgress: 0, completed: 0, onHold: 0, progress: 0 }} />
-        <InventorySummary summary={apiData ? apiData.inventory_summary : { raw_materials_count: 0, wip_items_count: 0, finished_goods_count: 0, low_stock_count: 0, warehouse_locations: [] }} />
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
         <AlertsNotifications alerts={alertsLive} />
       </div>
 
       <div className="grid grid-cols-1 gap-5 xl:grid-cols-12">
-<<<<<<< HEAD
         <div className="xl:col-span-3">
           <QuickActions />
         </div>
@@ -899,18 +604,6 @@ export default function ReferenceDashboard() {
         </div>
         <div className="xl:col-span-4">
           <TodaysSummary items={apiData?.todays_summary || []} />
-=======
-        {hasQuickActions && (
-          <div className="xl:col-span-3">
-            <QuickActions />
-          </div>
-        )}
-        <div className={hasQuickActions ? "xl:col-span-5" : "xl:col-span-7"}>
-          <RecentWorkOrders workOrders={workOrdersLive} />
-        </div>
-        <div className={hasQuickActions ? "xl:col-span-4" : "xl:col-span-5"}>
-          <TodaysSummary summary={apiData ? apiData.todays_summary : []} />
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
         </div>
       </div>
 

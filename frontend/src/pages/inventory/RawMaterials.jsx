@@ -1,16 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-<<<<<<< HEAD
 import { Link } from "react-router-dom";
 import { AlertTriangle, Box, Download, Package, Plus, RefreshCw, Search, Trash2 } from "lucide-react";
 
 import DataTable from "../../components/common/DataTable";
-=======
-import { Link, useNavigate } from "react-router-dom";
-import { AlertTriangle, Box, Download, Eye, Package, Pencil, Plus, RefreshCw, Search, Trash2 } from "lucide-react";
-
-import DataTable from "../../components/common/DataTable";
-import RowActionMenu from "../../components/common/RowActionMenu";
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
 import Loader from "../../components/common/Loader";
 import MaterialDetailModal from "../../components/inventory/MaterialDetailModal";
 import { useToast } from "../../context/ToastContext";
@@ -43,61 +35,29 @@ const defaultFilters = { name: "", sku: "", barcode: "", category: "", warehouse
 
 export default function RawMaterials() {
   const tenantId = useTenantId();
-<<<<<<< HEAD
   const { addToast } = useToast();
   const [loading, setLoading] = useState(true);
   const [summary, setSummary] = useState(DEMO_MATERIALS_SUMMARY);
   const [materials, setMaterials] = useState([]);
-=======
-  const navigate = useNavigate();
-  const { addToast } = useToast();
-  const [loading, setLoading] = useState(true);
-  const [materials, setMaterials] = useState(DEMO_MATERIALS);
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
   const [filters, setFilters] = useState(defaultFilters);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [barcodeInput, setBarcodeInput] = useState("");
   const [selected, setSelected] = useState(null);
-<<<<<<< HEAD
-=======
-  const [openMenu, setOpenMenu] = useState(null);
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
       const [sumRes, listRes] = await Promise.allSettled([getRawMaterialsSummary(), getRawMaterials()]);
-<<<<<<< HEAD
       if (sumRes.status === "fulfilled" && sumRes.value?.data) setSummary({ ...DEMO_MATERIALS_SUMMARY, ...sumRes.value.data });
       if (listRes.status === "fulfilled" && listRes.value?.data?.length) setMaterials(listRes.value.data);
       else setMaterials(DEMO_MATERIALS);
     } catch { }
-=======
-      if (listRes.status === "fulfilled" && listRes.value?.data) {
-        const apiRows = listRes.value.data;
-        if (apiRows.length > 0) {
-          setMaterials([
-            ...apiRows,
-            ...DEMO_MATERIALS.filter((d) => !apiRows.some((r) => r.sku === d.sku)),
-          ]);
-        } else {
-          setMaterials(DEMO_MATERIALS);
-        }
-      } else {
-        setMaterials(DEMO_MATERIALS);
-      }
-    } catch { addToast("Using demo materials data", "info"); }
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
     finally { setLoading(false); }
   }, [addToast]);
 
   useEffect(() => { load(); }, [load]);
 
   const filtered = useMemo(() => {
-<<<<<<< HEAD
-=======
-
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
     let rows = materials;
     if (filters.low_stock) rows = rows.filter((r) => r.status === "low_stock");
     if (filters.name) rows = rows.filter((r) => r.name?.toLowerCase().includes(filters.name.toLowerCase()));
@@ -107,52 +67,11 @@ export default function RawMaterials() {
     return rows;
   }, [materials, filters]);
 
-<<<<<<< HEAD
-=======
-  const summary = useMemo(() => {
-    const totalItems = filtered.length;
-    let availableQty = 0;
-    let lowStockCount = 0;
-    let outOfStockCount = 0;
-    let stockValue = 0;
-    let expiringCount = 0;
-
-    filtered.forEach((m) => {
-      const qty = Number(m.quantity || 0);
-      const val = qty * Number(m.unit_cost || 0);
-      availableQty += Number(m.available || qty);
-      stockValue += val;
-      if (qty === 0) {
-        outOfStockCount += 1;
-      } else if (m.status === "low_stock" || (m.reorder_level && qty < m.reorder_level)) {
-        lowStockCount += 1;
-      }
-      if (m.expiring_soon) {
-        expiringCount += 1;
-      }
-    });
-
-    return {
-      total_items: totalItems,
-      available_stock: availableQty,
-      low_stock: lowStockCount,
-      out_of_stock: outOfStockCount,
-      stock_value: stockValue,
-      expiring_soon: expiringCount,
-    };
-  }, [filtered]);
-
-
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
   const openDetail = async (row) => {
     if (typeof row.id === "number") {
       try { const res = await getRawMaterialDetail(row.id); setSelected(res.data); return; } catch { /* fallback */ }
     }
-<<<<<<< HEAD
     setSelected({ ...row });
-=======
-    setSelected({ ...DEMO_MATERIAL_DETAIL, ...row });
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
   };
 
   const handleBarcode = async (e) => {
@@ -180,24 +99,11 @@ export default function RawMaterials() {
     { key: "unit_cost", label: "Cost", render: (r) => r.unit_cost ? `₹${r.unit_cost}` : "—" },
     { key: "stock_value", label: "Value", render: (r) => r.stock_value ? formatInr(r.stock_value) : "—" },
     { key: "status", label: "Status", render: (r) => <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${stockStatusColor(r.status)}`}>{stockStatusLabel(r.status)}</span> },
-<<<<<<< HEAD
     { key: "actions", label: "Actions", render: (r) => (
       <div className="flex gap-2">
         <button type="button" onClick={() => openDetail(r)} className="text-xs font-semibold text-[#2563EB] hover:underline">View</button>
         <Link to={`/inventory/items/create?type=raw_material&edit=${r.id}`} className="text-xs text-slate-600 hover:underline">Edit</Link>
       </div>
-=======
-    { key: "actions", label: "Actions", sortable: false, render: (r) => (
-      <RowActionMenu
-        rowId={r.id}
-        openMenu={openMenu}
-        setOpenMenu={setOpenMenu}
-        items={[
-          { label: "View", icon: <Eye className="h-4 w-4" />, onClick: () => openDetail(r) },
-          { label: "Edit", icon: <Pencil className="h-4 w-4" />, onClick: () => navigate(`/inventory/items/create?type=raw_material&edit=${r.id}`) },
-        ]}
-      />
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
     )},
   ];
 

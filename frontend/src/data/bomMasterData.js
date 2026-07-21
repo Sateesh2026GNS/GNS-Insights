@@ -27,11 +27,7 @@ export function computeBomSummary(boms) {
     active: boms.filter((b) => b.status === "active").length,
     draft: boms.filter((b) => b.status === "draft").length,
     inactive: boms.filter((b) => b.status === "inactive").length,
-<<<<<<< HEAD
     withoutBom: 2,
-=======
-    withoutBom: 0,
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
     pendingApproval: boms.filter((b) => b.status === "pending_approval" || (b.status === "draft" && b.approval_workflow?.some((s) => s.step === "Submitted" && s.status === "pending"))).length,
   };
 }

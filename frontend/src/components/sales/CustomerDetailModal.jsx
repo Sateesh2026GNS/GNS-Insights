@@ -232,16 +232,10 @@ export function CustomerFormModal({ customer, onClose, onSave }) {
     customer_type: customer?.customer_type || "Corporate",
     status: customer?.status || "active",
     billing_address: customer?.billing_address || customer?.address_line1 || "",
-<<<<<<< HEAD
-=======
-    credit_limit: customer?.credit_limit || "",
-    outstanding: customer?.outstanding || "",
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
   });
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
 
   return (
-<<<<<<< HEAD
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
       <form onSubmit={(e) => { e.preventDefault(); onSave(form); }} className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl">
         <div className="mb-4 flex items-center justify-between">
@@ -287,106 +281,6 @@ export function CustomerFormModal({ customer, onClose, onSave }) {
           <button type="submit" className="ui-btn-primary">Save Customer</button>
         </div>
       </form>
-=======
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 sm:items-center">
-      <div className="flex max-h-[94vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
-        {/* Header */}
-        <div className="flex items-start justify-between border-b px-5 py-4">
-          <h2 className="text-xl font-bold text-slate-900">
-            {customer?.customer_code ? "Edit Customer" : "Create New Customer"}
-          </h2>
-          <button type="button" onClick={onClose} className="rounded-lg p-2 text-slate-400 hover:bg-slate-100">
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-
-        {/* Scrollable Form Content */}
-        <form onSubmit={(e) => { e.preventDefault(); onSave(form); }} className="overflow-y-auto p-5 space-y-4">
-          <div>
-            <label className="block text-xs font-semibold text-slate-500 uppercase">Company Name *</label>
-            <input required value={form.company} onChange={(e) => set("company", e.target.value)} className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-[#2563EB] focus:outline-none focus:ring-2 focus:ring-blue-100" placeholder="e.g. Acme Corp" />
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-semibold text-slate-500 uppercase">Contact Person</label>
-              <input value={form.contact_person} onChange={(e) => set("contact_person", e.target.value)} className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-[#2563EB] focus:outline-none focus:ring-2 focus:ring-blue-100" placeholder="John Doe" />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-slate-500 uppercase">Phone</label>
-              <input value={form.phone} onChange={(e) => set("phone", e.target.value)} className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-[#2563EB] focus:outline-none focus:ring-2 focus:ring-blue-100" placeholder="1234567890" />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-semibold text-slate-500 uppercase">Email</label>
-              <input type="email" value={form.email} onChange={(e) => set("email", e.target.value)} className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-[#2563EB] focus:outline-none focus:ring-2 focus:ring-blue-100" placeholder="john@example.com" />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-slate-500 uppercase">GSTIN</label>
-              <input value={form.gstin} onChange={(e) => set("gstin", e.target.value)} className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-[#2563EB] focus:outline-none focus:ring-2 focus:ring-blue-100" placeholder="36AABCS1234F1Z9" />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-semibold text-slate-500 uppercase">City</label>
-              <input value={form.city} onChange={(e) => set("city", e.target.value)} className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-[#2563EB] focus:outline-none focus:ring-2 focus:ring-blue-100" placeholder="Hyderabad" />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-slate-500 uppercase">State</label>
-              <input value={form.state} onChange={(e) => set("state", e.target.value)} className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-[#2563EB] focus:outline-none focus:ring-2 focus:ring-blue-100" placeholder="Telangana" />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-semibold text-slate-500 uppercase">Customer Type</label>
-              <select value={form.customer_type} onChange={(e) => set("customer_type", e.target.value)} className="mt-1 w-full rounded-lg border border-slate-200 px-2 py-2 text-sm bg-white font-medium text-slate-700 focus:border-[#2563EB] focus:outline-none focus:ring-2 focus:ring-blue-100">
-                {["Corporate", "Retail", "Distributor", "OEM", "Government"].map((t) => <option key={t} value={t}>{t}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-slate-500 uppercase">Status</label>
-              <select value={form.status} onChange={(e) => set("status", e.target.value)} className="mt-1 w-full rounded-lg border border-slate-200 px-2 py-2 text-sm bg-white font-medium text-slate-700 focus:border-[#2563EB] focus:outline-none focus:ring-2 focus:ring-blue-100">
-                {["active", "inactive"].map((s) => <option key={s} value={s}>{s}</option>)}
-              </select>
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-slate-500 uppercase">Billing Address</label>
-            <textarea value={form.billing_address} onChange={(e) => set("billing_address", e.target.value)} rows={2} className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-[#2563EB] focus:outline-none focus:ring-2 focus:ring-blue-100" placeholder="Enter billing address..." />
-          </div>
-
-          <div className="border-t border-slate-100 pt-3">
-            <p className="mb-2 text-xs font-bold text-slate-400 uppercase tracking-widest">Financial Information</p>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-semibold text-slate-500 uppercase">Credit Limit (₹)</label>
-              <input type="number" min="0" value={form.credit_limit} onChange={(e) => set("credit_limit", e.target.value)} className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-[#2563EB] focus:outline-none focus:ring-2 focus:ring-blue-100" placeholder="e.g. 1000000" />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-slate-500 uppercase">Outstanding Amount (₹)</label>
-              <input type="number" min="0" value={form.outstanding} onChange={(e) => set("outstanding", e.target.value)} className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-[#2563EB] focus:outline-none focus:ring-2 focus:ring-blue-100" placeholder="e.g. 50000" />
-            </div>
-          </div>
-
-          {/* Action Buttons */}
-          <div className="flex justify-end gap-2 border-t pt-4">
-            <button type="button" onClick={onClose} className="rounded-lg border px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
-              Cancel
-            </button>
-            <button type="submit" className="rounded-lg bg-[#2563EB] px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700">
-              Save Customer
-            </button>
-          </div>
-        </form>
-      </div>
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
     </div>
   );
 }

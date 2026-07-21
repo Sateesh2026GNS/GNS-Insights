@@ -1,15 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-<<<<<<< HEAD
 import { MapPin, Package, RefreshCw, Truck, X } from "lucide-react";
 
 import DataTable from "../../components/common/DataTable";
-=======
-import { Eye, MapPin, Package, RefreshCw, Truck, X } from "lucide-react";
-
-import DataTable from "../../components/common/DataTable";
-import RowActionMenu from "../../components/common/RowActionMenu";
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
 import Loader from "../../components/common/Loader";
 import { useToast } from "../../context/ToastContext";
 import { getDispatchEnriched, getDispatchSummary } from "../../api/dispatchApi";
@@ -71,40 +64,18 @@ function Field({ label, value }) {
 export default function Dispatch() {
   const { addToast } = useToast();
   const [loading, setLoading] = useState(true);
-<<<<<<< HEAD
   const [summary, setSummary] = useState(DEMO_DISPATCH_SUMMARY);
   const [rows, setRows] = useState([]);
   const [selected, setSelected] = useState(null);
-=======
-  const [summary, setSummary] = useState({ ready_to_dispatch: 0, packed: 0, in_transit: 0, delivered: 0, delayed: 0 });
-  const [rows, setRows] = useState([]);
-  const [selected, setSelected] = useState(null);
-  const [openMenu, setOpenMenu] = useState(null);
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
       const [sumRes, listRes] = await Promise.allSettled([getDispatchSummary(), getDispatchEnriched()]);
-<<<<<<< HEAD
       if (sumRes.status === "fulfilled" && sumRes.value?.data) setSummary({ ...DEMO_DISPATCH_SUMMARY, ...sumRes.value.data });
       if (listRes.status === "fulfilled" && listRes.value?.data?.length) setRows(listRes.value.data);
       else setRows([]);
     } catch {
-=======
-      if (sumRes.status === "fulfilled" && sumRes.value?.data) {
-        setSummary(sumRes.value.data);
-      } else {
-        setSummary({ ready_to_dispatch: 0, packed: 0, in_transit: 0, delivered: 0, delayed: 0 });
-      }
-      if (listRes.status === "fulfilled" && listRes.value?.data) {
-        setRows(listRes.value.data);
-      } else {
-        setRows([]);
-      }
-    } catch {
-      addToast("Failed to load dispatch data", "error");
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
     } finally {
       setLoading(false);
     }
@@ -121,11 +92,8 @@ export default function Dispatch() {
       } catch (err) {
         addToast(err.response?.data?.detail || "Update failed", "error");
       }
-<<<<<<< HEAD
     } else {
       addToast("Shipment tracked (demo)");
-=======
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
     }
   };
 
@@ -139,7 +107,6 @@ export default function Dispatch() {
     { key: "dispatch_date", label: "Dispatch Date", render: (r) => String(r.dispatch_date || "").slice(0, 10) },
     { key: "eta", label: "ETA", render: (r) => r.eta || "—" },
     { key: "status", label: "Status", render: (r) => <span className={`rounded-full px-2 py-0.5 text-xs font-semibold capitalize ${statusColor(r.status)}`}>{r.status}</span> },
-<<<<<<< HEAD
     { key: "actions", label: "Actions", render: (r) => (
       <div className="flex gap-2">
         <button type="button" onClick={() => setSelected(r)} className="text-xs font-semibold text-[#2563EB] hover:underline">Track</button>
@@ -147,18 +114,6 @@ export default function Dispatch() {
           <button type="button" onClick={() => handleShip(r)} className="text-xs text-teal-600 hover:underline">Ship</button>
         )}
       </div>
-=======
-    { key: "actions", label: "Actions", sortable: false, render: (r) => (
-      <RowActionMenu
-        rowId={r.id}
-        openMenu={openMenu}
-        setOpenMenu={setOpenMenu}
-        items={[
-          { label: "Track", icon: <Eye className="h-4 w-4" />, onClick: () => setSelected(r) },
-          { label: "Ship", icon: <Truck className="h-4 w-4" />, onClick: () => handleShip(r), hidden: r.status !== "packed" },
-        ]}
-      />
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
     )},
   ];
 

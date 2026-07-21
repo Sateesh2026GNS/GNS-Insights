@@ -10,11 +10,7 @@ import {
 import Loader from "../../components/common/Loader";
 import { useToast } from "../../context/ToastContext";
 import { getQualityHub } from "../../api/qualityApi";
-<<<<<<< HEAD
 import { DEMO_QUALITY_HUB, QUALITY_FLOW, formatPct, qcStatusColor } from "../../data/qualityMasterData";
-=======
-import { QUALITY_FLOW, formatPct, qcStatusColor } from "../../data/qualityMasterData";
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
 
 const PIE_COLORS = ["#22c55e", "#ef4444", "#f59e0b"];
 
@@ -31,51 +27,17 @@ function KpiCard({ label, value, icon: Icon, color }) {
 
 const alertIcons = { pending: ClipboardCheck, defect: AlertTriangle, yield: TrendingDown, calibration: BarChart3 };
 
-<<<<<<< HEAD
 export default function QualityDashboard() {
   const { addToast } = useToast();
   const [loading, setLoading] = useState(true);
   const [hub, setHub] = useState(DEMO_QUALITY_HUB);
-=======
-const INITIAL_QUALITY_HUB = {
-  total_inspections: 0,
-  passed: 0,
-  failed: 0,
-  rejected: 0,
-  yield_pct: 0,
-  defect_rate: 0,
-  pass_vs_fail: [],
-  defect_trend: [],
-  monthly_yield: [],
-  supplier_quality: [],
-  machine_defects: [],
-  pareto_defects: [],
-  root_cause_analysis: [],
-  defect_by_product: [],
-  qc_performance: [],
-  recent_inspections: [],
-  alerts: [],
-};
-
-export default function QualityDashboard() {
-  const { addToast } = useToast();
-  const [loading, setLoading] = useState(true);
-  const [hub, setHub] = useState(INITIAL_QUALITY_HUB);
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
       const res = await getQualityHub();
-<<<<<<< HEAD
       if (res.data) setHub({ ...DEMO_QUALITY_HUB, ...res.data });
     } catch {
-=======
-      if (res.data) setHub(res.data);
-    } catch {
-      setHub(INITIAL_QUALITY_HUB);
-      addToast("Failed to load quality data", "error");
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
     } finally {
       setLoading(false);
     }

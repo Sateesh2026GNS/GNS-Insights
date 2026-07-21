@@ -81,17 +81,10 @@ export const DEMO_KANBAN = {
 export const DEMO_TABLE_ROWS = [];
 
 export const DEMO_RESOURCE = {
-<<<<<<< HEAD
   machine: "CNC-01",
   operator: "Mahesh Patel",
   shift: "Morning",
   supervisor: "Ramesh Kumar",
-=======
-  machine: "—",
-  operator: "—",
-  shift: "—",
-  supervisor: "—",
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
 };
 
 export function priorityBadge(priority) {

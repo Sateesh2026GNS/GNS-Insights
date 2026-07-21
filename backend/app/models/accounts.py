@@ -1,12 +1,7 @@
 from datetime import date
 
-<<<<<<< HEAD
 from sqlalchemy import Date, ForeignKey, Numeric, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
-=======
-from sqlalchemy import Date, ForeignKey, Numeric, String, Text, Integer
-from sqlalchemy.orm import Mapped, mapped_column, relationship
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
 
 from app.models.base import Base, TimestampMixin
 
@@ -39,74 +34,3 @@ class Expense(Base, TimestampMixin):
     amount: Mapped[float] = mapped_column(Numeric(12, 2), nullable=False)
     expense_date: Mapped[date] = mapped_column(Date, nullable=False)
     description: Mapped[str | None] = mapped_column(Text)
-<<<<<<< HEAD
-=======
-
-
-class JournalEntry(Base, TimestampMixin):
-    """General Journal Entry."""
-    __tablename__ = "journal_entries"
-
-    id: Mapped[int] = mapped_column(primary_key=True)
-    tenant_id: Mapped[int] = mapped_column(
-        ForeignKey("tenants.id"), nullable=False, index=True
-    )
-    entry_number: Mapped[str] = mapped_column(String(64), nullable=False)
-    entry_date: Mapped[date] = mapped_column(Date, nullable=False)
-    reference: Mapped[str | None] = mapped_column(String(128))
-    description: Mapped[str | None] = mapped_column(Text)
-    status: Mapped[str] = mapped_column(String(32), default="Posted", nullable=False)  # Posted, Draft
-    branch: Mapped[str | None] = mapped_column(String(128))
-
-    legs = relationship("JournalLeg", back_populates="entry", cascade="all, delete-orphan")
-
-
-class JournalLeg(Base, TimestampMixin):
-    """Single debit/credit leg of a Journal Entry."""
-    __tablename__ = "journal_legs"
-
-    id: Mapped[int] = mapped_column(primary_key=True)
-    entry_id: Mapped[int] = mapped_column(ForeignKey("journal_entries.id"), nullable=False)
-    account: Mapped[str] = mapped_column(String(255), nullable=False)
-    debit: Mapped[float] = mapped_column(Numeric(12, 2), default=0.0, nullable=False)
-    credit: Mapped[float] = mapped_column(Numeric(12, 2), default=0.0, nullable=False)
-
-    entry = relationship("JournalEntry", back_populates="legs")
-
-
-class GLAccount(Base, TimestampMixin):
-    """General Ledger Account (Chart of Accounts)."""
-    __tablename__ = "gl_accounts"
-
-    id: Mapped[int] = mapped_column(primary_key=True)
-    tenant_id: Mapped[int] = mapped_column(
-        ForeignKey("tenants.id"), nullable=False, index=True
-    )
-    code: Mapped[str] = mapped_column(String(64), nullable=False)
-    name: Mapped[str] = mapped_column(String(255), nullable=False)
-    parent: Mapped[str] = mapped_column(String(255), default="Current Assets", nullable=False)
-    type: Mapped[str] = mapped_column(String(64), default="Assets", nullable=False)  # Assets, Liabilities, Equity, Revenue, Expenses
-    balance: Mapped[float] = mapped_column(Numeric(12, 2), default=0.0, nullable=False)
-    status: Mapped[str] = mapped_column(String(32), default="Active", nullable=False)
-
-
-class FixedAsset(Base, TimestampMixin):
-    """Fixed Asset Tracking & Depreciation."""
-    __tablename__ = "fixed_assets"
-
-    id: Mapped[int] = mapped_column(primary_key=True)
-    tenant_id: Mapped[int] = mapped_column(
-        ForeignKey("tenants.id"), nullable=False, index=True
-    )
-    code: Mapped[str] = mapped_column(String(64), nullable=False)
-    name: Mapped[str] = mapped_column(String(255), nullable=False)
-    purchase_date: Mapped[date] = mapped_column(Date, nullable=False)
-    cost: Mapped[float] = mapped_column(Numeric(12, 2), nullable=False)
-    salvage: Mapped[float] = mapped_column(Numeric(12, 2), default=0.0, nullable=False)
-    life: Mapped[int] = mapped_column(Integer, nullable=False)
-    method: Mapped[str] = mapped_column(String(64), default="Straight Line", nullable=False)
-    accum_dep: Mapped[float] = mapped_column(Numeric(12, 2), default=0.0, nullable=False)
-
-
-
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8

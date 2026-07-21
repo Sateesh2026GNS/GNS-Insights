@@ -1,11 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-<<<<<<< HEAD
 import { Check } from "lucide-react";
-=======
-import { Check, XCircle } from "lucide-react";
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
 
 import { useToast } from "../../context/ToastContext";
 import {
@@ -65,32 +61,15 @@ export default function QuickCreateWorkOrder() {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-<<<<<<< HEAD
     setForm((prev) => ({ ...prev, [name]: value }));
-=======
-    if (name === "planned_quantity") {
-      const cleaned = value.replace(/[^0-9]/g, "");
-      setForm((prev) => ({ ...prev, [name]: cleaned }));
-    } else {
-      setForm((prev) => ({ ...prev, [name]: value }));
-    }
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
     setError("");
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-<<<<<<< HEAD
     const qty = Number(form.planned_quantity);
     if (!form.product_id || !form.planned_quantity || isNaN(qty) || qty <= 0) {
       setError("Product and quantity are required. Quantity must be greater than 0.");
-=======
-    const rawQuantity = String(form.planned_quantity ?? "").trim();
-    const qty = Number(rawQuantity);
-    const isPositiveInteger = /^\d+$/.test(rawQuantity) && Number(rawQuantity) > 0;
-    if (!form.product_id || !rawQuantity || !isPositiveInteger) {
-      setError("Product and quantity are required. Quantity must be a whole number greater than 0.");
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
       return;
     }
     setSaving(true);
@@ -103,11 +82,7 @@ export default function QuickCreateWorkOrder() {
         machine_id: form.machine_id ? Number(form.machine_id) : null,
       });
       addToast("Work order created successfully", "success");
-<<<<<<< HEAD
       navigate("/production");
-=======
-      navigate("/production/work-orders");
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
     } catch (err) {
       const detail = err.response?.data?.detail;
       const msg = Array.isArray(detail)
@@ -135,7 +110,6 @@ export default function QuickCreateWorkOrder() {
   }
 
   return (
-<<<<<<< HEAD
     <div className="mx-auto max-w-md rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/50 p-6 shadow-sm">
       <div className="mb-6 flex items-center justify-between">
         <h2 className="text-xl font-bold text-slate-800 dark:text-white">
@@ -253,122 +227,6 @@ export default function QuickCreateWorkOrder() {
           </Link>
         </div>
       </form>
-=======
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 sm:items-center">
-      <div className="flex max-h-[94vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl bg-white shadow-2xl text-left">
-        <div className="flex items-start justify-between border-b px-5 py-4">
-          <h2 className="text-xl font-bold text-slate-900">
-            {t("quickCreateWorkOrder.title", { defaultValue: "Create Work Order" })}
-          </h2>
-          <Link
-            to="/production/work-orders"
-            className="rounded-lg p-2 text-slate-400 hover:bg-slate-100"
-          >
-            <XCircle className="h-5 w-5" />
-          </Link>
-        </div>
-
-        <form onSubmit={handleSubmit} className="overflow-y-auto p-5 space-y-4">
-          <div>
-            <label
-              htmlFor="product_id"
-              className="block text-xs font-semibold text-slate-500 uppercase"
-            >
-              1. {t("quickCreateWorkOrder.product", { defaultValue: "Product" })}
-            </label>
-            <select
-              id="product_id"
-              name="product_id"
-              value={form.product_id}
-              onChange={handleChange}
-              required
-              disabled={products.length === 0}
-              className="mt-1 w-full rounded-lg border px-3 py-2 text-sm bg-white font-medium text-slate-700 disabled:opacity-50"
-            >
-              <option value="">
-                {products.length === 0
-                  ? (seeding ? "Loading..." : "No products – seed first")
-                  : t("quickCreateWorkOrder.selectProduct", { defaultValue: "Select product" })}
-              </option>
-              {products.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name} ({p.sku})
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label
-              htmlFor="planned_quantity"
-              className="block text-xs font-semibold text-slate-500 uppercase"
-            >
-              2. {t("quickCreateWorkOrder.quantity", { defaultValue: "Quantity" })}
-            </label>
-            <input
-              id="planned_quantity"
-              type="text"
-              inputMode="numeric"
-              pattern="[0-9]*"
-              name="planned_quantity"
-              value={form.planned_quantity}
-              onChange={handleChange}
-              required
-              minLength="1"
-              placeholder="e.g. 100"
-              className="mt-1 w-full rounded-lg border px-3 py-2 text-sm"
-            />
-          </div>
-
-          <div>
-            <label
-              htmlFor="machine_id"
-              className="block text-xs font-semibold text-slate-500 uppercase"
-            >
-              3. {t("quickCreateWorkOrder.machine", { defaultValue: "Machine" })} (optional)
-            </label>
-            <select
-              id="machine_id"
-              name="machine_id"
-              value={form.machine_id}
-              onChange={handleChange}
-              className="mt-1 w-full rounded-lg border px-3 py-2 text-sm bg-white font-medium text-slate-700"
-            >
-              <option value="">{t("quickCreateWorkOrder.selectMachine", { defaultValue: "None" })}</option>
-              {machines.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.name} ({m.code})
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {error && (
-            <div className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">
-              {error}
-            </div>
-          )}
-
-          <div className="flex justify-end gap-2 border-t pt-4">
-            <Link
-              to="/production/work-orders"
-              className="rounded-lg border px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
-            >
-              {t("common.cancel", { defaultValue: "Cancel" })}
-            </Link>
-            <button
-              type="submit"
-              disabled={saving || products.length === 0}
-              className="rounded-lg bg-[#2563EB] px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
-            >
-              {saving
-                ? t("quickCreateWorkOrder.creating", { defaultValue: "Creating..." })
-                : t("quickCreateWorkOrder.save", { defaultValue: "Save & Done" })}
-            </button>
-          </div>
-        </form>
-      </div>
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
     </div>
   );
 }

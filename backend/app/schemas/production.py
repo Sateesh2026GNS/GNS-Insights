@@ -19,15 +19,6 @@ class ProductionOrderBase(BaseModel):
     start_date: datetime | None = None
     due_date: datetime | None = None
     status: str = "planned"
-<<<<<<< HEAD
-=======
-    customer_name: str | None = None
-    priority: str = "medium"
-    bom_version: str | None = None
-    sales_order_number: str | None = None
-    department: str | None = None
-    shift: str | None = None
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
 
 
 class ProductionOrderCreate(ProductionOrderBase):
@@ -39,31 +30,6 @@ class ProductionOrderCreate(ProductionOrderBase):
         return v
 
 
-<<<<<<< HEAD
-=======
-class ProductionOrderUpdate(BaseModel):
-    product_id: int | None = None
-    order_number: str | None = None
-    planned_quantity: float | None = None
-    start_date: datetime | None = None
-    due_date: datetime | None = None
-    status: str | None = None
-    customer_name: str | None = None
-    priority: str | None = None
-    bom_version: str | None = None
-    sales_order_number: str | None = None
-    department: str | None = None
-    shift: str | None = None
-
-    @field_validator("planned_quantity")
-    @classmethod
-    def planned_quantity_positive(cls, v):
-        if v is not None and v <= 0:
-            raise ValueError("Planned quantity must be greater than 0")
-        return v
-
-
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
 class ProductionOrderRead(ProductionOrderBase):
     id: int
 
@@ -105,10 +71,6 @@ class WorkOrderQuickCreate(BaseModel):
     product_id: int
     planned_quantity: float
     machine_id: int | None = None
-<<<<<<< HEAD
-=======
-    plant_code: str | None = None
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
 
 
 class BatchBase(BaseModel):

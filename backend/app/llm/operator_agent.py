@@ -1,8 +1,5 @@
-<<<<<<< HEAD
 """AI Operator Agent — orchestrates LLM function calling with live ERP data."""
 
-=======
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
 from __future__ import annotations
 
 import json

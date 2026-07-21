@@ -7,11 +7,7 @@ import FinanceFilters from "../../components/finance/FinanceFilters";
 import Loader from "../../components/common/Loader";
 import { useToast } from "../../context/ToastContext";
 import { getAREnriched, getARSummary } from "../../api/accountsApi";
-<<<<<<< HEAD
 import { DEMO_AR_LIST, DEMO_AR_SUMMARY, formatInr, statusColor, agingColor } from "../../data/financeMasterData";
-=======
-import { formatInr, statusColor, agingColor } from "../../data/financeMasterData";
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
 
 function KpiCard({ label, value, icon: Icon, color }) {
   return (
@@ -24,7 +20,6 @@ function KpiCard({ label, value, icon: Icon, color }) {
   );
 }
 
-<<<<<<< HEAD
 export default function AccountsReceivable() {
   const { addToast } = useToast();
   const [loading, setLoading] = useState(true);
@@ -32,27 +27,6 @@ export default function AccountsReceivable() {
   const [rows, setRows] = useState([]);
   const [search, setSearch] = useState("");
   const [financialYear, setFinancialYear] = useState("2025-26");
-=======
-const INITIAL_AR_SUMMARY = {
-  total_receivables: 0,
-  received_today: 0,
-  overdue: 0,
-  pending_collection: 0,
-  credit_customers: 0,
-  aging_0_30: 0,
-  aging_31_60: 0,
-  aging_61_90: 0,
-  aging_90_plus: 0,
-};
-
-export default function AccountsReceivable() {
-  const { addToast } = useToast();
-  const [loading, setLoading] = useState(true);
-  const [summary, setSummary] = useState(INITIAL_AR_SUMMARY);
-  const [rows, setRows] = useState([]);
-  const [search, setSearch] = useState("");
-  const [financialYear, setFinancialYear] = useState("All Years");
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
   const [month, setMonth] = useState("All Months");
   const [branch, setBranch] = useState("");
 
@@ -60,19 +34,10 @@ export default function AccountsReceivable() {
     setLoading(true);
     try {
       const [sumRes, listRes] = await Promise.allSettled([getARSummary(), getAREnriched()]);
-<<<<<<< HEAD
       if (sumRes.status === "fulfilled" && sumRes.value?.data) setSummary({ ...DEMO_AR_SUMMARY, ...sumRes.value.data });
       if (listRes.status === "fulfilled" && listRes.value?.data?.length) setRows(listRes.value.data);
       else setRows([]);
     } catch {
-=======
-      if (sumRes.status === "fulfilled" && sumRes.value?.data) setSummary(sumRes.value.data);
-      if (listRes.status === "fulfilled" && listRes.value?.data) setRows(listRes.value.data);
-    } catch {
-      setSummary(INITIAL_AR_SUMMARY);
-      setRows([]);
-      addToast("Failed to load accounts receivable data", "error");
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
     } finally {
       setLoading(false);
     }
@@ -90,55 +55,10 @@ export default function AccountsReceivable() {
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
     return rows.filter((r) => {
-<<<<<<< HEAD
       if (q && ![r.invoice_number, r.customer_name].some((v) => String(v || "").toLowerCase().includes(q))) return false;
       return true;
     });
   }, [rows, search]);
-=======
-      // 1. Search Query
-      if (q && ![r.invoice_number, r.customer_name].some((v) => String(v || "").toLowerCase().includes(q))) return false;
-      
-      // 2. Branch Filter (Assign deterministic branch since DB doesn't store it)
-      const rowBranch = r.branch || (r.id % 2 === 0 ? "Head Office" : "Plant-1");
-      if (branch && rowBranch !== branch) return false;
-
-      // 3. Date Parsing
-      const issueDateStr = r.issue_date || "";
-      if (!issueDateStr) return true;
-      const issueDateObj = new Date(issueDateStr);
-      if (isNaN(issueDateObj.getTime())) return true;
-
-      const monthIndex = issueDateObj.getMonth();
-      
-      // 4. Financial Year Filter
-      if (financialYear && financialYear !== "All Years") {
-        const parts = financialYear.split("-");
-        if (parts.length === 2) {
-          const startYear = parseInt(parts[0], 10);
-          const endYear = startYear + 1;
-          
-          const fyStart = new Date(startYear, 3, 1);
-          const fyEnd = new Date(endYear, 2, 31, 23, 59, 59);
-          
-          if (issueDateObj < fyStart || issueDateObj > fyEnd) return false;
-        }
-      }
-
-      // 5. Month Filter
-      if (month && month !== "All Months") {
-        const monthNames = [
-          "January", "February", "March", "April", "May", "June",
-          "July", "August", "September", "October", "November", "December"
-        ];
-        const selectedMonthIndex = monthNames.indexOf(month);
-        if (selectedMonthIndex !== -1 && monthIndex !== selectedMonthIndex) return false;
-      }
-
-      return true;
-    });
-  }, [rows, search, branch, financialYear, month]);
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
 
   const columns = [
     { key: "invoice_number", label: "Invoice No" },

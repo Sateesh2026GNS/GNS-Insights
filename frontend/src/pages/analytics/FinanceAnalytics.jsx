@@ -16,11 +16,7 @@ import AnalyticsKpiCard from "../../components/analytics/AnalyticsKpiCard";
 import DrillDownBreadcrumb from "../../components/analytics/DrillDownBreadcrumb";
 import { useToast } from "../../context/ToastContext";
 import { getFinanceAnalytics } from "../../api/analyticsApi";
-<<<<<<< HEAD
 import { CHART_COLORS, DEMO_FINANCE, SOURCE_LINKS, formatInr } from "../../data/analyticsMasterData";
-=======
-import { CHART_COLORS, SOURCE_LINKS, formatInr } from "../../data/analyticsMasterData";
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
 
 const KPI_ICONS = {
   revenue: IndianRupee, expenses: TrendingDown, profit: TrendingUp, margin: Percent,
@@ -28,47 +24,12 @@ const KPI_ICONS = {
   operating: BarChart3, monthly_profit: TrendingUp, ebitda: IndianRupee, working_capital: Wallet,
 };
 
-<<<<<<< HEAD
 export default function FinanceAnalytics() {
   const { addToast } = useToast();
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState(DEMO_FINANCE);
   const [autoRefresh, setAutoRefresh] = useState(false);
   const [drillTrail, setDrillTrail] = useState(DEMO_FINANCE.drill_revenue || []);
-=======
-const INITIAL_FINANCE = {
-  kpis: [
-    { key: "revenue", label: "Revenue", value: 0, change_pct: null, format: "currency", drill_target: "month" },
-    { key: "expenses", label: "Expenses", value: 0, change_pct: null, format: "currency", drill_target: "expense" },
-    { key: "profit", label: "Net Profit", value: 0, change_pct: null, format: "currency", drill_target: "profit" },
-    { key: "margin", label: "Margin", value: 0, change_pct: null, unit: "%", format: "percent", drill_target: "margin" },
-    { key: "cashflow", label: "Cash Flow", value: 0, change_pct: null, format: "currency", drill_target: "cashflow" },
-    { key: "receivables", label: "Outstanding Receivables", value: 0, change_pct: null, format: "currency", drill_target: "receivables" },
-    { key: "payables", label: "Outstanding Payables", value: 0, change_pct: null, format: "currency", drill_target: "payables" },
-    { key: "gst", label: "GST Collected", value: 0, change_pct: null, format: "currency", drill_target: "gst" },
-    { key: "operating", label: "Operating Cost", value: 0, change_pct: null, format: "currency", drill_target: "expense" },
-    { key: "monthly_profit", label: "Monthly Profit", value: 0, change_pct: null, format: "currency", drill_target: "profit" },
-    { key: "ebitda", label: "EBITDA", value: 0, change_pct: null, format: "currency", drill_target: "profit" },
-    { key: "working_capital", label: "Working Capital", value: 0, change_pct: null, format: "currency", drill_target: "capital" },
-  ],
-  alerts: [],
-  revenue_vs_expense: [],
-  cash_flow: [],
-  profit_trend: [],
-  expense_category: [],
-  receivable_aging: [],
-  monthly_margin: [],
-  drill_revenue: [],
-  last_updated: new Date().toISOString(),
-};
-
-export default function FinanceAnalytics() {
-  const { addToast } = useToast();
-  const [loading, setLoading] = useState(true);
-  const [data, setData] = useState(INITIAL_FINANCE);
-  const [autoRefresh, setAutoRefresh] = useState(false);
-  const [drillTrail, setDrillTrail] = useState([]);
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
   const [filters, setFilters] = useState({
     fiscalYear: "2025-26", month: "All Months", quarter: "All Quarters",
     plant: "All Plants", dateFrom: "", dateTo: "",
@@ -79,21 +40,11 @@ export default function FinanceAnalytics() {
     try {
       const res = await getFinanceAnalytics();
       if (res.data) {
-<<<<<<< HEAD
         setData({ ...DEMO_FINANCE, ...res.data });
         setDrillTrail(res.data.drill_revenue .drill_revenue);
       }
     } catch {
       setData(DEMO_FINANCE);
-=======
-        setData(res.data);
-        setDrillTrail(res.data.drill_revenue || []);
-      }
-    } catch {
-      setData(INITIAL_FINANCE);
-      setDrillTrail([]);
-      addToast("Failed to load finance analytics data", "error");
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
     } finally {
       setLoading(false);
     }

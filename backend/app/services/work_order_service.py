@@ -269,16 +269,6 @@ def preview_work_order_start_checks(db: Session, tenant_id: int, work_order_id: 
     return _start_checks(db, tenant_id, wo)
 
 
-<<<<<<< HEAD
-=======
-def _sync_batch_status(db: Session, tenant_id: int, wo_id: int, status: str):
-    batch = db.scalars(select(Batch).where(Batch.work_order_id == wo_id, Batch.tenant_id == tenant_id)).first()
-    if batch:
-        batch.status = status
-        db.commit()
-
-
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
 def start_work_order(db: Session, tenant_id: int, work_order_id: int) -> WorkOrderActionResponse:
     wo = db.scalars(select(WorkOrder).where(WorkOrder.id == work_order_id, WorkOrder.tenant_id == tenant_id)).first()
     if not wo:
@@ -291,10 +281,6 @@ def start_work_order(db: Session, tenant_id: int, work_order_id: int) -> WorkOrd
         wo.planned_start = datetime.now(timezone.utc)
     db.commit()
     db.refresh(wo)
-<<<<<<< HEAD
-=======
-    _sync_batch_status(db, tenant_id, wo.id, "running")
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
     return WorkOrderActionResponse(success=True, checks=checks, work_order=_to_list_read(db, tenant_id, wo), message="Work order started")
 
 
@@ -306,10 +292,6 @@ def pause_work_order(db: Session, tenant_id: int, work_order_id: int) -> WorkOrd
         wo.status = "paused"
         db.commit()
         db.refresh(wo)
-<<<<<<< HEAD
-=======
-        _sync_batch_status(db, tenant_id, wo.id, "paused")
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
     return WorkOrderActionResponse(success=True, work_order=_to_list_read(db, tenant_id, wo), message="Work order paused")
 
 
@@ -320,10 +302,6 @@ def stop_work_order(db: Session, tenant_id: int, work_order_id: int) -> WorkOrde
     wo.status = "planned"
     db.commit()
     db.refresh(wo)
-<<<<<<< HEAD
-=======
-    _sync_batch_status(db, tenant_id, wo.id, "planned")
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
     return WorkOrderActionResponse(success=True, work_order=_to_list_read(db, tenant_id, wo), message="Work order stopped")
 
 
@@ -342,10 +320,6 @@ def complete_work_order(db: Session, tenant_id: int, work_order_id: int) -> Work
     wo.planned_end = datetime.now(timezone.utc)
     db.commit()
     db.refresh(wo)
-<<<<<<< HEAD
-=======
-    _sync_batch_status(db, tenant_id, wo.id, "completed")
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
     return WorkOrderActionResponse(
         success=True,
         steps=steps,

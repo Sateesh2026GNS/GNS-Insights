@@ -45,11 +45,7 @@ export default function Table({ columns, data, emptyState, sortable }) {
   }
 
   return (
-<<<<<<< HEAD
     <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-700">
-=======
-    <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-700 min-h-[240px]">
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
       <table className="w-full border-collapse">
         <thead>
           <tr className="bg-slate-50 dark:bg-slate-800/50">

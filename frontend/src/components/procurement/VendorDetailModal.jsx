@@ -6,10 +6,6 @@ import {
   Package,
   ShoppingCart,
   X,
-<<<<<<< HEAD
-=======
-  XCircle,
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
 } from "lucide-react";
 
 import { starRating } from "../../data/vendorsMasterData";
@@ -358,12 +354,9 @@ export default function VendorDetailModal({
   );
 }
 
-<<<<<<< HEAD
 const inputClass =
   "mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500";
 
-=======
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
 export function VendorFormModal({ vendor, onClose, onSave }) {
   const [form, setForm] = useState({
     name: vendor?.name || "",
@@ -383,30 +376,16 @@ export function VendorFormModal({ vendor, onClose, onSave }) {
   });
 
   return (
-<<<<<<< HEAD
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
       <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl">
         <h2 className="text-lg font-bold text-slate-900">{vendor?.id ? "Edit Vendor" : "Add Vendor"}</h2>
         <form
           className="mt-4 space-y-3"
-=======
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 sm:items-center">
-      <div className="flex max-h-[94vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
-        <div className="flex items-start justify-between border-b px-5 py-4">
-          <h2 className="text-xl font-bold text-slate-900">{vendor?.id ? "Edit Vendor" : "Create New Vendor"}</h2>
-          <button type="button" onClick={onClose} className="rounded-lg p-2 text-slate-400 hover:bg-slate-100">
-            <XCircle className="h-5 w-5" />
-          </button>
-        </div>
-        <form
-          className="overflow-y-auto p-5 space-y-4"
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
           onSubmit={(e) => {
             e.preventDefault();
             onSave(form);
           }}
         >
-<<<<<<< HEAD
           {[
             ["name", "Vendor Name *", "text"],
             ["contact", "Contact Person", "text"],
@@ -434,157 +413,9 @@ export function VendorFormModal({ vendor, onClose, onSave }) {
             <button type="button" onClick={onClose} className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700">
               Cancel
             </button>
-=======
-          <div>
-            <label className="block text-xs font-semibold text-slate-500 uppercase">Vendor Name *</label>
-            <input
-              type="text"
-              required
-              value={form.name}
-              onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-              placeholder="e.g. Acme Supplies"
-              className="mt-1 w-full rounded-lg border px-3 py-2 text-sm"
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-semibold text-slate-500 uppercase">Contact Person</label>
-              <input
-                type="text"
-                value={form.contact}
-                onChange={(e) => setForm((f) => ({ ...f, contact: e.target.value }))}
-                placeholder="e.g. John Doe"
-                className="mt-1 w-full rounded-lg border px-3 py-2 text-sm"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-slate-500 uppercase">Mobile</label>
-              <input
-                type="text"
-                value={form.phone}
-                onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
-                placeholder="e.g. +91 98765 43210"
-                className="mt-1 w-full rounded-lg border px-3 py-2 text-sm"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-semibold text-slate-500 uppercase">Email</label>
-              <input
-                type="email"
-                value={form.email}
-                onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
-                placeholder="e.g. info@acme.com"
-                className="mt-1 w-full rounded-lg border px-3 py-2 text-sm"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-slate-500 uppercase">Billing Address</label>
-              <input
-                type="text"
-                value={form.billing_address}
-                onChange={(e) => setForm((f) => ({ ...f, billing_address: e.target.value }))}
-                placeholder="e.g. Sector 4, Ind. Area"
-                className="mt-1 w-full rounded-lg border px-3 py-2 text-sm"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-semibold text-slate-500 uppercase">GSTIN</label>
-              <input
-                type="text"
-                value={form.gstin}
-                onChange={(e) => setForm((f) => ({ ...f, gstin: e.target.value }))}
-                placeholder="e.g. 27AAACA0000A1Z"
-                className="mt-1 w-full rounded-lg border px-3 py-2 text-sm"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-slate-500 uppercase">PAN</label>
-              <input
-                type="text"
-                value={form.pan}
-                onChange={(e) => setForm((f) => ({ ...f, pan: e.target.value }))}
-                placeholder="e.g. ABCDE1234F"
-                className="mt-1 w-full rounded-lg border px-3 py-2 text-sm"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-semibold text-slate-500 uppercase">City</label>
-              <input
-                type="text"
-                value={form.city}
-                onChange={(e) => setForm((f) => ({ ...f, city: e.target.value }))}
-                placeholder="e.g. Mumbai"
-                className="mt-1 w-full rounded-lg border px-3 py-2 text-sm"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-slate-500 uppercase">State</label>
-              <input
-                type="text"
-                value={form.state}
-                onChange={(e) => setForm((f) => ({ ...f, state: e.target.value }))}
-                placeholder="e.g. Maharashtra"
-                className="mt-1 w-full rounded-lg border px-3 py-2 text-sm"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-semibold text-slate-500 uppercase">Category</label>
-              <input
-                type="text"
-                value={form.category}
-                onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
-                placeholder="e.g. Manufacturer, Distributor"
-                className="mt-1 w-full rounded-lg border px-3 py-2 text-sm"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-slate-500 uppercase">Material Type</label>
-              <input
-                type="text"
-                value={form.material_type}
-                onChange={(e) => setForm((f) => ({ ...f, material_type: e.target.value }))}
-                placeholder="e.g. Raw Material, Packaging"
-                className="mt-1 w-full rounded-lg border px-3 py-2 text-sm"
-              />
-            </div>
-          </div>
-
-          <div className="flex justify-end gap-2 border-t pt-4">
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-lg border px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="rounded-lg bg-[#2563EB] px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
-            >
-              Save Vendor
-            </button>
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
           </div>
         </form>
       </div>
     </div>
   );
 }
-<<<<<<< HEAD
-=======
-
-
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8

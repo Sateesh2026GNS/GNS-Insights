@@ -28,13 +28,8 @@ const WarehouseIcon = (props) => (
 const SLIDES = [
   {
     image: "/auth/slide-1.png",
-<<<<<<< HEAD
     badge: "GNS Insights",
     text: "Business Intelligence • Analytics • AI — production, inventory, and manufacturing insights in one platform.",
-=======
-    badge: "Production",
-    text: "Track work orders, machines, and live output across your factory floor.",
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
     gradient: "from-teal-500 via-teal-600 to-emerald-700",
     Icon: RobotArmIcon,
   },
@@ -112,7 +107,6 @@ export default function AuthSlider({ className = "", children, interval = 5000 }
 
       <div className="absolute inset-0 bg-gradient-to-br from-teal-900/70 via-teal-800/55 to-emerald-900/75" />
 
-<<<<<<< HEAD
       <div className="relative z-10 flex h-full flex-col items-center justify-center p-12 text-center text-white">
         <div className="flex-1 flex flex-col items-center justify-center w-full">{children}</div>
 
@@ -125,20 +119,6 @@ export default function AuthSlider({ className = "", children, interval = 5000 }
           </p>
 
           <div className="mt-5 flex items-center justify-center gap-2">
-=======
-      <div className="relative z-10 flex h-full flex-col items-center justify-between px-5 py-5 text-center text-white sm:px-6 lg:px-7 lg:py-6">
-        <div className="flex w-full flex-1 flex-col items-center justify-center">{children}</div>
-
-        <div className="mt-3 w-full max-w-[13.5rem]">
-          <span className="inline-block rounded-full bg-white/15 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-white/90 backdrop-blur-sm">
-            {active.badge}
-          </span>
-          <p key={index} className="auth-caption mt-2 min-h-[2.5rem] text-[13px] leading-relaxed text-teal-50/90">
-            {active.text}
-          </p>
-
-          <div className="mt-2.5 flex items-center justify-center gap-2">
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
             {SLIDES.map((slide, i) => (
               <button
                 key={slide.badge}

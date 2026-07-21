@@ -1,12 +1,7 @@
 import api from "./axiosConfig";
 
-<<<<<<< HEAD
 export async function login(email, password, role) {
   const { data } = await api.post("/auth/login", { email, password, role });
-=======
-export async function login(email, password) {
-  const { data } = await api.post("/auth/login", { email, password });
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
   return data;
 }
 
@@ -15,16 +10,12 @@ export async function getCurrentUser() {
   return data;
 }
 
-<<<<<<< HEAD
 export async function getProfile() {
   const { data } = await api.get("/auth/profile");
   return data;
 }
 
 export async function register(companyName, fullName, email, password, role = "Admin") {
-=======
-export async function register(companyName, fullName, email, password, role) {
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
   const { data } = await api.post("/auth/register", {
     company_name: companyName,
     full_name: fullName,
@@ -35,7 +26,6 @@ export async function register(companyName, fullName, email, password, role) {
   return data;
 }
 
-<<<<<<< HEAD
 export async function getRegisterRoles() {
   const { data } = await api.get("/roles");
   return data;
@@ -61,8 +51,6 @@ export async function getTenantRoles() {
   return data;
 }
 
-=======
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
 export async function refreshTokens(refreshToken) {
   const { data } = await api.post("/auth/refresh", { refresh_token: refreshToken });
   return data;
@@ -83,7 +71,6 @@ export async function resendVerification(email) {
   return data;
 }
 
-<<<<<<< HEAD
 /** Extract human-readable error from FastAPI or API envelope responses. */
 export function getApiErrorMessage(err, fallback = "Something went wrong.") {
   const data = err?.response?.data;
@@ -104,18 +91,10 @@ export async function validateResetToken(token) {
   const { data } = await api.get("/api/auth/validate-reset-token", {
     params: { token },
   });
-=======
-export async function forgotPassword(email) {
-  const { data } = await api.post("/auth/forgot-password", { email });
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
   return data;
 }
 
 export async function resetPassword(token, password) {
-<<<<<<< HEAD
   const { data } = await api.post("/api/auth/reset-password", { token, password });
-=======
-  const { data } = await api.post("/auth/reset-password", { token, password });
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
   return data;
 }

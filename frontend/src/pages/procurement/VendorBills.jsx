@@ -1,14 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
-<<<<<<< HEAD
 import { FileText, IndianRupee, RefreshCw } from "lucide-react";
 
 import DataTable from "../../components/common/DataTable";
-=======
-import { Eye, FileText, IndianRupee, RefreshCw } from "lucide-react";
-
-import DataTable from "../../components/common/DataTable";
-import RowActionMenu from "../../components/common/RowActionMenu";
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
 import Loader from "../../components/common/Loader";
 import { useToast } from "../../context/ToastContext";
 import { getVendorBillSummary, getVendorBills } from "../../api/procurementApi";
@@ -43,12 +36,7 @@ export default function VendorBills() {
   const { addToast } = useToast();
   const [loading, setLoading] = useState(true);
   const [summary, setSummary] = useState(DEMO_BILL_SUMMARY);
-<<<<<<< HEAD
   const [rows, setRows] = useState([]);
-=======
-  const [openMenu, setOpenMenu] = useState(null);
-  const [rows, setRows] = useState(DEMO_BILL_LIST);
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -56,14 +44,8 @@ export default function VendorBills() {
       const [sumRes, listRes] = await Promise.allSettled([getVendorBillSummary(), getVendorBills()]);
       if (sumRes.status === "fulfilled" && sumRes.value?.data) setSummary({ ...DEMO_BILL_SUMMARY, ...sumRes.value.data });
       if (listRes.status === "fulfilled" && listRes.value?.data?.length) setRows(listRes.value.data);
-<<<<<<< HEAD
       else setRows([]);
     } catch {
-=======
-      else setRows(DEMO_BILL_LIST);
-    } catch {
-      addToast("Using demo vendor bill data", "info");
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
     } finally {
       setLoading(false);
     }
@@ -80,20 +62,7 @@ export default function VendorBills() {
     { key: "gst_amount", label: "GST", render: (r) => formatInr(r.gst_amount) },
     { key: "due_date", label: "Due Date", render: (r) => String(r.due_date || "").slice(0, 10) },
     { key: "status", label: "Status", render: (r) => <span className={`rounded-full px-2 py-0.5 text-xs font-semibold capitalize ${statusColor(r.status)}`}>{r.status}</span> },
-<<<<<<< HEAD
     { key: "actions", label: "Actions", render: () => <span className="text-xs text-slate-400">Three-way match ✓</span> },
-=======
-    { key: "actions", label: "Actions", sortable: false, render: (r) => (
-      <RowActionMenu
-        rowId={r.id}
-        openMenu={openMenu}
-        setOpenMenu={setOpenMenu}
-        items={[
-          { label: "View Bill", icon: <Eye className="h-4 w-4" />, onClick: () => {} },
-        ]}
-      />
-    )},
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
   ];
 
   if (loading) return <Loader label="Loading vendor bills..." />;

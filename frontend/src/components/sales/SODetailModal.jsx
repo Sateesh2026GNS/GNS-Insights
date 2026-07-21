@@ -5,7 +5,6 @@ import { formatInr, statusColor } from "../../data/salesMasterData";
 
 export default function SODetailModal({ order, onClose }) {
   if (!order) return null;
-<<<<<<< HEAD
   const items = order.items || [
     { name: "Industrial Pump 5HP", qty: 10, rate: 18500 },
     { name: "Control Panel Unit", qty: 5, rate: 12000 },
@@ -14,12 +13,6 @@ export default function SODetailModal({ order, onClose }) {
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 sm:items-center">
       <div className="flex max-h-[94vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
-=======
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 sm:items-center">
-      <div className="flex max-h-[94vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
         <div className="flex items-start justify-between border-b px-5 py-4">
           <div>
             <p className="text-xs font-semibold text-[#2563EB]">{order.order_number}</p>
@@ -29,7 +22,6 @@ export default function SODetailModal({ order, onClose }) {
           <button type="button" onClick={onClose} className="rounded-lg p-2 text-slate-400 hover:bg-slate-100"><X className="h-5 w-5" /></button>
         </div>
 
-<<<<<<< HEAD
         <div className="overflow-y-auto px-5 py-4">
           <div className="mb-4 grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
             <Field label="Delivery Date" value={order.delivery_date || "—"} />
@@ -61,36 +53,6 @@ export default function SODetailModal({ order, onClose }) {
             <Link to={`/sales/orders/${order.id}`} className="rounded-lg border px-4 py-2 text-sm font-semibold text-slate-700">Full Details</Link>
           )}
           <Link to="/sales/dispatch" className="rounded-lg bg-[#2563EB] px-4 py-2 text-sm font-semibold text-white">Go to Dispatch</Link>
-=======
-        <div className="overflow-y-auto px-5 py-5 space-y-4">
-          <div className="grid grid-cols-2 gap-3 text-sm">
-            <Field label="Delivery Date" value={order.delivery_date || "—"} />
-            <Field label="Payment Terms" value={order.payment_terms || "Net 30"} />
-            <Field label="Warehouse" value={order.warehouse_name || "—"} />
-            <Field label="Status"><span className={`rounded-full px-2 py-0.5 text-xs font-semibold capitalize ${statusColor(order.status)}`}>{order.status}</span></Field>
-          </div>
-
-          <div className="rounded-xl border border-slate-100 bg-slate-50 p-4 flex items-center justify-between">
-            <span className="text-sm font-semibold text-slate-500">Order Value</span>
-            <span className="text-xl font-extrabold text-slate-900">{formatInr(order.amount)}</span>
-          </div>
-
-          <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 px-4 py-3 text-xs text-slate-500">
-            Workflow: Quotation → Sales Order → Packing → Dispatch → Invoice → Payment
-          </div>
-          <div className="flex gap-4 text-xs">
-            <span className={order.packed ? "text-green-600 font-semibold" : "text-slate-400"}>Packed {order.packed ? "✓" : "○"}</span>
-            <span className={order.shipped ? "text-green-600 font-semibold" : "text-slate-400"}>Shipped {order.shipped ? "✓" : "○"}</span>
-            <span className={order.invoiced ? "text-green-600 font-semibold" : "text-slate-400"}>Invoiced {order.invoiced ? "✓" : "○"}</span>
-          </div>
-        </div>
-
-        <div className="flex flex-wrap gap-2 border-t px-5 py-4 justify-end">
-          {typeof order.id === "number" && (
-            <Link to={`/sales/orders/${order.id}`} className="rounded-lg border px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Full Details</Link>
-          )}
-          <Link to="/sales/dispatch" className="rounded-lg bg-[#2563EB] px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700">Go to Dispatch</Link>
->>>>>>> ee869e0309add751071723e75449cd32fdc937f8
         </div>
       </div>
     </div>
