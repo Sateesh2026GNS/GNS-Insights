@@ -1,13 +1,16 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
-import { Briefcase, Filter, Plus, RefreshCw, UserCheck, UserMinus, UserPlus, Users } from "lucide-react";
+import { Plus, RefreshCw, Briefcase, UserCheck, UserMinus, UserPlus, Users, Filter, X, Save } from "lucide-react";
 
 import DataTable from "../../components/common/DataTable";
 import Loader from "../../components/common/Loader";
 import EmployeeDetailModal from "../../components/hr/EmployeeDetailModal";
 import { useToast } from "../../context/ToastContext";
-import { getEmployeeSummary, getEmployeesEnriched } from "../../api/hrApi";
-import { DEMO_EMP_LIST, DEMO_EMP_SUMMARY, deptColor, formatInr, statusColor } from "../../data/hrMasterData";
+import { getEmployeeSummary, getEmployeesEnriched, createEmployee, getShifts } from "../../api/hrApi";
+import useTenantId from "../../hooks/useTenantId";
+import { DEMO_EMP_SUMMARY, deptColor, formatInr, statusColor } from "../../data/hrMasterData";
+
+const inputClass =
+  "mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-800 placeholder:text-slate-400 focus:border-[#2563EB] focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all";
 
 function KpiCard({ label, value, icon: Icon, color, suffix }) {
   return (
@@ -23,6 +26,7 @@ function KpiCard({ label, value, icon: Icon, color, suffix }) {
 const defaultFilters = { department: "", employment_type: "", shift: "", status: "" };
 
 export default function Employees() {
+  const tenantId = useTenantId();
   const { addToast } = useToast();
   const [loading, setLoading] = useState(true);
   const [summary, setSummary] = useState(DEMO_EMP_SUMMARY);
@@ -31,18 +35,70 @@ export default function Employees() {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [selected, setSelected] = useState(null);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const [sumRes, listRes] = await Promise.allSettled([getEmployeeSummary(), getEmployeesEnriched()]);
-      if (sumRes.status === "fulfilled" && sumRes.value?.data) setSummary({ ...DEMO_EMP_SUMMARY, ...sumRes.value.data });
-      if (listRes.status === "fulfilled" && listRes.value?.data?.length) setRows(listRes.value.data);
-      else setRows([]);
-    } catch {
-    } finally {
-      setLoading(false);
-    }
-  }, [addToast]);
+  const [shifts, setShifts] = useState([]);
+
+  // Modal states
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [form, setForm] = useState({
+    tenant_id: tenantId,
+    employee_code: "",
+    full_name: "",
+    email: "",
+    phone: "",
+    department: "",
+    designation: "",
+    shift_name: "",
+    reporting_manager: "",
+    hire_date: new Date().toISOString().slice(0, 10),
+    hourly_rate: "",
+  });
+
+  const load = useCallback(
+    async (isManual = false) => {
+      setLoading(true);
+      try {
+        const [sumRes, listRes, shiftRes] = await Promise.allSettled([
+          getEmployeeSummary(),
+          getEmployeesEnriched(),
+          getShifts(),
+        ]);
+        let hasError = false;
+
+        if (sumRes.status === "fulfilled" && sumRes.value?.data) {
+          setSummary({ ...DEMO_EMP_SUMMARY, ...sumRes.value.data });
+        } else if (sumRes.status === "rejected") {
+          hasError = true;
+        }
+
+        if (listRes.status === "fulfilled" && Array.isArray(listRes.value?.data)) {
+          setRows(listRes.value.data);
+        } else if (listRes.status === "rejected") {
+          hasError = true;
+        }
+
+        if (shiftRes.status === "fulfilled" && Array.isArray(shiftRes.value?.data)) {
+          setShifts(shiftRes.value.data);
+        } else if (shiftRes.status === "rejected") {
+          hasError = true;
+        }
+
+        if (isManual) {
+          if (hasError) {
+            addToast("Failed to refresh employee data", "error");
+          } else {
+            addToast("Employee data refreshed", "success");
+          }
+        }
+      } catch {
+        if (isManual) addToast("Failed to refresh employee data", "error");
+      } finally {
+        setLoading(false);
+      }
+    },
+    [addToast]
+  );
 
   useEffect(() => { load(); }, [load]);
 
@@ -53,6 +109,63 @@ export default function Employees() {
     if (filters.shift) list = list.filter((r) => r.shift === filters.shift);
     return list;
   }, [rows, filters]);
+
+  const handleFormChange = (field, value) => {
+    setForm((prev) => ({ ...prev, [field]: value }));
+    if (error) setError("");
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!form.employee_code || !form.full_name) {
+      setError("Employee Code and Full Name are required.");
+      return;
+    }
+    setSaving(true);
+    setError("");
+    try {
+      await createEmployee({
+        ...form,
+        tenant_id: tenantId,
+        employee_code: form.employee_code.trim(),
+        full_name: form.full_name.trim(),
+        email: form.email.trim() || null,
+        phone: form.phone.trim() || null,
+        department: form.department.trim() || null,
+        designation: form.designation.trim() || null,
+        shift_name: form.shift_name.trim() || null,
+        reporting_manager: form.reporting_manager.trim() || null,
+        hire_date: form.hire_date || null,
+        hourly_rate: form.hourly_rate ? Number(form.hourly_rate) : null,
+      });
+      addToast("Employee created successfully", "success");
+      setShowCreateModal(false);
+      setForm({
+        tenant_id: tenantId,
+        employee_code: "",
+        full_name: "",
+        email: "",
+        phone: "",
+        department: "",
+        designation: "",
+        shift_name: "",
+        reporting_manager: "",
+        hire_date: new Date().toISOString().slice(0, 10),
+        hourly_rate: "",
+      });
+      load();
+    } catch (err) {
+      const detail = err?.response?.data?.detail || err?.response?.data?.message;
+      setError(
+        typeof detail === "string"
+          ? detail
+          : "Failed to create employee. Please check the form and try again."
+      );
+      addToast("Failed to create employee", "error");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const columns = [
     { key: "photo", label: "Photo", render: (r) => (
@@ -75,18 +188,31 @@ export default function Employees() {
     )},
   ];
 
-  if (loading) return <Loader label="Loading employees..." />;
+  if (loading && rows.length === 0) return <Loader label="Loading employees..." />;
 
   return (
     <div className="space-y-6 p-4 sm:p-6">
       <header className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Employees</h1>
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight font-sans">Employees</h1>
           <p className="mt-1 text-sm text-slate-500">Enterprise employee management with 360° profile, shift, and payroll integration.</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Link to="/hr/employees/create" className="ui-btn-primary"><Plus className="h-4 w-4" /> Create Employee</Link>
-          <button type="button" onClick={load} className="inline-flex items-center gap-2 rounded-lg border bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50"><RefreshCw className="h-4 w-4" /> Refresh</button>
+          <button
+            type="button"
+            onClick={() => setShowCreateModal(true)}
+            className="inline-flex items-center gap-1.5 rounded-xl bg-[#2563EB] px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 shadow-sm transition-all"
+          >
+            <Plus className="h-4 w-4" /> Create Employee
+          </button>
+          <button
+            type="button"
+            onClick={() => load(true)}
+            disabled={loading}
+            className="inline-flex items-center gap-2 rounded-lg border bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+          >
+            <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} /> Refresh
+          </button>
         </div>
       </header>
 
@@ -123,6 +249,176 @@ export default function Employees() {
       </div>
 
       {selected && <EmployeeDetailModal employee={selected} onClose={() => setSelected(null)} />}
+
+      {showCreateModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl border border-slate-200 max-w-lg w-full p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-150 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-start justify-between">
+              <div>
+                <h3 className="text-lg font-bold text-slate-900">Create Employee</h3>
+                <p className="text-xs text-slate-500 mt-0.5">Add a new employee record for attendance, leave, and payroll.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowCreateModal(false)}
+                className="rounded-lg p-2 text-slate-400 hover:bg-slate-100"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {error && (
+                <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-xs font-semibold text-rose-700">
+                  {error}
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">Employee Code *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. EMP-001"
+                    value={form.employee_code}
+                    onChange={(e) => handleFormChange("employee_code", e.target.value)}
+                    className={inputClass}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">Full Name *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Priya Sharma"
+                    value={form.full_name}
+                    onChange={(e) => handleFormChange("full_name", e.target.value)}
+                    className={inputClass}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">Email Address</label>
+                  <input
+                    type="email"
+                    placeholder="name@company.com"
+                    value={form.email}
+                    onChange={(e) => handleFormChange("email", e.target.value)}
+                    className={inputClass}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">Hire Date</label>
+                  <input
+                    type="date"
+                    value={form.hire_date}
+                    onChange={(e) => handleFormChange("hire_date", e.target.value)}
+                    className={inputClass}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">Department</label>
+                  <select
+                    value={form.department}
+                    onChange={(e) => handleFormChange("department", e.target.value)}
+                    className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-700 focus:border-[#2563EB] focus:outline-none focus:ring-2 focus:ring-blue-100"
+                  >
+                    <option value="">Select Department</option>
+                    {["Production", "Quality", "Maintenance", "Stores", "HR"].map((d) => (
+                      <option key={d} value={d}>{d}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">Assign Shift</label>
+                  <select
+                    value={form.shift_name}
+                    onChange={(e) => handleFormChange("shift_name", e.target.value)}
+                    className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-700 focus:border-[#2563EB] focus:outline-none focus:ring-2 focus:ring-blue-100"
+                  >
+                    <option value="">Select Shift</option>
+                    {shifts.map((s) => (
+                      <option key={s.id} value={s.name}>{s.name} ({s.start_time.slice(0,5)} - {s.end_time.slice(0,5)})</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">Designation</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Operator"
+                    value={form.designation}
+                    onChange={(e) => handleFormChange("designation", e.target.value)}
+                    className={inputClass}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">Hourly Rate ($)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    placeholder="0.00"
+                    value={form.hourly_rate}
+                    onChange={(e) => handleFormChange("hourly_rate", e.target.value)}
+                    className={inputClass}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">Reporting Manager</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Gogula Sowmya"
+                    value={form.reporting_manager}
+                    onChange={(e) => handleFormChange("reporting_manager", e.target.value)}
+                    className={inputClass}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">Phone Number</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. +91 90591 86584"
+                    value={form.phone}
+                    onChange={(e) => handleFormChange("phone", e.target.value)}
+                    className={inputClass}
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 border-t pt-4">
+                <button
+                  type="button"
+                  onClick={() => setShowCreateModal(false)}
+                  className="rounded-xl border px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-[#2563EB] px-5 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50 transition-all shadow-sm"
+                >
+                  <Save className="h-4 w-4" />
+                  {saving ? "Saving..." : "Create Employee"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

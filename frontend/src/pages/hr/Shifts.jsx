@@ -1,12 +1,14 @@
-import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { useEffect, useState, useCallback } from "react";
+import { Plus, RefreshCw, X, Save } from "lucide-react";
 
 import Loader from "../../components/common/Loader";
 import Table from "../../components/common/Table";
-import { getShifts } from "../../api/hrApi";
+import { getShifts, createShift } from "../../api/hrApi";
 import useTenantId from "../../hooks/useTenantId";
+import { useToast } from "../../context/ToastContext";
 
-
+const inputClass =
+  "mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-800 placeholder:text-slate-400 focus:border-[#2563EB] focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all";
 
 function formatTime(t) {
   if (!t) return "-";
@@ -16,36 +18,102 @@ function formatTime(t) {
 
 export default function Shifts() {
   const tenantId = useTenantId();
+  const { addToast } = useToast();
   const [loading, setLoading] = useState(true);
   const [shifts, setShifts] = useState([]);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [form, setForm] = useState({
+    tenant_id: tenantId,
+    name: "",
+    start_time: "08:00",
+    end_time: "16:00",
+    break_minutes: "60",
+    capacity_hours: "8",
+  });
 
-  useEffect(() => {
+  const loadShifts = useCallback(() => {
+    setLoading(true);
     getShifts(tenantId)
       .then((r) => setShifts(r.data || []))
       .catch(console.error)
       .finally(() => setLoading(false));
-  }, []);
+  }, [tenantId]);
 
-  if (loading) return <Loader label="Loading shifts..." />;
+  useEffect(() => {
+    loadShifts();
+  }, [loadShifts]);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+    setError("");
+    try {
+      await createShift({
+        ...form,
+        break_minutes: Number(form.break_minutes) || 0,
+        capacity_hours: Number(form.capacity_hours) || 8,
+      });
+      addToast("Shift created successfully", "success");
+      setShowCreateModal(false);
+      setForm({
+        tenant_id: tenantId,
+        name: "",
+        start_time: "08:00",
+        end_time: "16:00",
+        break_minutes: "60",
+        capacity_hours: "8",
+      });
+      loadShifts();
+    } catch (err) {
+      setError("Failed to create shift.");
+      addToast("Failed to create shift", "error");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading && shifts.length === 0) return <Loader label="Loading shifts..." />;
 
   return (
-    <div style={{ display: "grid", gap: "16px" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <h2>Shift Management</h2>
-        <Link to="/hr/shifts/create">Create Shift</Link>
-      </div>
-      <div style={{ background: "#fff", padding: "16px", borderRadius: "10px" }}>
+    <div className="space-y-6 p-4 sm:p-6">
+      <header className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight font-sans">Shift Management</h1>
+          <p className="mt-1 text-sm text-slate-500">Configure employee working shifts, time ranges, and daily capacity.</p>
+        </div>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => setShowCreateModal(true)}
+            className="inline-flex items-center gap-1.5 rounded-xl bg-[#2563EB] px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 shadow-sm transition-all"
+          >
+            <Plus className="h-4 w-4" /> Create Shift
+          </button>
+          <button
+            type="button"
+            onClick={loadShifts}
+            disabled={loading}
+            className="inline-flex items-center gap-2 rounded-lg border bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+          >
+            <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} /> Refresh
+          </button>
+        </div>
+      </header>
+
+      <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
         <Table
           columns={[
-            { key: "name", label: "Name" },
+            { key: "name", label: "Name", render: (r) => <span className="font-semibold text-slate-800">{r.name}</span> },
             {
               key: "start_time",
-              label: "Start",
+              label: "Start Time",
               render: (r) => formatTime(r.start_time),
             },
             {
               key: "end_time",
-              label: "End",
+              label: "End Time",
               render: (r) => formatTime(r.end_time),
             },
             { key: "break_minutes", label: "Break (min)" },
@@ -54,6 +122,108 @@ export default function Shifts() {
           data={shifts}
         />
       </div>
+
+      {showCreateModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl border border-slate-200 max-w-md w-full p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-150 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-start justify-between">
+              <div>
+                <h3 className="text-lg font-bold text-slate-900">Create Shift</h3>
+                <p className="text-xs text-slate-500 mt-0.5">Define employee working hours.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowCreateModal(false)}
+                className="rounded-lg p-2 text-slate-400 hover:bg-slate-100"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {error && (
+                <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-xs font-semibold text-rose-700">
+                  {error}
+                </div>
+              )}
+
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">Name *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Day Shift"
+                  value={form.name}
+                  onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+                  className={inputClass}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">Start Time</label>
+                  <input
+                    type="time"
+                    value={form.start_time}
+                    onChange={(e) => setForm((f) => ({ ...f, start_time: e.target.value }))}
+                    className={inputClass}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">End Time</label>
+                  <input
+                    type="time"
+                    value={form.end_time}
+                    onChange={(e) => setForm((f) => ({ ...f, end_time: e.target.value }))}
+                    className={inputClass}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">Break (minutes)</label>
+                  <input
+                    type="number"
+                    value={form.break_minutes}
+                    onChange={(e) => setForm((f) => ({ ...f, break_minutes: e.target.value }))}
+                    min="0"
+                    className={inputClass}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">Capacity (hours)</label>
+                  <input
+                    type="number"
+                    step="0.5"
+                    value={form.capacity_hours}
+                    onChange={(e) => setForm((f) => ({ ...f, capacity_hours: e.target.value }))}
+                    className={inputClass}
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 border-t pt-4">
+                <button
+                  type="button"
+                  onClick={() => setShowCreateModal(false)}
+                  className="rounded-xl border px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-[#2563EB] px-5 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50 transition-all shadow-sm"
+                >
+                  <Save className="h-4 w-4" />
+                  {saving ? "Saving..." : "Create"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

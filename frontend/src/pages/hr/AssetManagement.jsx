@@ -43,14 +43,14 @@ const statusBadgeColor = (status) => {
   }
 };
 
-export default function AssetManagement() {
+export default function AssetManagement({ autoOpenCreate }) {
   const { addToast } = useToast();
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
   const [assets, setAssets] = useState([]);
 
   // Modal form states
-  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(autoOpenCreate || false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [form, setForm] = useState({

@@ -1,11 +1,11 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Calendar, Clock, Filter, Moon, RefreshCw, UserCheck, UserMinus, UserX } from "lucide-react";
 
 import DataTable from "../../components/common/DataTable";
 import Loader from "../../components/common/Loader";
 import { useToast } from "../../context/ToastContext";
-import { clockIn, clockOut, getAttendanceEnriched, getAttendanceSummary, getEmployees } from "../../api/hrApi";
-import { DEMO_ATT_LIST, DEMO_ATT_SUMMARY, sourceLabel, statusColor } from "../../data/hrMasterData";
+import { clockIn, clockOut, getAttendanceEnriched, getAttendanceSummary, getEmployeesEnriched, getShifts } from "../../api/hrApi";
+import { DEMO_ATT_SUMMARY, sourceLabel, statusColor } from "../../data/hrMasterData";
 
 function KpiCard({ label, value, icon: Icon, color, suffix }) {
   return (
@@ -28,30 +28,86 @@ export default function Attendance() {
   const [summary, setSummary] = useState(DEMO_ATT_SUMMARY);
   const [rows, setRows] = useState([]);
   const [employees, setEmployees] = useState([]);
+  const [shifts, setShifts] = useState([]);
   const [recordDate, setRecordDate] = useState(todayStr());
   const [clockEmployee, setClockEmployee] = useState("");
   const [action, setAction] = useState("in");
   const [view, setView] = useState("table");
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (isManual = false) => {
     setLoading(true);
     try {
-      const [sumRes, listRes, empRes] = await Promise.allSettled([
+      const [sumRes, listRes, empRes, shiftRes] = await Promise.allSettled([
         getAttendanceSummary({ record_date: recordDate }),
         getAttendanceEnriched({ record_date: recordDate }),
-        getEmployees(),
+        getEmployeesEnriched(),
+        getShifts(),
       ]);
       if (sumRes.status === "fulfilled" && sumRes.value?.data) setSummary({ ...DEMO_ATT_SUMMARY, ...sumRes.value.data });
-      if (listRes.status === "fulfilled" && listRes.value?.data?.length) setRows(listRes.value.data);
-      else setRows([]);
+      if (listRes.status === "fulfilled" && listRes.value?.data) {
+        setRows(listRes.value.data);
+      } else {
+        setRows([]);
+      }
       if (empRes.status === "fulfilled") setEmployees(empRes.value?.data || []);
+      if (shiftRes.status === "fulfilled") setShifts(shiftRes.value?.data || []);
+      if (isManual) addToast("Attendance data refreshed", "success");
     } catch {
+      setRows([]);
     } finally {
       setLoading(false);
     }
   }, [addToast, recordDate]);
 
   useEffect(() => { load(); }, [load]);
+
+  const shiftGrouped = useMemo(() => {
+    const map = {};
+
+    // 1. Initialize map for all configured shifts
+    shifts.forEach((s) => {
+      if (s.name) {
+        map[s.name] = { present: 0, absent: 0, total: 0 };
+      }
+    });
+
+    // 2. Map employees to shifts
+    employees.forEach((emp) => {
+      const shiftName = emp.shift || emp.shift_name || "General";
+      if (!map[shiftName]) {
+        map[shiftName] = { present: 0, absent: 0, total: 0 };
+      }
+      map[shiftName].total += 1;
+    });
+
+    // 3. Collect active check-ins for recordDate
+    const presentEmpIds = new Set();
+    const presentEmpNames = new Set();
+    rows.forEach((r) => {
+      if (r.status !== "absent" && (r.check_in || r.status === "present")) {
+        if (r.employee_id) presentEmpIds.add(r.employee_id);
+        if (r.employee_name) presentEmpNames.add(r.employee_name);
+      }
+    });
+
+    // 4. Calculate present and absent per shift dynamically
+    employees.forEach((emp) => {
+      const shiftName = emp.shift || emp.shift_name || "General";
+      const isPresent = presentEmpIds.has(emp.id) || presentEmpNames.has(emp.full_name);
+      if (isPresent) {
+        map[shiftName].present += 1;
+      } else {
+        map[shiftName].absent += 1;
+      }
+    });
+
+    return Object.entries(map).map(([shiftName, counts]) => ({
+      label: `Shift: ${shiftName}`,
+      present: counts.present,
+      absent: counts.absent,
+      total: counts.total,
+    }));
+  }, [employees, rows, shifts]);
 
   const handleClock = async (e) => {
     e.preventDefault();
@@ -124,27 +180,33 @@ export default function Attendance() {
           <button type="button" onClick={() => setView("table")} className={`rounded-md px-3 py-1.5 text-xs font-semibold ${view === "table" ? "bg-white text-[#2563EB] shadow-sm" : "text-slate-500"}`}>Table</button>
           <button type="button" onClick={() => setView("calendar")} className={`rounded-md px-3 py-1.5 text-xs font-semibold ${view === "calendar" ? "bg-white text-[#2563EB] shadow-sm" : "text-slate-500"}`}><Calendar className="inline h-3.5 w-3.5" /> Summary</button>
         </div>
-        <button type="button" onClick={load} className="inline-flex items-center gap-2 rounded-lg border bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"><RefreshCw className="h-4 w-4" /> Refresh</button>
+        <button
+          type="button"
+          onClick={() => load(true)}
+          disabled={loading}
+          className="inline-flex items-center gap-2 rounded-lg border bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+        >
+          <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} /> Refresh
+        </button>
       </div>
 
       {view === "table" ? (
         <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
           <DataTable columns={columns} data={rows} searchPlaceholder="Search employee..." searchKeys={["employee_name", "shift", "status"]} />
         </div>
-      ) : (
+      ) : shiftGrouped.length > 0 ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {[
-            { label: "Shift: Morning", present: 62, absent: 8 },
-            { label: "Shift: General", present: 78, absent: 12 },
-            { label: "Shift: Evening", present: 42, absent: 6 },
-            { label: "Shift: Night", present: 28, absent: 4 },
-          ].map((s) => (
+          {shiftGrouped.map((s) => (
             <div key={s.label} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
               <p className="text-sm font-semibold text-slate-800">{s.label}</p>
               <p className="mt-2 text-2xl font-bold text-green-600">{s.present}</p>
               <p className="text-xs text-slate-500">Present · {s.absent} absent</p>
             </div>
           ))}
+        </div>
+      ) : (
+        <div className="rounded-xl border border-slate-200 bg-slate-50 p-6 text-center text-sm text-slate-500">
+          No attendance records found for this date.
         </div>
       )}
 

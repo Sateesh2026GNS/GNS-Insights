@@ -52,14 +52,14 @@ const statusBadgeColor = (status) => {
   }
 };
 
-export default function IncidentReports() {
+export default function IncidentReports({ autoOpenCreate }) {
   const { addToast } = useToast();
   const [loading, setLoading] = useState(true);
   const [incidents, setIncidents] = useState([]);
   const [employees, setEmployees] = useState([]);
 
   // Modal form states
-  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(autoOpenCreate || false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [form, setForm] = useState({
