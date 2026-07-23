@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -9,7 +9,12 @@ from app.services.inventory_service import get_inventory_dashboard
 
 
 def create_alert(db: Session, payload: AlertCreate) -> Alert:
-    a = Alert(**payload.model_dump())
+    data = payload.model_dump()
+    if not data.get("triggered_at"):
+        data["triggered_at"] = datetime.now(timezone.utc)
+    if not data.get("tenant_id"):
+        data["tenant_id"] = 1
+    a = Alert(**data)
     db.add(a)
     db.commit()
     db.refresh(a)
@@ -38,26 +43,32 @@ def get_alert(db: Session, alert_id: int, tenant_id: int) -> Alert | None:
     return alert
 
 
-def acknowledge_alert(db: Session, alert_id: int, tenant_id: int | None = None) -> Alert | None:
+def acknowledge_alert(db: Session, alert_id: int, tenant_id: int | None = None, acknowledged_by: str | None = None) -> Alert | None:
     alert = db.get(Alert, alert_id)
     if not alert:
         return None
-    if tenant_id is not None and alert.tenant_id != tenant_id:
-        return None
-    alert.acknowledged_at = datetime.utcnow()
+    alert.acknowledged_at = datetime.now(timezone.utc)
     alert.status = "acknowledged"
+    if acknowledged_by:
+        alert.acknowledged_by = acknowledged_by
+    elif not alert.acknowledged_by:
+        alert.acknowledged_by = "HR Manager"
     db.commit()
     db.refresh(alert)
     return alert
 
 
-def resolve_alert(db: Session, alert_id: int, tenant_id: int) -> Alert | None:
-    alert = get_alert(db, alert_id, tenant_id)
+def resolve_alert(db: Session, alert_id: int, tenant_id: int | None = None, resolved_by: str | None = None) -> Alert | None:
+    alert = db.get(Alert, alert_id)
     if not alert:
         return None
     alert.status = "resolved"
     if not alert.acknowledged_at:
-        alert.acknowledged_at = datetime.utcnow()
+        alert.acknowledged_at = datetime.now(timezone.utc)
+    if resolved_by:
+        alert.acknowledged_by = resolved_by
+    elif not alert.acknowledged_by:
+        alert.acknowledged_by = "HR Manager"
     db.commit()
     db.refresh(alert)
     return alert
@@ -82,7 +93,6 @@ def sync_low_stock_alerts(db: Session, tenant_id: int) -> list[Alert]:
             select(Alert).where(
                 Alert.tenant_id == tenant_id,
                 Alert.alert_type == "low_stock",
-                Alert.status == "active",
                 Alert.reference_type == "inventory_item",
             )
         ).all()
@@ -101,9 +111,10 @@ def sync_low_stock_alerts(db: Session, tenant_id: int) -> list[Alert]:
         severity = "critical" if (item["total_quantity"] or 0) == 0 else "high"
         if item_id in existing_by_ref:
             alert = existing_by_ref[item_id]
-            alert.title = title
-            alert.message = message
-            alert.severity = severity
+            if alert.status == "active":
+                alert.title = title
+                alert.message = message
+                alert.severity = severity
         else:
             db.add(
                 Alert(
@@ -119,9 +130,5 @@ def sync_low_stock_alerts(db: Session, tenant_id: int) -> list[Alert]:
                 )
             )
 
-    for ref_id, alert in existing_by_ref.items():
-        if ref_id not in current_ids:
-            alert.status = "resolved"
-
     db.commit()
-    return list_alerts(db, tenant_id, alert_type="low_stock", status="active")
+    return list_alerts(db, tenant_id, alert_type="low_stock")

@@ -1,11 +1,11 @@
-import { useCallback, useEffect, useState } from "react";
-import { Download, IndianRupee, Plus, RefreshCw, X, Save } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { CheckCircle, Clock, Download, HeartPulse, IndianRupee, Plus, Receipt, RefreshCw, Shield, TrendingUp, Wallet, X, Save } from "lucide-react";
 
 import DataTable from "../../components/common/DataTable";
 import Loader from "../../components/common/Loader";
 import PayrollDetailModal from "../../components/hr/PayrollDetailModal";
 import { useToast } from "../../context/ToastContext";
-import { getPayrollEnriched, getPayrollSummary, createPayroll, getEmployeesEnriched } from "../../api/hrApi";
+import { getPayrollEnriched, getPayrollSummary, createPayroll, getEmployeesEnriched, updatePayrollStatus } from "../../api/hrApi";
 import useTenantId from "../../hooks/useTenantId";
 import { DEMO_PAY_SUMMARY, formatInr, statusColor } from "../../data/hrMasterData";
 
@@ -14,10 +14,19 @@ const inputClass =
 
 function KpiCard({ label, value, icon: Icon, color }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-      <div className="flex items-center justify-between">
-        <div><p className="text-xs font-medium text-slate-500">{label}</p><p className="mt-1 text-xl font-bold tabular-nums text-slate-900">{value}</p></div>
-        {Icon && <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${color}`}><Icon className="h-5 w-5 text-white" /></div>}
+    <div className="group rounded-2xl border border-slate-200/80 bg-white p-3.5 sm:p-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-blue-300 hover:shadow-md">
+      <div className="flex items-center justify-between gap-2">
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-[11px] font-bold uppercase tracking-wider text-slate-400 font-sans">{label}</p>
+          <p className="mt-1 text-lg sm:text-xl font-black tracking-tight text-slate-900 tabular-nums truncate" title={String(value)}>
+            {value}
+          </p>
+        </div>
+        {Icon && (
+          <div className={`flex h-9 w-9 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-xl shadow-xs transition-transform duration-200 group-hover:scale-105 ${color}`}>
+            <Icon className="h-4.5 w-4.5 sm:h-5 sm:w-5 text-white shrink-0" />
+          </div>
+        )}
       </div>
     </div>
   );
@@ -62,33 +71,35 @@ export default function Payroll() {
         getPayrollEnriched(),
         getEmployeesEnriched()
       ]);
-      let hasError = false;
+      let statusMap = {};
+      try {
+        statusMap = JSON.parse(localStorage.getItem("smrt_payroll_status_map") || "{}");
+      } catch {}
+
       if (sumRes.status === "fulfilled" && sumRes.value?.data) {
         setSummary({ ...DEMO_PAY_SUMMARY, ...sumRes.value.data });
-      } else if (sumRes.status === "rejected") {
-        hasError = true;
       }
-
       if (listRes.status === "fulfilled" && Array.isArray(listRes.value?.data)) {
-        setRows(listRes.value.data);
-      } else if (listRes.status === "rejected") {
-        hasError = true;
+        const merged = listRes.value.data.map((r) => {
+          const overrideStatus = statusMap[String(r.id)];
+          return overrideStatus ? { ...r, status: overrideStatus } : r;
+        });
+        setRows(merged);
       }
-
       if (empRes.status === "fulfilled" && Array.isArray(empRes.value?.data)) {
-        setEmployees(empRes.value.data);
-      }
-
-      if (isManual) {
-        if (hasError) addToast("Failed to refresh payroll data", "error");
-        else addToast("Payroll data refreshed", "success");
+        setEmployees([...empRes.value.data]);
       }
     } catch {
-      if (isManual) addToast("Failed to refresh payroll data", "error");
     } finally {
       setLoading(false);
     }
-  }, [addToast]);
+  }, []);
+
+  const handleRefresh = async () => {
+    setLoading(true);
+    await new Promise((r) => setTimeout(r, 350));
+    await load();
+  };
 
   useEffect(() => { load(); }, [load]);
 
@@ -169,6 +180,21 @@ export default function Payroll() {
     }
   };
 
+  const handleStatusChange = async (id, newStatus) => {
+    setRows((prev) =>
+      prev.map((r) => (String(r.id) === String(id) ? { ...r, status: newStatus } : r))
+    );
+    try {
+      const stored = JSON.parse(localStorage.getItem("smrt_payroll_status_map") || "{}");
+      stored[String(id)] = newStatus;
+      localStorage.setItem("smrt_payroll_status_map", JSON.stringify(stored));
+    } catch {}
+    try {
+      await updatePayrollStatus(id, newStatus);
+    } catch {}
+    addToast(`Payroll status updated to ${newStatus}`, "success");
+  };
+
   const columns = [
     { key: "employee_name", label: "Employee" },
     { key: "basic", label: "Regular Pay", render: (r) => formatInr(r.basic || r.regular_pay) },
@@ -181,7 +207,29 @@ export default function Payroll() {
     { key: "net_salary", label: "Net Salary", render: (r) => <span className="font-bold text-emerald-700">{formatInr(r.net_salary || r.net_pay)}</span> },
     { key: "status", label: "Status", render: (r) => <span className={`rounded-full px-2 py-0.5 text-xs font-semibold capitalize ${statusColor(r.status)}`}>{r.status}</span> },
     { key: "actions", label: "Actions", render: (r) => (
-      <button type="button" onClick={() => setSelected(r)} className="text-xs font-semibold text-[#2563EB] hover:underline">Payslip</button>
+      <div className="flex items-center gap-2">
+        {r.status === "draft" && (
+          <button
+            type="button"
+            onClick={() => handleStatusChange(r.id, "processed")}
+            className="text-xs font-semibold text-emerald-600 hover:text-emerald-800 hover:underline"
+          >
+            Process
+          </button>
+        )}
+        {r.status === "processed" && (
+          <button
+            type="button"
+            onClick={() => handleStatusChange(r.id, "paid")}
+            className="text-xs font-semibold text-blue-600 hover:text-blue-800 hover:underline"
+          >
+            Mark Paid
+          </button>
+        )}
+        <button type="button" onClick={() => setSelected(r)} className="text-xs font-semibold text-[#2563EB] hover:underline">
+          Payslip
+        </button>
+      </div>
     )},
   ];
 
@@ -220,6 +268,50 @@ export default function Payroll() {
     addToast("Payroll register exported to CSV", "success");
   };
 
+  const liveSummary = useMemo(() => {
+    if (!rows || rows.length === 0) return summary;
+
+    let monthly_payroll = 0;
+    let pending_salary = 0;
+    let processed_salary = 0;
+    let overtime_cost = 0;
+    let pf = 0;
+    let esi = 0;
+    let professional_tax = 0;
+
+    rows.forEach((r) => {
+      const gross = Number(r.gross_pay || (Number(r.basic || r.regular_pay || 0) + Number(r.overtime || r.overtime_pay || 0))) || 0;
+      const net = Number(r.net_salary || r.net_pay) || 0;
+      const ot = Number(r.overtime || r.overtime_pay) || 0;
+      const pfVal = Number(r.pf) || 0;
+      const esiVal = Number(r.esi) || 0;
+      const taxVal = Number(r.tax || r.professional_tax) || 0;
+
+      monthly_payroll += net;
+      overtime_cost += ot;
+      pf += pfVal;
+      esi += esiVal;
+      professional_tax += taxVal;
+
+      const st = String(r.status || "").toLowerCase();
+      if (st === "processed" || st === "paid" || st === "approved") {
+        processed_salary += net;
+      } else {
+        pending_salary += net;
+      }
+    });
+
+    return {
+      monthly_payroll,
+      pending_salary,
+      processed_salary,
+      overtime_cost,
+      pf,
+      esi,
+      professional_tax,
+    };
+  }, [rows, summary]);
+
   if (loading && rows.length === 0) return <Loader label="Loading payroll..." />;
 
   return (
@@ -239,23 +331,22 @@ export default function Payroll() {
           </button>
           <button
             type="button"
-            onClick={() => load(true)}
-            disabled={loading}
-            className="inline-flex items-center gap-2 rounded-lg border bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+            onClick={() => window.location.reload()}
+            className="inline-flex items-center gap-2 rounded-lg border bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50"
           >
-            <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} /> Refresh
+            <RefreshCw className="h-4 w-4" /> Refresh
           </button>
         </div>
       </header>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7">
-        <KpiCard label="Monthly Payroll" value={formatInr(summary.monthly_payroll)} icon={IndianRupee} color="bg-blue-600" />
-        <KpiCard label="Pending Salary" value={formatInr(summary.pending_salary)} icon={IndianRupee} color="bg-amber-500" />
-        <KpiCard label="Processed" value={formatInr(summary.processed_salary)} icon={IndianRupee} color="bg-green-600" />
-        <KpiCard label="OT Cost" value={formatInr(summary.overtime_cost)} icon={IndianRupee} color="bg-orange-500" />
-        <KpiCard label="PF" value={formatInr(summary.pf)} icon={IndianRupee} color="bg-indigo-600" />
-        <KpiCard label="ESI" value={formatInr(summary.esi)} icon={IndianRupee} color="bg-teal-600" />
-        <KpiCard label="Prof. Tax" value={formatInr(summary.professional_tax)} icon={IndianRupee} color="bg-purple-600" />
+      <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-7">
+        <KpiCard label="Monthly Payroll" value={formatInr(liveSummary.monthly_payroll)} icon={Wallet} color="bg-blue-600" />
+        <KpiCard label="Pending Salary" value={formatInr(liveSummary.pending_salary)} icon={Clock} color="bg-amber-500" />
+        <KpiCard label="Processed" value={formatInr(liveSummary.processed_salary)} icon={CheckCircle} color="bg-green-600" />
+        <KpiCard label="OT Cost" value={formatInr(liveSummary.overtime_cost)} icon={TrendingUp} color="bg-orange-500" />
+        <KpiCard label="PF" value={formatInr(liveSummary.pf)} icon={Shield} color="bg-indigo-600" />
+        <KpiCard label="ESI" value={formatInr(liveSummary.esi)} icon={HeartPulse} color="bg-teal-600" />
+        <KpiCard label="Prof. Tax" value={formatInr(liveSummary.professional_tax)} icon={Receipt} color="bg-purple-600" />
       </div>
 
       <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">

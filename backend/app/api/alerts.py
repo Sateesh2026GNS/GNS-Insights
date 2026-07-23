@@ -31,6 +31,8 @@ def create_alert_endpoint(
     db: Session = Depends(get_db),
 ) -> AlertRead:
     payload.tenant_id = user.tenant_id
+    if not payload.created_by:
+        payload.created_by = getattr(user, "full_name", None) or getattr(user, "name", None) or user.email or "HR Manager"
     return create_alert(db, payload)
 
 
@@ -42,7 +44,7 @@ def list_alerts_endpoint(
     sync_low_stock: bool = Query(False),
     db: Session = Depends(get_db),
 ) -> list[AlertRead]:
-    if sync_low_stock or alert_type == "low_stock":
+    if sync_low_stock:
         sync_low_stock_alerts(db, tenant_id)
     return list_alerts(db, tenant_id, alert_type, status)
 
@@ -102,9 +104,11 @@ def get_alert_endpoint(
 def acknowledge_alert_endpoint(
     alert_id: int,
     tenant_id: int = Depends(tenant_scope(MODULE)),
+    user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    alert = acknowledge_alert(db, alert_id, tenant_id)
+    userName = getattr(user, "full_name", None) or getattr(user, "name", None) or user.email
+    alert = acknowledge_alert(db, alert_id, tenant_id, acknowledged_by=userName)
     if not alert:
         raise HTTPException(404, "Alert not found")
     return {"acknowledged": True, "id": alert.id}
@@ -114,9 +118,11 @@ def acknowledge_alert_endpoint(
 def acknowledge_alert_put_endpoint(
     alert_id: int,
     tenant_id: int = Depends(tenant_scope(MODULE)),
+    user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> AlertRead:
-    alert = acknowledge_alert(db, alert_id, tenant_id)
+    userName = getattr(user, "full_name", None) or getattr(user, "name", None) or user.email
+    alert = acknowledge_alert(db, alert_id, tenant_id, acknowledged_by=userName)
     if not alert:
         raise HTTPException(404, "Alert not found")
     return alert
@@ -126,9 +132,11 @@ def acknowledge_alert_put_endpoint(
 def resolve_alert_endpoint(
     alert_id: int,
     tenant_id: int = Depends(tenant_scope(MODULE)),
+    user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> AlertRead:
-    alert = resolve_alert(db, alert_id, tenant_id)
+    userName = getattr(user, "full_name", None) or getattr(user, "name", None) or user.email
+    alert = resolve_alert(db, alert_id, tenant_id, resolved_by=userName)
     if not alert:
         raise HTTPException(404, "Alert not found")
     return alert

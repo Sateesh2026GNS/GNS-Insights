@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Calendar, Clock, Filter, Moon, RefreshCw, UserCheck, UserMinus, UserX } from "lucide-react";
+import { Calendar, Clock, Filter, Moon, RefreshCw, Timer, UserCheck, UserMinus, UserX } from "lucide-react";
 
 import DataTable from "../../components/common/DataTable";
 import Loader from "../../components/common/Loader";
@@ -9,10 +9,19 @@ import { DEMO_ATT_SUMMARY, sourceLabel, statusColor } from "../../data/hrMasterD
 
 function KpiCard({ label, value, icon: Icon, color, suffix }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-      <div className="flex items-center justify-between">
-        <div><p className="text-xs font-medium text-slate-500">{label}</p><p className="mt-1 text-xl font-bold text-slate-900">{value}{suffix || ""}</p></div>
-        {Icon && <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${color}`}><Icon className="h-5 w-5 text-white" /></div>}
+    <div className="group rounded-2xl border border-slate-200/80 bg-white p-3.5 sm:p-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-blue-300 hover:shadow-md">
+      <div className="flex items-center justify-between gap-2">
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-[11px] font-bold uppercase tracking-wider text-slate-400 font-sans">{label}</p>
+          <p className="mt-1 text-lg sm:text-xl font-black tracking-tight text-slate-900 tabular-nums truncate" title={`${value}${suffix || ""}`}>
+            {value}{suffix || ""}
+          </p>
+        </div>
+        {Icon && (
+          <div className={`flex h-9 w-9 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-xl shadow-xs transition-transform duration-200 group-hover:scale-105 ${color}`}>
+            <Icon className="h-4.5 w-4.5 sm:h-5 sm:w-5 text-white shrink-0" />
+          </div>
+        )}
       </div>
     </div>
   );
@@ -34,7 +43,7 @@ export default function Attendance() {
   const [action, setAction] = useState("in");
   const [view, setView] = useState("table");
 
-  const load = useCallback(async (isManual = false) => {
+  const load = useCallback(async () => {
     setLoading(true);
     try {
       const [sumRes, listRes, empRes, shiftRes] = await Promise.allSettled([
@@ -45,19 +54,24 @@ export default function Attendance() {
       ]);
       if (sumRes.status === "fulfilled" && sumRes.value?.data) setSummary({ ...DEMO_ATT_SUMMARY, ...sumRes.value.data });
       if (listRes.status === "fulfilled" && listRes.value?.data) {
-        setRows(listRes.value.data);
+        setRows([...listRes.value.data]);
       } else {
         setRows([]);
       }
-      if (empRes.status === "fulfilled") setEmployees(empRes.value?.data || []);
-      if (shiftRes.status === "fulfilled") setShifts(shiftRes.value?.data || []);
-      if (isManual) addToast("Attendance data refreshed", "success");
+      if (empRes.status === "fulfilled") setEmployees([...(empRes.value?.data || [])]);
+      if (shiftRes.status === "fulfilled") setShifts([...(shiftRes.value?.data || [])]);
     } catch {
       setRows([]);
     } finally {
       setLoading(false);
     }
-  }, [addToast, recordDate]);
+  }, [recordDate]);
+
+  const handleRefresh = async () => {
+    setLoading(true);
+    await new Promise((r) => setTimeout(r, 350));
+    await load();
+  };
 
   useEffect(() => { load(); }, [load]);
 
@@ -144,14 +158,14 @@ export default function Attendance() {
         <p className="mt-1 text-sm text-slate-500">Biometric, RFID, GPS, QR integration with shift-wise tracking.</p>
       </header>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
+      <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-4 2xl:grid-cols-7">
         <KpiCard label="Present" value={summary.present} icon={UserCheck} color="bg-green-600" />
         <KpiCard label="Absent" value={summary.absent} icon={UserMinus} color="bg-red-500" />
         <KpiCard label="Late" value={summary.late} icon={Clock} color="bg-amber-500" />
         <KpiCard label="Half Day" value={summary.half_day} icon={UserX} color="bg-orange-500" />
         <KpiCard label="Overtime (h)" value={summary.overtime} icon={Clock} color="bg-indigo-600" />
         <KpiCard label="Night Shift" value={summary.night_shift} icon={Moon} color="bg-purple-600" />
-        <KpiCard label="Total Hours" value={summary.total_working_hours} icon={Clock} color="bg-teal-600" suffix="h" />
+        <KpiCard label="Total Hours" value={summary.total_working_hours} icon={Timer} color="bg-teal-600" suffix="h" />
       </div>
 
       <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
@@ -182,11 +196,10 @@ export default function Attendance() {
         </div>
         <button
           type="button"
-          onClick={() => load(true)}
-          disabled={loading}
-          className="inline-flex items-center gap-2 rounded-lg border bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+          onClick={() => window.location.reload()}
+          className="inline-flex items-center gap-2 rounded-lg border bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
         >
-          <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} /> Refresh
+          <RefreshCw className="h-4 w-4" /> Refresh
         </button>
       </div>
 

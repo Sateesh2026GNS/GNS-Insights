@@ -147,6 +147,20 @@ def create_payroll_record(db: Session, payload: PayrollRecordCreate) -> PayrollR
     return pr
 
 
+def update_payroll_status(db: Session, tenant_id: int, payroll_id: int, new_status: str) -> PayrollRecord | None:
+    pr = db.scalar(
+        select(PayrollRecord).where(
+            PayrollRecord.tenant_id == tenant_id, PayrollRecord.id == payroll_id
+        )
+    )
+    if not pr:
+        return None
+    pr.status = new_status
+    db.commit()
+    db.refresh(pr)
+    return pr
+
+
 def list_payroll(
     db: Session,
     tenant_id: int,

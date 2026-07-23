@@ -281,9 +281,13 @@ SIDEBAR_MENU_CATALOG = [
         "children": [
             {"label": "All Alerts", "path": "/alerts", "module": "alerts"},
             {"label": "Low Stock", "path": "/alerts/low-stock", "module": "alerts"},
-            {"label": "Machine Failure", "path": "/alerts/machine-failure", "module": "alerts"},
+            {"label": "Machine / Equipment", "path": "/alerts/machine-failure", "module": "alerts"},
             {"label": "Production Delay", "path": "/alerts/production-delay", "module": "alerts"},
             {"label": "Maintenance", "path": "/alerts/maintenance", "module": "alerts"},
+            {"label": "Quality", "path": "/alerts/quality", "module": "alerts"},
+            {"label": "HR & Personnel", "path": "/alerts/hr", "module": "alerts"},
+            {"label": "Safety & Incident", "path": "/alerts/safety", "module": "alerts"},
+            {"label": "General", "path": "/alerts/general", "module": "alerts"},
         ],
     },
     {

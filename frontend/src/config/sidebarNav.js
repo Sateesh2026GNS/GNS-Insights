@@ -171,6 +171,10 @@ export const SIDEBAR_NAV = [
       { labelKey: "erpNav.machineFailureAlerts", to: "/alerts/machine-failure", module: "alerts" },
       { labelKey: "erpNav.productionDelayAlerts", to: "/alerts/production-delay", module: "alerts" },
       { labelKey: "erpNav.maintenanceAlerts", to: "/alerts/maintenance", module: "alerts" },
+      { labelKey: "erpNav.qualityAlerts", to: "/alerts/quality", module: "alerts" },
+      { labelKey: "erpNav.hrAlerts", to: "/alerts/hr", module: "alerts" },
+      { labelKey: "erpNav.safetyAlerts", to: "/alerts/safety", module: "alerts" },
+      { labelKey: "erpNav.generalAlerts", to: "/alerts/general", module: "alerts" },
     ],
   },
   {

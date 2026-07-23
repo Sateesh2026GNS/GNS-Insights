@@ -1,5 +1,5 @@
-import { useEffect, useState, useCallback } from "react";
-import { Plus, RefreshCw, X, Save } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { Clock, Coffee, Layers, Plus, RefreshCw, X, Save } from "lucide-react";
 
 import Loader from "../../components/common/Loader";
 import Table from "../../components/common/Table";
@@ -9,6 +9,24 @@ import { useToast } from "../../context/ToastContext";
 
 const inputClass =
   "mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-800 placeholder:text-slate-400 focus:border-[#2563EB] focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all";
+
+function KpiCard({ label, value, icon: Icon, color }) {
+  return (
+    <div className="group rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-blue-300 hover:shadow-md">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400 font-sans">{label}</p>
+          <p className="mt-1.5 text-2xl font-black tracking-tight text-slate-900 tabular-nums">{value}</p>
+        </div>
+        {Icon && (
+          <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl shadow-sm transition-transform duration-200 group-hover:scale-105 ${color}`}>
+            <Icon className="h-5.5 w-5.5 text-white" />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
 function formatTime(t) {
   if (!t) return "-";
@@ -33,13 +51,23 @@ export default function Shifts() {
     capacity_hours: "8",
   });
 
-  const loadShifts = useCallback(() => {
+  const loadShifts = useCallback(async () => {
     setLoading(true);
-    getShifts(tenantId)
-      .then((r) => setShifts(r.data || []))
-      .catch(console.error)
-      .finally(() => setLoading(false));
+    try {
+      const r = await getShifts(tenantId);
+      setShifts([...(r.data || [])]);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
   }, [tenantId]);
+
+  const handleRefresh = async () => {
+    setLoading(true);
+    await new Promise((r) => setTimeout(r, 350));
+    await loadShifts();
+  };
 
   useEffect(() => {
     loadShifts();
@@ -74,6 +102,10 @@ export default function Shifts() {
     }
   };
 
+  const totalShifts = shifts.length;
+  const avgCapacity = totalShifts > 0 ? (shifts.reduce((acc, s) => acc + Number(s.capacity_hours || 0), 0) / totalShifts).toFixed(1) + " h" : "0 h";
+  const totalBreak = totalShifts > 0 ? shifts.reduce((acc, s) => acc + Number(s.break_minutes || 0), 0) + " m" : "0 m";
+
   if (loading && shifts.length === 0) return <Loader label="Loading shifts..." />;
 
   return (
@@ -93,14 +125,19 @@ export default function Shifts() {
           </button>
           <button
             type="button"
-            onClick={loadShifts}
-            disabled={loading}
-            className="inline-flex items-center gap-2 rounded-lg border bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+            onClick={() => window.location.reload()}
+            className="inline-flex items-center gap-2 rounded-lg border bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50"
           >
-            <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} /> Refresh
+            <RefreshCw className="h-4 w-4" /> Refresh
           </button>
         </div>
       </header>
+
+      <div className="grid gap-4 sm:grid-cols-3">
+        <KpiCard label="Configured Shifts" value={totalShifts} icon={Layers} color="bg-blue-600" />
+        <KpiCard label="Avg Capacity" value={avgCapacity} icon={Clock} color="bg-indigo-600" />
+        <KpiCard label="Total Break Time" value={totalBreak} icon={Coffee} color="bg-teal-600" />
+      </div>
 
       <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
         <Table

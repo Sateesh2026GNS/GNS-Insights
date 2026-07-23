@@ -19,6 +19,9 @@ class Alert(Base, TimestampMixin):
     message: Mapped[str | None] = mapped_column(Text)
     severity: Mapped[str] = mapped_column(String(32), default="medium", nullable=False)
     status: Mapped[str] = mapped_column(String(32), default="active", nullable=False)
+    assigned_to: Mapped[str | None] = mapped_column(String(255))
+    created_by: Mapped[str | None] = mapped_column(String(255))
+    acknowledged_by: Mapped[str | None] = mapped_column(String(255))
     triggered_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     acknowledged_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     reference_type: Mapped[str | None] = mapped_column(String(64))  # item_id, machine_id, etc.

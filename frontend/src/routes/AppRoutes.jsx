@@ -578,6 +578,10 @@ export default function AppRoutes() {
       <Route path="/alerts/machine-failure" element={<ProtectedRoute><P.MachineFailureAlerts /></ProtectedRoute>} />
       <Route path="/alerts/production-delay" element={<ProtectedRoute><P.ProductionDelayAlerts /></ProtectedRoute>} />
       <Route path="/alerts/maintenance" element={<ProtectedRoute><P.MaintenanceReminders /></ProtectedRoute>} />
+      <Route path="/alerts/quality" element={<ProtectedRoute><P.QualityAlerts /></ProtectedRoute>} />
+      <Route path="/alerts/hr" element={<ProtectedRoute><P.HrAlerts /></ProtectedRoute>} />
+      <Route path="/alerts/safety" element={<ProtectedRoute><P.SafetyAlerts /></ProtectedRoute>} />
+      <Route path="/alerts/general" element={<ProtectedRoute><P.GeneralAlerts /></ProtectedRoute>} />
       <Route path="/admin/users" element={<ProtectedRoute><P.UserManagement /></ProtectedRoute>} />
       <Route path="/admin/roles" element={<ProtectedRoute><P.RolesPermissions /></ProtectedRoute>} />
       <Route path="/admin/permissions" element={<ProtectedRoute><P.RolesPermissions /></ProtectedRoute>} />

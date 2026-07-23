@@ -202,11 +202,12 @@ def list_leave_enriched(db: Session, tenant_id: int) -> list[LeaveListRead]:
 def get_payroll_summary(db: Session, tenant_id: int) -> PayrollSummaryRead:
     records = list(db.scalars(select(PayrollRecord).where(PayrollRecord.tenant_id == tenant_id)).all())
     monthly = sum(float(r.net_pay or 0) for r in records)
-    pending = sum(float(r.net_pay or 0) for r in records if r.status == "draft")
-    processed = sum(float(r.net_pay or 0) for r in records if r.status == "processed")
+    pending = sum(float(r.net_pay or 0) for r in records if (r.status or "").lower() not in ["processed", "paid", "approved"])
+    processed = sum(float(r.net_pay or 0) for r in records if (r.status or "").lower() in ["processed", "paid", "approved"])
     ot_cost = sum(float(r.overtime_pay or 0) for r in records)
-    pf = sum(float(getattr(r, "pf", 0) or 0) for r in records) or monthly * 0.12
-    esi = sum(float(getattr(r, "esi", 0) or 0) for r in records) or monthly * 0.0075
+    pf = sum(float(getattr(r, "pf", 0) or 0) for r in records)
+    esi = sum(float(getattr(r, "esi", 0) or 0) for r in records)
+    tax = sum(float(getattr(r, "tax", 0) or 0) for r in records)
     return PayrollSummaryRead(
         monthly_payroll=monthly,
         pending_salary=pending,
@@ -214,7 +215,7 @@ def get_payroll_summary(db: Session, tenant_id: int) -> PayrollSummaryRead:
         overtime_cost=ot_cost,
         pf=pf,
         esi=esi,
-        professional_tax=2500 * len(records),
+        professional_tax=tax,
     )
 
 
@@ -280,6 +281,23 @@ def get_hr_hub(db: Session, tenant_id: int) -> HRHubRead:
     if att_sum.late > 0:
         alerts.append({"type": "attendance", "message": f"{att_sum.late} employees late today"})
 
+    shift_emp_map: dict[str, int] = {}
+    for e in emps:
+        s_name = getattr(e, "shift_name", None) or "General"
+        shift_emp_map[s_name] = shift_emp_map.get(s_name, 0) + 1
+
+    total_active_emps = len(emps)
+    shift_util_list = []
+    if shifts:
+        for s in shifts[:4]:
+            emp_cnt = shift_emp_map.get(s.name, 0)
+            util = round((emp_cnt / total_active_emps * 100)) if total_active_emps > 0 else 0
+            shift_util_list.append({"name": s.name, "utilization": util})
+    elif shift_emp_map:
+        for s_name, emp_cnt in list(shift_emp_map.items())[:4]:
+            util = round((emp_cnt / total_active_emps * 100)) if total_active_emps > 0 else 0
+            shift_util_list.append({"name": s_name, "utilization": util})
+
     return HRHubRead(
         total_employees=emp_sum.total_employees,
         present_today=emp_sum.present_today,
@@ -289,6 +307,6 @@ def get_hr_hub(db: Session, tenant_id: int) -> HRHubRead:
         new_joiners=emp_sum.new_joiners,
         attrition_rate=0.0,
         department_strength=[{"name": k, "count": v} for k, v in sorted(dept_map.items(), key=lambda x: -x[1])[:8]],
-        shift_utilization=[{"name": s.name, "utilization": 85} for s in shifts[:4]],
+        shift_utilization=shift_util_list,
         alerts=alerts,
     )

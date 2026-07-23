@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Plus, RefreshCw, Briefcase, UserCheck, UserMinus, UserPlus, Users, Filter, X, Save } from "lucide-react";
+import { Plus, RefreshCw, Briefcase, UserCheck, UserMinus, UserPlus, Users, Filter, X, Save, Clock, Building2, FileText } from "lucide-react";
 
 import DataTable from "../../components/common/DataTable";
 import Loader from "../../components/common/Loader";
@@ -14,10 +14,19 @@ const inputClass =
 
 function KpiCard({ label, value, icon: Icon, color, suffix }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-      <div className="flex items-center justify-between">
-        <div><p className="text-xs font-medium text-slate-500">{label}</p><p className="mt-1 text-xl font-bold text-slate-900">{value}{suffix || ""}</p></div>
-        {Icon && <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${color}`}><Icon className="h-5 w-5 text-white" /></div>}
+    <div className="group rounded-2xl border border-slate-200/80 bg-white p-3.5 sm:p-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-blue-300 hover:shadow-md">
+      <div className="flex items-center justify-between gap-2">
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-[11px] font-bold uppercase tracking-wider text-slate-400 font-sans">{label}</p>
+          <p className="mt-1 text-lg sm:text-xl font-black tracking-tight text-slate-900 tabular-nums truncate" title={`${value}${suffix || ""}`}>
+            {value}{suffix || ""}
+          </p>
+        </div>
+        {Icon && (
+          <div className={`flex h-9 w-9 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-xl shadow-xs transition-transform duration-200 group-hover:scale-105 ${color}`}>
+            <Icon className="h-4.5 w-4.5 sm:h-5 sm:w-5 text-white shrink-0" />
+          </div>
+        )}
       </div>
     </div>
   );
@@ -68,37 +77,26 @@ export default function Employees() {
 
         if (sumRes.status === "fulfilled" && sumRes.value?.data) {
           setSummary({ ...DEMO_EMP_SUMMARY, ...sumRes.value.data });
-        } else if (sumRes.status === "rejected") {
-          hasError = true;
         }
-
         if (listRes.status === "fulfilled" && Array.isArray(listRes.value?.data)) {
-          setRows(listRes.value.data);
-        } else if (listRes.status === "rejected") {
-          hasError = true;
+          setRows([...listRes.value.data]);
         }
-
         if (shiftRes.status === "fulfilled" && Array.isArray(shiftRes.value?.data)) {
-          setShifts(shiftRes.value.data);
-        } else if (shiftRes.status === "rejected") {
-          hasError = true;
-        }
-
-        if (isManual) {
-          if (hasError) {
-            addToast("Failed to refresh employee data", "error");
-          } else {
-            addToast("Employee data refreshed", "success");
-          }
+          setShifts([...shiftRes.value.data]);
         }
       } catch {
-        if (isManual) addToast("Failed to refresh employee data", "error");
       } finally {
         setLoading(false);
       }
     },
-    [addToast]
+    []
   );
+
+  const handleRefresh = async () => {
+    setLoading(true);
+    await new Promise((r) => setTimeout(r, 350));
+    await load();
+  };
 
   useEffect(() => { load(); }, [load]);
 
@@ -207,23 +205,22 @@ export default function Employees() {
           </button>
           <button
             type="button"
-            onClick={() => load(true)}
-            disabled={loading}
-            className="inline-flex items-center gap-2 rounded-lg border bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+            onClick={() => window.location.reload()}
+            className="inline-flex items-center gap-2 rounded-lg border bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50"
           >
-            <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} /> Refresh
+            <RefreshCw className="h-4 w-4" /> Refresh
           </button>
         </div>
       </header>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8">
+      <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-8">
         <KpiCard label="Total Employees" value={summary.total_employees} icon={Users} color="bg-blue-600" />
         <KpiCard label="Present Today" value={summary.present_today} icon={UserCheck} color="bg-green-600" />
         <KpiCard label="Absent" value={summary.absent} icon={UserMinus} color="bg-red-500" />
         <KpiCard label="On Leave" value={summary.on_leave} icon={Briefcase} color="bg-amber-500" />
-        <KpiCard label="Overtime (h)" value={summary.overtime} icon={Briefcase} color="bg-orange-500" />
-        <KpiCard label="Departments" value={summary.departments} icon={Users} color="bg-indigo-600" />
-        <KpiCard label="Contract" value={summary.contract_employees} icon={Users} color="bg-teal-600" />
+        <KpiCard label="Overtime (h)" value={summary.overtime} icon={Clock} color="bg-orange-500" />
+        <KpiCard label="Departments" value={summary.departments} icon={Building2} color="bg-indigo-600" />
+        <KpiCard label="Contract" value={summary.contract_employees} icon={FileText} color="bg-teal-600" />
         <KpiCard label="New Joiners" value={summary.new_joiners} icon={UserPlus} color="bg-purple-600" />
       </div>
 
