@@ -25,7 +25,7 @@ export const ROLE_PERMISSIONS = {
   "Store Manager": MODULES,
   "HR Manager": MODULES,
   Accountant: MODULES,
-  Operator: MODULES,
+  Operator: ["dashboard", "production", "factoryMonitor", "attendance", "documents", "alerts"],
 };
 
 export const RESTRICTED_ACTION_ROLES = new Set();
