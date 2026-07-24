@@ -44,6 +44,9 @@ export default function ResourcePage({
   const { addToast } = useToast();
   const tenantId = user?.tenant_id ?? 1;
 
+  // Operators are read-only — hide all create / edit / delete actions
+  const isOperator = (user?.role ?? user?.role_name ?? "").toLowerCase() === "operator";
+
   const [loading, setLoading] = useState(true);
   const [rows, setRows] = useState([]);
   const [open, setOpen] = useState(false);
@@ -118,7 +121,7 @@ export default function ResourcePage({
     }
   };
 
-  const tableColumns = rowActions
+  const tableColumns = rowActions && !isOperator
     ? [
         ...columns,
         {
@@ -137,7 +140,7 @@ export default function ResourcePage({
         title={title}
         subtitle={subtitle}
         action={
-          createFn ? (
+          createFn && !isOperator ? (
             <button
               type="button"
               onClick={openModal}
@@ -167,7 +170,7 @@ export default function ResourcePage({
         />
       </div>
 
-      {createFn && (
+      {createFn && !isOperator && (
         <AdminModal title={title} subtitle="Create a new record" open={open} onClose={() => setOpen(false)}>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
